@@ -1402,8 +1402,17 @@
         const resW = 92;
 
         const mid = cx;
-        const battX = clamp(mid - (resW*0.5 + 26 + battW), xL + 10, xR - (resW + battW + 60));
-        const resX0 = clamp(mid + 20, xL + battW + 40, xR - (resW + 10));
+        const isNarrow = w < 520;
+        const minGapAfterSwitch = isNarrow ? 52 : 28;
+
+        const swX0 = xL + 24;
+        const swX1 = swX0 + 16;
+
+        let battX = clamp(mid - (resW*0.5 + 26 + battW), xL + 10, xR - (resW + battW + 60));
+        battX = clamp(Math.max(battX, swX1 + minGapAfterSwitch), xL + 10, xR - (resW + battW + 60));
+
+        let resX0 = clamp(mid + 20, xL + battW + 40, xR - (resW + 10));
+        resX0 = clamp(Math.max(resX0, battX + battW + 28), xL + battW + 40, xR - (resW + 10));
         const yComp = yBus;
 
         ctx.save();
@@ -1419,8 +1428,6 @@
         ctx.stroke();
 
         // Bottom wire (series path): left node -> switch -> battery -> resistor -> right node
-        const swX0 = xL + 24;
-        const swX1 = swX0 + 16;
         const swY = yBus;
         ctx.beginPath();
         ctx.moveTo(xL, yBus);
