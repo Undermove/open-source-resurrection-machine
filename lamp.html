@@ -114,6 +114,42 @@
       font-size: 12px;
     }
 
+    #boom{
+      position:absolute; inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+    }
+    #boom.show{ display:flex; }
+    #boom .card{
+      max-width: 560px;
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: rgba(10,10,18,.78);
+      box-shadow: 0 18px 70px rgba(0,0,0,.65);
+      padding: 14px 14px;
+    }
+    #boom h3{
+      margin: 6px 0 8px;
+      font-size: 18px;
+      color: rgba(255,255,255,.92);
+    }
+    #boom p{
+      margin: 0 0 12px;
+      color: rgba(255,255,255,.80);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    #boom .row{
+      display:flex;
+      gap: 10px;
+      justify-content:flex-end;
+    }
+
     #math{
       flex: 0 0 auto;
       border-top: 1px solid var(--stroke);
@@ -256,6 +292,15 @@
           <div class="cap"></div>
           <div class="lbl"><span class="mono" id="lensLbl">столкновения: 0.00</span></div>
         </div>
+        <div id="boom" role="alert" aria-live="assertive">
+          <div class="card">
+            <h3>Авария</h3>
+            <p id="boomText">Лампа взорвалась из-за слишком большого тока – попробуй отрегулировать баластное напряжение</p>
+            <div class="row">
+              <button id="boomReset" type="button">Сбросить</button>
+            </div>
+          </div>
+        </div>
         <div id="hud">
           <div class="chip"><b>V<sub>b</sub></b>: <span id="vb" class="mono">—</span></div>
           <div class="chip"><b>Состояние</b>: <span id="mode">выкл</span></div>
@@ -273,7 +318,7 @@
         <h2>Мини‑учебник: как зажигается газоразрядная лампа</h2>
         
         <h3>Попробуй зажечь лампу!</h3>
-        <p>Сверху — <span class="mono">лампа</span>: стеклянная трубка с газом и двумя электродами на концах. Ты задаёшь напряжение <span class="mono">V</span>, давление газа <span class="mono">p</span>, расстояние между электродами <span class="mono">d</span> и балласт <span class="mono">R</span> (ограничитель тока).</p>
+        <p>Сверху — <span class="mono">лампа</span>: стеклянная трубка с газом и двумя электродами на концах. И ты можешь сделать так чтобы она загорелась! Задай напряжение <span class="mono">V</span>, давление газа <span class="mono">p</span>, расстояние между электродами <span class="mono">d</span> и балласт <span class="mono">R</span> (ограничитель тока).</p>
         <p>Выставь параметры и нажми "Включить", чтобы лампа загорелась. Ну и конечно ты можешь подбирать параметры на уже включенной лампе, чтобы увидеть, как она загорится!</p>
         <p>В правом верхнем углу — <span class="mono">увеличительное стекло</span> (как «микроскоп»). Это иллюстрация того, что происходит внутри газа, который находится в лампе:</p>
         <ul class="bul">
@@ -498,7 +543,10 @@
       mR: document.getElementById('mR'),
       mVp: document.getElementById('mVp'),
       mI: document.getElementById('mI'),
-      mBright: document.getElementById('mBright')
+      mBright: document.getElementById('mBright'),
+      boom: document.getElementById('boom'),
+      boomText: document.getElementById('boomText'),
+      boomReset: document.getElementById('boomReset')
     };
 
     const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
@@ -677,6 +725,11 @@
       iA: 0,
       // smoothed voltage across plasma (for glow)
       vPlasma: 0,
+      overloadT: 0,
+      exploded: false,
+      boomT: 0,
+      boomP: [],
+      boomShown: false,
       micro: {
         electrons: [],
         atoms: [],
@@ -919,8 +972,44 @@
       state.breakdownFlash = 0;
       state.iA = 0;
       state.vPlasma = 0;
+      state.overloadT = 0;
+      state.exploded = false;
+      state.boomT = 0;
+      state.boomP = [];
+      state.boomShown = false;
       state.micro.collisionRate = 0;
+      if (el.boom) el.boom.classList.remove('show');
       initMicro();
+    }
+
+    function triggerExplosion(){
+      if (state.exploded) return;
+      state.exploded = true;
+      state.boomT = 0;
+      state.boomP = [];
+      state.boomShown = false;
+      if (el.boom){
+        el.boom.classList.remove('show');
+      }
+      for (let i=0;i<46;i++){
+        const a = rand01() * Math.PI * 2;
+        const s = 80 + rand01()*240;
+        state.boomP.push({
+          x: 0.5,
+          y: 0.52,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s - 120,
+          r: 1.5 + rand01()*3.5,
+          t: 0.6 + rand01()*0.6
+        });
+      }
+      state.power = false;
+      el.toggle.textContent = 'Включить';
+      state.conducting = false;
+      state.ionization = 0;
+      state.breakdownFlash = 0;
+      state.iA = 0;
+      state.vPlasma = 0;
     }
 
     function srgb(r,g,b,a=1){
@@ -1011,6 +1100,12 @@
       state.iA = lerp(state.iA, iTarget, 1 - Math.exp(-10*dt));
       state.vPlasma = lerp(state.vPlasma, vPlasmaTarget, 1 - Math.exp(-7*dt));
 
+      const isOver = state.power && state.conducting && (Math.abs(state.iA) > 0.03);
+      state.overloadT = isOver ? (state.overloadT + dt) : Math.max(0, state.overloadT - dt*2.2);
+      if (!state.exploded && state.overloadT > 0.35){
+        triggerExplosion();
+      }
+
       // Brightness model: depends on current and E/p beyond some threshold
       const epThresh = 10.5; // V/(м·Па) - tuned
       const epGain = sCurve((EoverP - epThresh) / 2.2);
@@ -1034,7 +1129,7 @@
       drawMicroLens({g, powerOn: state.power, glowProxy: clamp(glow/1.2, 0, 1)}, lensX, lensY, lensR, dt);
 
       // Update HUD
-      el.mode.textContent = state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл';
+      el.mode.textContent = state.exploded ? 'авария' : (state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл');
       el.i.textContent = `${fmt(i_mA, 2)} мА`;
 
       // Tube glass
@@ -1201,7 +1296,10 @@
       // Integrated circuit: DC source + ballast resistor connected to the lamp.
       // Place the source and resistor directly under the tube.
       {
+        const iOn = state.power && (Math.abs(state.iA) > 0.0002);
+        const overload = iOn && (Math.abs(state.iA) > 0.03);
         const wire = 'rgba(255,255,255,0.24)';
+        const wireOn = overload ? 'rgba(255,90,90,0.75)' : 'rgba(120,255,205,0.65)';
         const xL = x0 + 8; // left electrode outer edge
         const xR = x1 - 8; // right electrode outer edge
         const yC = cy;
@@ -1229,9 +1327,35 @@
         ctx.lineTo(xR, yBus);
         ctx.stroke();
 
-        // Bottom wire (series path): left node -> battery -> resistor -> right node
+        // Bottom wire (series path): left node -> switch -> battery -> resistor -> right node
+        const swX0 = xL + 24;
+        const swX1 = swX0 + 16;
+        const swY = yBus;
         ctx.beginPath();
         ctx.moveTo(xL, yBus);
+        ctx.lineTo(swX0, yBus);
+        ctx.stroke();
+
+        // Switch symbol
+        ctx.beginPath();
+        ctx.moveTo(swX0, swY);
+        ctx.lineTo(swX0, swY);
+        ctx.moveTo(swX1, swY);
+        ctx.lineTo(swX1, swY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(swX0, swY);
+        if (state.power){
+          ctx.lineTo(swX1, swY);
+        } else {
+          ctx.lineTo(swX0 + 10, swY - 10);
+        }
+        ctx.stroke();
+
+        // Wire after the switch
+        ctx.beginPath();
+        ctx.moveTo(swX1, yBus);
         ctx.lineTo(battX, yBus);
         ctx.stroke();
 
@@ -1274,13 +1398,61 @@
         ctx.lineTo(xR, yBus);
         ctx.stroke();
 
+        // Current indicator: highlight the conduction path
+        if (iOn){
+          ctx.save();
+          ctx.lineWidth = overload ? 4 : 3;
+          ctx.strokeStyle = wireOn;
+          ctx.globalAlpha = overload ? (0.55 + 0.25*Math.sin(state.t*10)) : 0.55;
+
+          // Down wires from electrodes
+          ctx.beginPath();
+          ctx.moveTo(xL, yC);
+          ctx.lineTo(xL, yBus);
+          ctx.moveTo(xR, yC);
+          ctx.lineTo(xR, yBus);
+          ctx.stroke();
+
+          // Bottom path (including switch)
+          ctx.beginPath();
+          ctx.moveTo(xL, yBus);
+          ctx.lineTo(swX0, yBus);
+          if (state.power){
+            ctx.lineTo(swX1, yBus);
+          }
+          ctx.lineTo(battX, yBus);
+          ctx.lineTo(resX0, yBus);
+          ctx.lineTo(resX0 + 86, yBus);
+          ctx.lineTo(xR, yBus);
+          ctx.stroke();
+
+          // Resistor emphasis
+          ctx.beginPath();
+          ctx.moveTo(resX0, rz);
+          ctx.lineTo(resX0 + 10, rz);
+          ctx.lineTo(resX0 + 16, rz - 8);
+          ctx.lineTo(resX0 + 24, rz + 8);
+          ctx.lineTo(resX0 + 32, rz - 8);
+          ctx.lineTo(resX0 + 40, rz + 8);
+          ctx.lineTo(resX0 + 48, rz - 8);
+          ctx.lineTo(resX0 + 56, rz + 8);
+          ctx.lineTo(resX0 + 64, rz - 8);
+          ctx.lineTo(resX0 + 72, rz + 8);
+          ctx.lineTo(resX0 + 80, rz - 8);
+          ctx.lineTo(resX0 + 86, rz);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
         // Labels
         ctx.fillStyle = 'rgba(255,255,255,0.72)';
         ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
         ctx.textAlign = 'center';
+        ctx.fillText(state.power ? 'SW: ON' : 'SW: OFF', swX0 + 10, yComp - 20);
         ctx.fillText('DC', battX + 12, yComp - 20);
         ctx.fillText(`R=${fmt(params.RkOhm,1)} кОм`, resX0 + 44, yComp - 20);
-        ctx.fillText(`V=${fmt(v/1000,2)} кВ   I=${fmt(state.iA*1000,2)} мА`, cx, yBus + 28);
+        ctx.fillText(`V=${fmt(v/1000,2)} кВ   I=${fmt(state.iA*1000,2)} мА${overload?'  OVER':''}`, cx, yBus + 28);
         ctx.restore();
       }
 
@@ -1295,6 +1467,57 @@
       // Tiny voltage indicator
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
       ctx.fillText(`V=${fmt(v/1000,2)} кВ   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} кВ   R=${fmt(params.RkOhm,1)} кОм`, cx, yLbl2);
+
+      if (state.exploded){
+        state.boomT += dt;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        const bt = state.boomT;
+        const aF = clamp(0.85 - bt*1.4, 0, 0.9);
+        if (aF > 0){
+          const gx = cx;
+          const gy = cy;
+          const flash = ctx.createRadialGradient(gx, gy, 6, gx, gy, 220);
+          flash.addColorStop(0, srgb(255, 255, 255, aF));
+          flash.addColorStop(0.4, srgb(255, 120, 80, aF*0.55));
+          flash.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = flash;
+          ctx.fillRect(0,0,w,h);
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+        for (let i=state.boomP.length-1; i>=0; i--){
+          const p = state.boomP[i];
+          p.t -= dt;
+          if (p.t <= 0){
+            state.boomP.splice(i,1);
+            continue;
+          }
+          p.vy += 520*dt;
+          p.x += (p.vx*dt) / w;
+          p.y += (p.vy*dt) / h;
+          const px = p.x * w;
+          const py = p.y * h;
+          const aa = clamp(p.t, 0, 1);
+          ctx.fillStyle = srgb(255, 150, 90, 0.35*aa);
+          ctx.beginPath();
+          ctx.arc(px, py, p.r*2.2, 0, Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle = srgb(255, 255, 255, 0.35*aa);
+          ctx.beginPath();
+          ctx.arc(px, py, p.r, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        if (!state.boomShown && state.boomT > 0.75){
+          state.boomShown = true;
+          if (el.boom){
+            el.boom.classList.add('show');
+          }
+        }
+      }
 
       // If not powered: show very subtle idle noise
       if (!state.power){
@@ -1373,6 +1596,7 @@
       });
 
       el.toggle.addEventListener('click', () => {
+        if (state.exploded) return;
         state.power = !state.power;
         el.toggle.textContent = state.power ? 'Выключить' : 'Включить';
         if (state.power){
@@ -1381,6 +1605,13 @@
           reset();
         }
       });
+
+      if (el.boomReset){
+        el.boomReset.addEventListener('click', () => {
+          reset();
+          syncUI();
+        });
+      }
       el.reset.addEventListener('click', () => {
         el.voltage.value = '2000';
         el.pressure.value = '20';
