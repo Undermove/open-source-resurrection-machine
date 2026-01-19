@@ -263,7 +263,7 @@
             <label for="pressure">Давление p (мбар)</label>
             <output id="pressureOut" class="mono">20.0 мбар</output>
           </div>
-          <input id="pressure" type="range" min="1" max="200" value="20" step="0.5" />
+          <input id="pressure" type="range" min="1" max="200" value="20" step="0.1" />
           <input id="pressureNum" type="number" min="1" max="200" step="0.1" value="20.0" />
         </div>
 
@@ -272,7 +272,7 @@
             <label for="gap">Промежуток между электродами d (см)</label>
             <output id="gapOut" class="mono">25.0 см</output>
           </div>
-          <input id="gap" type="range" min="2" max="60" value="25" step="0.5" />
+          <input id="gap" type="range" min="2" max="60" value="25" step="0.1" />
           <input id="gapNum" type="number" min="2" max="60" step="0.1" value="25.0" />
         </div>
 
@@ -1639,6 +1639,24 @@
         el.ballast.addEventListener(evt, update);
         el.electrode.addEventListener(evt, update);
       });
+
+      function enableUpDownForRange(rangeEl){
+        if (!rangeEl) return;
+        rangeEl.addEventListener('keydown', (e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          const step = Number(rangeEl.step) || 1;
+          const min = Number(rangeEl.min);
+          const max = Number(rangeEl.max);
+          const dir = (e.key === 'ArrowUp') ? 1 : -1;
+          const next = clamp(Number(rangeEl.value) + dir*step, min, max);
+          rangeEl.value = String(next);
+          syncUI();
+        });
+      }
+
+      enableUpDownForRange(el.pressure);
+      enableUpDownForRange(el.gap);
 
       el.toggle.addEventListener('click', () => {
         if (state.exploded) return;
