@@ -130,7 +130,8 @@
       display:flex; gap: 10px; flex-wrap:wrap; align-items:center;
       pointer-events:none;
     }
-    #hud{ display:none; }
+    #hud .chip{ display:none; }
+    #hud .chip:nth-child(2){ display:block; }
     .chip{
       pointer-events:none;
       background: rgba(0,0,0,.35);
@@ -1568,12 +1569,11 @@
       ctx.textAlign = 'center';
       ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, yLbl1);
 
-      const modeStr = state.exploded ? 'авария' : (state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл');
       const vbStr = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
       const iStr = `${fmt(state.iA*1000, 2)} мА`;
       const epStr = isFinite(EoverP) ? `${fmt(EoverP, 2)} В/(м·Па)` : '—';
       ctx.fillStyle = 'rgba(255,255,255,0.70)';
-      ctx.fillText(`Состояние: ${modeStr}   Vb: ${vbStr}   I: ${iStr}   E/p: ${epStr}`, cx, yLbl1 + 18);
+      ctx.fillText(`Vb: ${vbStr}   I: ${iStr}   E/p: ${epStr}`, cx, yLbl1 + 18);
 
       if (state.exploded){
         state.boomT += dt;
