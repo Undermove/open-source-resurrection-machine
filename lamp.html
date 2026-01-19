@@ -1466,6 +1466,21 @@
         ctx.fillText('DC', battX + 12, yComp - 20);
         ctx.fillText(`R=${fmt(params.RkOhm,1)} кОм`, resX0 + 44, yComp - 20);
         ctx.fillText(`V=${fmt(v/1000,2)} кВ   I=${fmt(state.iA*1000,2)} мА${overload?'  OVER':''}`, cx, yBus + 28);
+
+        // Brightness indicator (0..1)
+        const br = clamp(glow / 1.2, 0, 1);
+        const barW = 132;
+        const barH = 8;
+        const barX = cx - barW*0.5;
+        const barY = yBus + 40;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText('Яркость', barX, barY + 18);
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barW, barH);
+        ctx.fillStyle = srgb(col[0], col[1], col[2], overload ? 0.35 : 0.55);
+        ctx.fillRect(barX, barY, Math.max(0, Math.floor(barW * br)), barH);
         ctx.restore();
       }
 
