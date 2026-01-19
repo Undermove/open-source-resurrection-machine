@@ -1283,15 +1283,17 @@
         ctx.restore();
       }
 
-      // Labels under tube
+      // Labels above tube (free space under tube for the circuit)
+      const yLbl1 = Math.max(22, cy - tubeR - 30);
+      const yLbl2 = yLbl1 + 18;
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, cy + tubeR + 28);
+      ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, yLbl1);
 
       // Tiny voltage indicator
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText(`V=${fmt(v/1000,2)} кВ   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} кВ   R=${fmt(params.RkOhm,1)} кОм`, cx, cy + tubeR + 46);
+      ctx.fillText(`V=${fmt(v/1000,2)} кВ   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} кВ   R=${fmt(params.RkOhm,1)} кОм`, cx, yLbl2);
 
       // If not powered: show very subtle idle noise
       if (!state.power){
