@@ -43,6 +43,21 @@
       font: inherit;
     }
 
+    input[type="number"]{
+      width:100%;
+      box-sizing:border-box;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      outline: none;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="number"]:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
     select{
       background: rgba(255,255,255,.05);
       border:1px solid var(--stroke);
@@ -102,61 +117,59 @@
     #math{
       flex: 0 0 auto;
       border-top: 1px solid var(--stroke);
-      background: rgba(0,0,0,0.18);
-      padding: 12px 14px;
+      background:
+        radial-gradient(1200px 420px at 20% 0%, rgba(124,209,255,0.10), rgba(0,0,0,0) 55%),
+        rgba(0,0,0,0.20);
+      padding: 14px 14px;
       max-height: 42%;
       overflow:auto;
     }
-    #math h2{ margin: 0 0 10px; font-size: 14px; letter-spacing: .2px; }
-    #math h3{ margin: 14px 0 8px; font-size: 13px; color: rgba(255,255,255,.9); }
-    #math p{ margin: 6px 0; color: rgba(255,255,255,.75); font-size: 12px; line-height: 1.35; }
-    #math .eq{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: rgba(255,255,255,.86);
-      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 10px 10px; overflow:auto;
+    #math .content{ max-width: 900px; margin: 0 auto; }
+    #math h2{ margin: 2px 0 12px; font-size: 22px; letter-spacing: .2px; line-height: 1.22; }
+    #math h3{ margin: 20px 0 12px; font-size: 18px; color: rgba(255,255,255,.92); }
+    #math h4{ margin: 14px 0 10px; font-size: 16px; color: rgba(255,255,255,.90); }
+    #math p{ margin: 10px 0; color: rgba(255,255,255,.80); font-size: 16px; line-height: 1.68; }
+    #math .eq{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 14px; color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 12px; padding: 12px 12px; overflow:auto;
     }
+    #math math{ font-size: 19px; }
+    #math math mi{ font-style: italic; }
     #math .k{ color: rgba(255,255,255,.6); }
     #math .v{ color: rgba(255,255,255,.95); }
     #math .lead{ color: rgba(255,255,255,.82); }
-    #math .callout{ margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.10);
+    #math .callout{ margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,.10);
       background: linear-gradient(180deg, rgba(124,209,255,0.10), rgba(255,255,255,0.03));
       color: rgba(255,255,255,.80);
-      font-size: 12px;
-      line-height: 1.35;
+      font-size: 16px;
+      line-height: 1.68;
     }
     #math .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 920px){
       #math .grid2{ grid-template-columns: 1fr; }
     }
-    #math .bul{ margin: 6px 0 0; padding-left: 18px; }
-    #math .bul li{ margin: 4px 0; color: rgba(255,255,255,.75); font-size: 12px; line-height: 1.35; }
+    #math .bul{ margin: 10px 0 0; padding-left: 20px; }
+    #math .bul li{ margin: 8px 0; color: rgba(255,255,255,.78); font-size: 16px; line-height: 1.68; }
+
+    #math .step{ border-left: 2px solid rgba(124,209,255,0.35); padding-left: 10px; margin: 12px 0; }
+    #math .badge{ display:inline-block; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85);
+    }
 
     .lens{
       position:absolute;
-      right: 14px;
-      top: 58px;
+      right: 6px;
+      top: 18px;
       width: 180px;
       height: 180px;
       pointer-events:none;
       filter: drop-shadow(0 14px 30px rgba(0,0,0,.65));
       opacity: 0.95;
     }
-    .lens::after{
-      content:"";
-      position:absolute;
-      right: 18px;
-      bottom: -26px;
-      width: 92px;
-      height: 10px;
-      transform: rotate(35deg);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.12);
-      box-shadow: inset 0 0 12px rgba(0,0,0,.35);
-    }
     .lens .cap{ position:absolute; inset:0; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18);
       box-shadow: inset 0 0 22px rgba(0,0,0,.45);
       background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.18));
     }
-    .lens .lbl{ position:absolute; left: 10px; right: 10px; bottom: 10px; text-align:center; font-size: 11px; color: rgba(255,255,255,.72);
+    .lens .lbl{ position:absolute; left: 10px; right: 10px; bottom: 10px; text-align:center; font-size: 12px; color: rgba(255,255,255,.72);
       text-shadow: 0 1px 0 rgba(0,0,0,.55);
     }
 
@@ -186,50 +199,56 @@
 
         <div>
           <div class="row">
-            <label for="voltage">Напряжение (кВ)</label>
-            <output id="voltageOut" class="mono">2.00 kV</output>
+            <label for="voltage">Напряжение V (кВ)</label>
+            <output id="voltageOut" class="mono">2.00 кВ</output>
           </div>
           <input id="voltage" type="range" min="0" max="20000" value="2000" step="10" />
+          <input id="voltageNum" type="number" min="0" max="20" step="0.01" value="2.00" />
         </div>
 
         <div>
           <div class="row">
-            <label for="pressure">Давление (мбар)</label>
-            <output id="pressureOut" class="mono">20.0 mbar</output>
+            <label for="pressure">Давление p (мбар)</label>
+            <output id="pressureOut" class="mono">20.0 мбар</output>
           </div>
           <input id="pressure" type="range" min="1" max="200" value="20" step="0.5" />
+          <input id="pressureNum" type="number" min="1" max="200" step="0.1" value="20.0" />
         </div>
 
         <div>
           <div class="row">
-            <label for="gap">Длина промежутка (см)</label>
-            <output id="gapOut" class="mono">25.0 cm</output>
+            <label for="gap">Длина промежутка d (см)</label>
+            <output id="gapOut" class="mono">25.0 см</output>
           </div>
           <input id="gap" type="range" min="2" max="60" value="25" step="0.5" />
+          <input id="gapNum" type="number" min="2" max="60" step="0.1" value="25.0" />
         </div>
 
         <div>
           <div class="row">
-            <label for="ballast">Балласт (кОм)</label>
-            <output id="ballastOut" class="mono">50.0 kΩ</output>
+            <label for="ballast">Балласт R (кОм)</label>
+            <output id="ballastOut" class="mono">50.0 кОм</output>
           </div>
           <input id="ballast" type="range" min="1" max="200" value="50" step="1" />
+          <input id="ballastNum" type="number" min="1" max="200" step="1" value="50" />
         </div>
 
         <div>
           <div class="row">
-            <label for="electrode">Электроды (нагрев)</label>
+            <label for="electrode">Электроды (нагрев) (ε)</label>
             <output id="electrodeOut" class="mono">0.35</output>
           </div>
           <input id="electrode" type="range" min="0" max="1" value="0.35" step="0.01" />
+          <input id="electrodeNum" type="number" min="0" max="1" step="0.01" value="0.35" />
         </div>
 
         <div>
           <div class="row">
-            <label for="ambient">Окружающий свет</label>
+            <label for="ambient">Окружающий свет (A)</label>
             <output id="ambientOut" class="mono">0.15</output>
           </div>
           <input id="ambient" type="range" min="0" max="0.6" value="0.15" step="0.01" />
+          <input id="ambientNum" type="number" min="0" max="0.6" step="0.01" value="0.15" />
         </div>
 
         <div class="btnrow">
@@ -244,12 +263,12 @@
         <canvas id="view"></canvas>
         <div class="lens" aria-hidden="true">
           <div class="cap"></div>
-          <div class="lbl"><span class="mono" id="lensLbl">collisions: 0.00</span></div>
+          <div class="lbl"><span class="mono" id="lensLbl">столкновения: 0.00</span></div>
         </div>
         <div id="hud">
           <div class="chip"><b>V<sub>b</sub></b>: <span id="vb" class="mono">—</span></div>
           <div class="chip"><b>Состояние</b>: <span id="mode">выкл</span></div>
-          <div class="chip"><b>I</b>: <span id="i" class="mono">0.00 mA</span></div>
+          <div class="chip"><b>I</b>: <span id="i" class="mono">0.00 мА</span></div>
           <div class="chip"><b>E/p</b>: <span id="ep" class="mono">—</span></div>
         </div>
         <div id="footerHint">
@@ -259,21 +278,111 @@
       </div>
 
       <div id="math" aria-label="Formulas">
-        <h2>Формулы и подстановка значений</h2>
+        <div class="content">
+        <h2>Мини‑учебник: как зажигается газоразрядная лампа</h2>
+
+        <h3>Что ты видишь в этой симуляции</h3>
+        <p>Сверху — <span class="mono">лампа</span>: стеклянная трубка с газом и двумя электродами на концах. Ты задаёшь напряжение <span class="mono">V</span>, давление газа <span class="mono">p</span>, расстояние между электродами <span class="mono">d</span> и балласт <span class="mono">R</span> (ограничитель тока).</p>
+        <p>В правом верхнем углу — <span class="mono">увеличительное стекло</span> (как «микроскоп»). Это иллюстрация того, что происходит внутри газа:</p>
+        <ul class="bul">
+          <li>«крестики» — электроны</li>
+          <li>точки — атомы/молекулы газа</li>
+          <li>вспышки — возбуждения атомов (<span class="mono">Atom*</span>), после которых появляется свет</li>
+        </ul>
 
         <div class="callout">
-          <div class="lead">Что происходит в этой симуляции (коротко)</div>
+          <div class="lead">Важно: это учебная модель</div>
           <ul class="bul">
-            <li><span class="mono">До пробоя</span>: носителей почти нет, ток ≈ 0. Разряд не поддерживается.</li>
-            <li><span class="mono">Пробой</span>: при достаточном напряжении электроны успевают набрать энергию между столкновениями и запускают лавину (таунсендовская ионизация). Порог мы считаем по закону Пашена через <span class="mono">p·d</span>.</li>
-            <li><span class="mono">Тление</span>: после пробоя напряжение на плазме падает до сотен вольт, а ток ограничивается балластом. Свет — это в основном возбуждение атомов/молекул электронным ударом и последующая релаксация с излучением.</li>
+            <li>Она показывает главную идею: <span class="mono">зажигание (пробой) → тлеющий разряд</span> и какие ручки на это влияют.</li>
+            <li>Это не «настоящая плазменная физика» со спектрами, распределением энергий электронов и т.д.</li>
+            <li>Диаметр трубки здесь <span class="mono">не учитывается</span>: в реальности он влияет на токовую плотность, нагрев и устойчивость разряда, но в этой игрушке считаем его «постоянным».</li>
           </ul>
         </div>
 
-        <h3>Как появляется свет (чуть подробнее)</h3>
+        <h3>Как узнать: загорится лампа или нет? Формула Пашена</h3>
+        <div class="eq">
+          <div class="k">Формула (Townsend/Paschen):</div>
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+            <mrow>
+              <msub><mi>V</mi><mi>b</mi></msub>
+              <mo>=</mo>
+              <mfrac>
+                <mrow><mi>B</mi><mo>·</mo><mi>p</mi><mo>·</mo><mi>d</mi></mrow>
+                <mrow>
+                  <mi>ln</mi><mo>(</mo><mi>A</mi><mo>·</mo><mi>p</mi><mo>·</mo><mi>d</mi><mo>)</mo>
+                  <mo>−</mo>
+                  <mi>ln</mi><mo>(</mo><mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mi>γ</mi></mfrac><mo>)</mo><mo>)</mo>
+                </mrow>
+              </mfrac>
+            </mrow>
+          </math>
+          <div class="k">Единицы в этой формуле: p — Па, d — м.</div>
+          <div class="k">Что означает каждый символ (простыми словами):</div>
+          <ul class="bul">
+            <li><span class="mono">V</span> — напряжение, которое ты подаёшь на лампу (в симуляции это ползунок <span class="mono">V</span>, единицы — <span class="mono">В</span> / <span class="mono">кВ</span>).</li>
+            <li><span class="mono">p</span> — давление газа <span class="mono">(Па)</span>. В симуляции ты задаёшь давление ползунком <span class="mono">p</span> (в интерфейсе оно показано в мбар, а в формуле автоматически переводится в Па).</li>
+            <li><span class="mono">d</span> — расстояние между электродами <span class="mono">(м)</span>. В симуляции ты задаёшь его ползунком <span class="mono">d</span> (в интерфейсе — в см, а в формуле переводится в м).</li>
+            <li><span class="mono">Vb</span> — напряжение пробоя: если <span class="mono">V ≥ Vb</span>, лампа может загореться.</li>
+          </ul>
+          <div class="k">Параметры, которые ты <span class="mono">не задаёшь вручную</span> (они зависят от газа и электродов):</div>
+          <ul class="bul">
+            <li><span class="mono">A</span> и <span class="mono">B</span> — табличные параметры газа в приближённой форме закона Пашена (условно: «насколько легко газ ионизуется» при данных <span class="mono">p·d</span>).</li>
+            <li><span class="mono">γ</span> (гамма) — коэффициент вторичной эмиссии катода: насколько легко катод отдаёт электроны после ударов ионов/фотонов (безразмерно). В реальности <span class="mono">γ</span> зависит от материала и состояния поверхности.</li>
+          </ul>
+          <div class="k">Откуда берутся <span class="mono">A</span>, <span class="mono">B</span> и <span class="mono">γ</span>:</div>
+          <div class="k">в реальной инженерии их берут из справочных данных по разрядам (таблицы/кривые Пашена для газов и материалов электродов) и уточняют экспериментом. В этом прототипе значения — <span class="mono">ориентировочные</span> и подобраны так, чтобы поведение было правдоподобным и удобным для обучения.</div>
+          <div style="height:10px"></div>
+          <div><span class="k">A</span>=<span class="v" id="mA">—</span>, <span class="k">B</span>=<span class="v" id="mB">—</span>, <span class="k">γ</span>=<span class="v" id="mgamma">—</span></div>
+          <div><span class="k">p</span>=<span class="v" id="mp_torr">—</span> Па<span id="mp_mbar" style="display:none">—</span></div>
+          <div><span class="k">d</span>=<span class="v" id="md_m">—</span> м<span id="md_cm" style="display:none">—</span></div>
+          <div><span class="k">p·d</span>=<span class="v" id="mpd">—</span> Па·м</div>
+          <div style="height:10px"></div>
+          <div>ln(A·p·d) = ln(<span class="v" id="mApd">—</span>) = <span class="v" id="mlnApd">—</span></div>
+          <div>ln(ln(1+1/γ)) = ln(ln(<span class="v" id="m1g">—</span>)) = <span class="v" id="mlnln">—</span></div>
+          <div>denom = <span class="v" id="mden">—</span></div>
+          <div style="height:10px"></div>
+          <div><span class="k">Vb</span> ≈ <span class="v" id="mVb">—</span> В = <span class="v" id="mVb_kv">—</span> кВ</div>
+        </div>
+
+        <div class="step">
+          <div class="badge">Правило</div>
+          <p>Если ты увеличиваешь <span class="mono">p</span> (давление) или <span class="mono">d</span> (промежуток), то обычно растёт <span class="mono">Vb</span> — и лампу труднее зажечь. Если уменьшаешь <span class="mono">p</span> или <span class="mono">d</span>, зажечь легче.</p>
+        </div>
+
+        <h3>Мини‑лабораторная 1: зажигаем неон (Ne)</h3>
+        <div class="step">
+          <div class="badge">Шаг 1</div>
+          <p>Выбери <span class="mono">Неон (Ne)</span>. Поставь, например: <span class="mono">p=5 мбар</span>, <span class="mono">d=10 см</span>, <span class="mono">R=50 кОм</span>. Нажми <span class="mono">«Включить»</span>.</p>
+        </div>
+        <div class="step">
+          <div class="badge">Шаг 2</div>
+          <p>Поднимай <span class="mono">V</span>, пока не станет <span class="mono">V ≥ Vb</span> (смотри плашку <span class="mono">Vb</span> и «Состояние» сверху).</p>
+        </div>
+        <div class="step">
+          <div class="badge">Что происходит внутри (очень просто)</div>
+          <ul class="bul">
+            <li>Электроны разгоняются электрическим полем.</li>
+            <li>При столкновениях они возбуждают атомы неона (в лупе это вспышки).</li>
+            <li>Возбуждённые атомы «сбрасывают» энергию в виде света — поэтому трубка начинает светиться.</li>
+          </ul>
+          <p>Если после зажигания немного уменьшить <span class="mono">V</span>, лампа может ещё какое‑то время гореть — это нормальная <span class="mono">гистерезис</span>: напряжение поддержания обычно ниже напряжения пробоя.</p>
+        </div>
+
+        <h3>Мини‑лабораторная 2: попробуй «пары ртути (Hg) + Ar»</h3>
+        <div class="step">
+          <div class="badge">Задание</div>
+          <p>Переключись на <span class="mono">Пары ртути (Hg) + Ar</span> и попробуй зажечь лампу так же, как с неоном.</p>
+          <ul class="bul">
+            <li>Подбери <span class="mono">p</span> и <span class="mono">d</span>, чтобы <span class="mono">Vb</span> оказался достижим при твоём <span class="mono">V</span>.</li>
+            <li>После зажигания подбери <span class="mono">R</span>, чтобы ток был «разумным» (слишком большой ток в реальности быстро убивает электроды).</li>
+          </ul>
+          <p>Подсказка: в реальных ртутных лампах основное излучение идёт в УФ, а видимый свет часто получают через люминофор.</p>
+        </div>
+
+        <h3>Что происходит после пробоя: почему нужен балласт</h3>
         <div class="grid2">
           <div class="eq">
-            <div class="k">Газовые лампы (Ne/Ar/He/N₂)</div>
+            <div class="k">Откуда берётся свет (Ne/Ar/He/N₂)</div>
             <div style="height:6px"></div>
             <div>e⁻ + Atom → Atom* + e⁻</div>
             <div>Atom* → Atom + hν</div>
@@ -282,7 +391,7 @@
             <div class="k">электрон в поле разгоняется, при столкновении переводит атом в возбуждённое состояние, затем атом излучает фотон (цвет зависит от спектральных линий газа).</div>
           </div>
           <div class="eq">
-            <div class="k">Люминесцентная (Hg + инертный газ)</div>
+            <div class="k">Ртутная/люминесцентная (Hg + инертный газ)</div>
             <div style="height:6px"></div>
             <div>e⁻ + Hg → Hg* + e⁻</div>
             <div>Hg* → Hg + hν<sub>UV</sub></div>
@@ -293,47 +402,36 @@
           </div>
         </div>
 
-        <div class="callout">
-          <div class="lead">Про твой тезис «довести до нужной частоты столкновений»</div>
-          <div>Корректнее мыслить не про «частоту сама по себе», а про то, чтобы у электронов была нужная <span class="mono">энергия между столкновениями</span>. Энергия набирается из поля и теряется в столкновениях, поэтому ключевой управляющий параметр — приведённое поле (в упрощении) <span class="mono">E/p</span>. В прототипе «частота столкновений» в лупе — это просто наглядная метрика, растущая с <span class="mono">E/p</span> и током.</div>
+        <h3>Что «делает» разряд ярче: поле и ток</h3>
+        <div class="eq">
+          <div class="k">Формулы:</div>
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+            <mrow>
+              <mi>E</mi><mo>≈</mo><mfrac><mi>V</mi><mi>d</mi></mfrac>
+              <mspace width="14px"/>
+              <mfrac><mi>E</mi><mi>p</mi></mfrac><mo>≈</mo><mfrac><mrow><mi>V</mi><mo>/</mo><mi>d</mi></mrow><mi>p</mi></mfrac>
+            </mrow>
+          </math>
+          <div style="height:8px"></div>
+          <div><span class="k">V</span>=<span class="v" id="mV">—</span> В, <span class="k">d</span>=<span class="v" id="md2">—</span> м → <span class="k">E</span>=<span class="v" id="mE">—</span> В/м</div>
+          <div><span class="k">p</span>=<span class="v" id="mp2">—</span> Па → <span class="k">E/p</span>=<span class="v" id="mEp">—</span> В/(м·Па)</div>
         </div>
 
-        <h3>1) Закон Пашена (порог пробоя)</h3>
+        <h3>Почему нужен балласт (R): иначе разряд «убежит» в большой ток</h3>
         <div class="eq">
-          <div><span class="k">Vb</span> = ( <span class="k">B·p·d</span> ) / ( ln(<span class="k">A·p·d</span>) − ln( ln(1 + 1/<span class="k">γ</span>) ) )</div>
-          <div class="k">Здесь p в Torr, d в cm.</div>
-          <div style="height:8px"></div>
-          <div><span class="k">A</span>=<span class="v" id="mA">—</span>, <span class="k">B</span>=<span class="v" id="mB">—</span>, <span class="k">γ</span>=<span class="v" id="mgamma">—</span></div>
-          <div><span class="k">p</span>=<span class="v" id="mp_mbar">—</span> mbar = <span class="v" id="mp_torr">—</span> Torr</div>
-          <div><span class="k">d</span>=<span class="v" id="md_cm">—</span> cm</div>
-          <div><span class="k">p·d</span>=<span class="v" id="mpd">—</span> Torr·cm</div>
-          <div style="height:8px"></div>
-          <div>ln(A·p·d) = ln(<span class="v" id="mApd">—</span>) = <span class="v" id="mlnApd">—</span></div>
-          <div>ln(ln(1+1/γ)) = ln(ln(<span class="v" id="m1g">—</span>)) = <span class="v" id="mlnln">—</span></div>
-          <div>denom = <span class="v" id="mden">—</span></div>
-          <div style="height:8px"></div>
-          <div><span class="k">Vb</span> ≈ <span class="v" id="mVb">—</span> V = <span class="v" id="mVb_kv">—</span> kV</div>
-        </div>
-
-        <h3>2) Напряжённость поля и приведённое поле</h3>
-        <div class="eq">
-          <div><span class="k">E</span> ≈ V / d</div>
-          <div><span class="k">E/p</span> ≈ (V/d) / p</div>
-          <div style="height:8px"></div>
-          <div><span class="k">V</span>=<span class="v" id="mV">—</span> V, <span class="k">d</span>=<span class="v" id="md2">—</span> cm → <span class="k">E</span>=<span class="v" id="mE">—</span> V/cm</div>
-          <div><span class="k">p</span>=<span class="v" id="mp2">—</span> mbar → <span class="k">E/p</span>=<span class="v" id="mEp">—</span> V/(cm·mbar)</div>
-        </div>
-
-        <h3>3) Ток через балласт (после пробоя)</h3>
-        <div class="eq">
-          <div><span class="k">I</span> ≈ max(0, V − Vplasma) / R</div>
+          <div class="k">Идея (упрощение): после пробоя напряжение на плазме становится «почти константой» порядка сотен вольт.</div>
+          <math display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+            <mrow>
+              <mi>I</mi><mo>≈</mo><mfrac><mrow><mi>max</mi><mo>(</mo><mn>0</mn><mo>,</mo><mi>V</mi><mo>−</mo><msub><mi>V</mi><mi>plasma</mi></msub><mo>)</mo></mrow><mi>R</mi></mfrac>
+            </mrow>
+          </math>
           <div class="k">В прототипе Vplasma — упрощённое «падение на плазме» (порядка сотен вольт), зависящее от газа и режима.</div>
           <div style="height:8px"></div>
-          <div><span class="k">R</span>=<span class="v" id="mR">—</span> Ω, <span class="k">Vplasma</span>≈<span class="v" id="mVp">—</span> V → <span class="k">I</span>≈<span class="v" id="mI">—</span> mA</div>
+          <div><span class="k">R</span>=<span class="v" id="mR">—</span> Ом, <span class="k">Vplasma</span>≈<span class="v" id="mVp">—</span> В → <span class="k">I</span>≈<span class="v" id="mI">—</span> мА</div>
         </div>
 
-        <h3>4) Реальная инженерная задача (исторически и промышленно)</h3>
-        <p>Одна из ключевых задач в разработке люминесцентных и ртутных ламп: <span class="mono">надёжный запуск</span> и <span class="mono">высокая световая отдача</span> при <span class="mono">долгом сроке службы</span>.</p>
+        <h3>С какими проблемами сталкиваются реальные производители (и что оптимизируют)</h3>
+        <p>Производителю мало «просто зажечь». Нужно одновременно:</p>
         <div class="eq">
           <div class="k">Типичный компромисс (упрощённо):</div>
           <div style="height:6px"></div>
@@ -345,8 +443,10 @@
           <div class="k">- ток и температура электродов ограничены (иначе распыление/потеря эмиссионного покрытия)</div>
           <div class="k">- давление/состав газа выбирают так, чтобы разряд был устойчив и эффективен (в т.ч. для спектра Hg и работы люминофора)</div>
         </div>
-        <p>В терминах этой игрушки это превращается в челлендж: <span class="mono">поднять давление как можно выше</span>, но так, чтобы <span class="mono">V ≥ Vb</span> (иначе не зажжётся) и при этом удержать ток/яркость в «приятной» зоне балластом.</p>
-        <p>Текущая оценка яркости (ориентир для игры): <span class="mono" id="mBright">—</span></p>
+        <p>Как это выглядит на практике: инженеры подбирают газ/давление, геометрию и схему питания так, чтобы лампа <span class="mono">стабильно запускалась</span> при заданном источнике, давала нужный свет (по яркости и спектру) и при этом электроды не выгорали слишком быстро.</p>
+        <p>Текущая оценка «яркости» (ориентир для игры): <span class="mono" id="mBright">—</span></p>
+
+        </div>
       </div>
     </section>
   </div>
@@ -365,14 +465,20 @@
       voltageOut: document.getElementById('voltageOut'),
       pressure: document.getElementById('pressure'),
       pressureOut: document.getElementById('pressureOut'),
+      pressureNum: document.getElementById('pressureNum'),
       gap: document.getElementById('gap'),
       gapOut: document.getElementById('gapOut'),
+      gapNum: document.getElementById('gapNum'),
       ballast: document.getElementById('ballast'),
       ballastOut: document.getElementById('ballastOut'),
+      ballastNum: document.getElementById('ballastNum'),
       electrode: document.getElementById('electrode'),
       electrodeOut: document.getElementById('electrodeOut'),
+      electrodeNum: document.getElementById('electrodeNum'),
       ambient: document.getElementById('ambient'),
       ambientOut: document.getElementById('ambientOut'),
+      ambientNum: document.getElementById('ambientNum'),
+      voltageNum: document.getElementById('voltageNum'),
       toggle: document.getElementById('toggle'),
       reset: document.getElementById('reset'),
       vb: document.getElementById('vb'),
@@ -386,6 +492,7 @@
       mp_mbar: document.getElementById('mp_mbar'),
       mp_torr: document.getElementById('mp_torr'),
       md_cm: document.getElementById('md_cm'),
+      md_m: document.getElementById('md_m'),
       mpd: document.getElementById('mpd'),
       mApd: document.getElementById('mApd'),
       mlnApd: document.getElementById('mlnApd'),
@@ -423,7 +530,7 @@
     }
 
     // Gas parameters (approx, for plausible behavior).
-    // A and B in Paschen law (Townsend form) using p in Torr and d in cm.
+    // A and B in Paschen law (Townsend form). In the UI we present SI units (p in Pa, d in m).
     // Vb = (B p d) / ( ln(A p d) - ln( ln(1 + 1/gamma) ) )
     // References vary widely; these are tuned for a nice interactive prototype.
     const gases = {
@@ -486,24 +593,36 @@
       }
     };
 
-    function toTorrFromMbar(mbar){
-      // 1 mbar = 0.750061683 Torr
-      return mbar * 0.750061683;
+    function toPaFromMbar(mbar){
+      // 1 mbar = 100 Pa
+      return mbar * 100;
     }
 
-    function paschenBreakdownV({A,B,gamma}, pTorr, dCm){
+    function toMFromCm(cm){
+      return cm / 100;
+    }
+
+    function paschenAB_SI({A,B}){
+      // Conversion from (Torr, cm) to (Pa, m).
+      // 1 Torr * 1 cm = 133.322 Pa * 0.01 m = 1.33322 Pa·m
+      const k = 133.322 * 0.01;
+      return { A_SI: A / k, B_SI: B / k };
+    }
+
+    function paschenBreakdownV({A,B,gamma}, pPa, dM){
       // Guard against invalid ranges. If term becomes <= 0, return Infinity.
-      const pd = Math.max(1e-9, pTorr * dCm);
-      const lnApd = Math.log(A * pd);
+      const {A_SI, B_SI} = paschenAB_SI({A,B});
+      const pd = Math.max(1e-12, pPa * dM);
+      const lnApd = Math.log(A_SI * pd);
       const lnln = Math.log(Math.log(1 + 1/Math.max(1e-9, gamma)));
       const denom = lnApd - lnln;
       if (!isFinite(denom) || denom <= 0.02) return Infinity;
-      const vb = (B * pd) / denom;
+      const vb = (B_SI * pd) / denom;
       return vb;
     }
 
     function updateMath(params, derived){
-      const { g, v, pMbar, pTorr, dCm, RkOhm, vb } = params;
+      const { g, v, pMbar, pPa, dCm, dM, RkOhm, vb } = params;
       const {
         pd,
         Apd,
@@ -518,12 +637,14 @@
         brightnessEst
       } = derived;
 
-      if (el.mA) el.mA.textContent = fmt(g.A, 2);
-      if (el.mB) el.mB.textContent = fmt(g.B, 1);
+      const abSI = paschenAB_SI(g);
+      if (el.mA) el.mA.textContent = fmt(abSI.A_SI, 3);
+      if (el.mB) el.mB.textContent = fmt(abSI.B_SI, 2);
       if (el.mgamma) el.mgamma.textContent = fmt(g.gamma, 4);
       if (el.mp_mbar) el.mp_mbar.textContent = fmt(pMbar, 2);
-      if (el.mp_torr) el.mp_torr.textContent = fmt(pTorr, 2);
+      if (el.mp_torr) el.mp_torr.textContent = fmt(pPa, 0);
       if (el.md_cm) el.md_cm.textContent = fmt(dCm, 2);
+      if (el.md_m) el.md_m.textContent = fmt(dM, 3);
       if (el.mpd) el.mpd.textContent = fmt(pd, 3);
 
       if (el.mApd) el.mApd.textContent = fmt(Apd, 3);
@@ -536,9 +657,9 @@
       if (el.mVb_kv) el.mVb_kv.textContent = isFinite(vb) ? fmt(vb/1000, 3) : '∞';
 
       if (el.mV) el.mV.textContent = fmt(v, 0);
-      if (el.md2) el.md2.textContent = fmt(dCm, 2);
+      if (el.md2) el.md2.textContent = fmt(dM, 3);
       if (el.mE) el.mE.textContent = isFinite(E) ? fmt(E, 2) : '—';
-      if (el.mp2) el.mp2.textContent = fmt(pMbar, 2);
+      if (el.mp2) el.mp2.textContent = fmt(pPa, 0);
       if (el.mEp) el.mEp.textContent = isFinite(EoverP) ? fmt(EoverP, 2) : '—';
 
       if (el.mR) el.mR.textContent = fmt(Math.max(1, RkOhm)*1000, 0);
@@ -739,43 +860,52 @@
       el.gasOut.textContent = g ? g.label : String(el.gas.value);
 
       const v = Number(el.voltage.value);
-      el.voltageOut.textContent = `${fmt(v/1000, 2)} kV`;
+      el.voltageOut.textContent = `${fmt(v/1000, 2)} кВ`;
+      if (el.voltageNum) el.voltageNum.value = fmt(v/1000, 2);
 
       const p = Number(el.pressure.value);
-      el.pressureOut.textContent = `${fmt(p, 1)} mbar`;
+      el.pressureOut.textContent = `${fmt(p, 1)} мбар`;
+      if (el.pressureNum) el.pressureNum.value = fmt(p, 1);
 
       const d = Number(el.gap.value);
-      el.gapOut.textContent = `${fmt(d, 1)} cm`;
+      el.gapOut.textContent = `${fmt(d, 1)} см`;
+      if (el.gapNum) el.gapNum.value = fmt(d, 1);
 
       const r = Number(el.ballast.value);
-      el.ballastOut.textContent = `${fmt(r, 1)} kΩ`;
+      el.ballastOut.textContent = `${fmt(r, 1)} кОм`;
+      if (el.ballastNum) el.ballastNum.value = fmt(r, 0);
 
       const e = Number(el.electrode.value);
       el.electrodeOut.textContent = fmt(e, 2);
+      if (el.electrodeNum) el.electrodeNum.value = fmt(e, 2);
 
       const a = Number(el.ambient.value);
       el.ambientOut.textContent = fmt(a, 2);
+      if (el.ambientNum) el.ambientNum.value = fmt(a, 2);
 
       // Compute breakdown threshold
-      const pT = toTorrFromMbar(p);
-      const vb = paschenBreakdownV(g, pT, d);
-      el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} kV` : '∞';
+      const pPa = toPaFromMbar(p);
+      const dM = toMFromCm(d);
+      const vb = paschenBreakdownV(g, pPa, dM);
+      el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
 
       // Derived values for the formulas panel (static-ish, for educational display)
-      const pd = Math.max(1e-9, pT * d);
-      const Apd = g.A * pd;
+      const abSI = paschenAB_SI(g);
+      const pd = Math.max(1e-12, pPa * dM);
+      const Apd = abSI.A_SI * pd;
       const lnApd = Math.log(Apd);
       const onePlusInvGamma = 1 + 1/Math.max(1e-9, g.gamma);
       const lnln = Math.log(Math.log(onePlusInvGamma));
       const denom = lnApd - lnln;
 
-      const E = d > 0 ? v / d : Infinity; // V/cm
-      const EoverP = p > 0 ? (E / p) : Infinity; // V/(cm·mbar)
+      const E = dM > 0 ? v / dM : Infinity; // V/m
+      const EoverP = pPa > 0 ? (E / pPa) : Infinity; // V/(m·Pa)
 
       const Vglow0 = 180 + (g.label === 'He' ? 120 : 0) + (g.label === 'N₂' ? 80 : 0);
       const vPlasmaApprox = clamp(Vglow0, 70, 450);
       const R = Math.max(1, r) * 1000;
-      const iApproxA = (state.power && isFinite(vb) && v >= vb) ? Math.max(0, v - vPlasmaApprox) / R : 0;
+      const canConduct = state.power && isFinite(vb) && (state.conducting || v >= vb);
+      const iApproxA = canConduct ? Math.max(0, v - vPlasmaApprox) / R : 0;
 
       const epThresh = 10.5;
       const epGain = sCurve((EoverP - epThresh) / 2.2);
@@ -785,15 +915,15 @@
 
       if (el.lensLbl){
         const coll = clamp(brightnessEst, 0, 1) * (state.power ? 1 : 0);
-        el.lensLbl.textContent = `collisions: ${fmt(coll, 2)}`;
+        el.lensLbl.textContent = `столкновения: ${fmt(coll, 2)}`;
       }
 
       updateMath(
-        { g, v, pMbar: p, pTorr: pT, dCm: d, RkOhm: r, electrodeHeat: e, ambient: a, vb },
+        { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb },
         { pd, Apd, lnApd, onePlusInvGamma, lnln, denom, E, EoverP, vPlasmaApprox, iApproxA, brightnessEst }
       );
 
-      return { g, v, pMbar: p, pTorr: pT, dCm: d, RkOhm: r, electrodeHeat: e, ambient: a, vb };
+      return { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb };
     }
 
     function reset(){
@@ -811,7 +941,7 @@
     }
 
     function drawTube(params, dt){
-      const {g, v, pMbar, dCm, vb, electrodeHeat, ambient} = params;
+      const {g, v, pMbar, dCm, dM, vb, electrodeHeat, ambient} = params;
 
       const w = state.w;
       const h = state.h;
@@ -838,10 +968,11 @@
       ctx.fillRect(0,0,w,h);
 
       // Calculate reduced field E/p for tooltip and glow behavior.
-      // E ~ V / d. Use V in V, d in cm => V/cm. E/p in (V/(cm·mbar)) as a proxy.
-      const E = dCm > 0 ? v / dCm : 0;
-      const EoverP = pMbar > 0 ? (E / pMbar) : 0;
-      el.ep.textContent = isFinite(EoverP) ? `${fmt(EoverP, 1)} V/(cm·mbar)` : '—';
+      // In SI: E ~ V / d (V/m), p in Pa.
+      const E = dM > 0 ? v / dM : 0;
+      const pPa = toPaFromMbar(pMbar);
+      const EoverP = pPa > 0 ? (E / pPa) : 0;
+      el.ep.textContent = isFinite(EoverP) ? `${fmt(EoverP, 2)} В/(м·Па)` : '—';
 
       // Discharge model
       // 1) Ionization tends to rise if powered and near/above breakdown (hysteresis)
@@ -859,7 +990,7 @@
       // Ionization dynamics
       const targetIon = breakdownCondition ? 1.0 : (sustainCondition ? 0.55 : 0.0);
       const rise = breakdownCondition ? 3.8 : 1.8;
-      const fall = 1.4;
+      const fall = 2.4;
       const tau = (targetIon > state.ionization) ? rise : fall;
       state.ionization = lerp(state.ionization, targetIon, 1 - Math.exp(-tau*dt));
 
@@ -892,7 +1023,7 @@
       state.vPlasma = lerp(state.vPlasma, vPlasmaTarget, 1 - Math.exp(-7*dt));
 
       // Brightness model: depends on current and E/p beyond some threshold
-      const epThresh = 10.5; // V/(cm·mbar) - tuned
+      const epThresh = 10.5; // V/(м·Па) - tuned
       const epGain = sCurve((EoverP - epThresh) / 2.2);
       const i_mA = state.iA * 1000;
       const iGain = Math.sqrt(clamp(i_mA / 6.0, 0, 1));
@@ -909,13 +1040,13 @@
       glow = clamp(glow, 0, 1.6);
 
       const lensR = 78;
-      const lensX = w - 14 - lensR;
-      const lensY = 58 + lensR;
+      const lensX = w - 6 - lensR;
+      const lensY = 18 + lensR;
       drawMicroLens({g, powerOn: state.power, glowProxy: clamp(glow/1.2, 0, 1)}, lensX, lensY, lensR, dt);
 
       // Update HUD
       el.mode.textContent = state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл';
-      el.i.textContent = `${fmt(i_mA, 2)} mA`;
+      el.i.textContent = `${fmt(i_mA, 2)} мА`;
 
       // Tube glass
       const glassGrad = ctx.createLinearGradient(x0, cy-tubeR, x1, cy+tubeR);
@@ -1076,11 +1207,11 @@
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} mbar   d=${fmt(dCm,1)} cm`, cx, cy + tubeR + 28);
+      ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, cy + tubeR + 28);
 
       // Tiny voltage indicator
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText(`V=${fmt(v/1000,2)} kV   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} kV   R=${fmt(params.RkOhm,1)} kΩ`, cx, cy + tubeR + 46);
+      ctx.fillText(`V=${fmt(v/1000,2)} кВ   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} кВ   R=${fmt(params.RkOhm,1)} кОм`, cx, cy + tubeR + 46);
 
       // If not powered: show very subtle idle noise
       if (!state.power){
@@ -1109,6 +1240,48 @@
 
     function bind(){
       const update = () => syncUI();
+
+      const num = {
+        voltageKV: el.voltageNum,
+        pressure: el.pressureNum,
+        gap: el.gapNum,
+        ballast: el.ballastNum,
+        electrode: el.electrodeNum,
+        ambient: el.ambientNum
+      };
+
+      function clampNum(v, min, max){
+        if (!isFinite(v)) return min;
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function wireNumberToRange(numberEl, rangeEl, mapToRange, mapFromRange){
+        if (!numberEl || !rangeEl) return;
+        const onNum = () => {
+          const v = mapToRange(Number(numberEl.value));
+          const min = Number(rangeEl.min);
+          const max = Number(rangeEl.max);
+          rangeEl.value = String(clampNum(v, min, max));
+          syncUI();
+        };
+        const onRange = () => {
+          numberEl.value = String(mapFromRange(Number(rangeEl.value)));
+        };
+        numberEl.addEventListener('input', onNum);
+        numberEl.addEventListener('change', onNum);
+        rangeEl.addEventListener('input', onRange);
+        rangeEl.addEventListener('change', onRange);
+      }
+
+      // Number inputs: keep same units as the visible labels
+      // Voltage number input is in kV, range is in V
+      wireNumberToRange(num.voltageKV, el.voltage, (kv) => kv*1000, (v) => fmt(v/1000, 2));
+      wireNumberToRange(num.pressure, el.pressure, (mbar) => mbar, (mbar) => fmt(mbar, 1));
+      wireNumberToRange(num.gap, el.gap, (cm) => cm, (cm) => fmt(cm, 1));
+      wireNumberToRange(num.ballast, el.ballast, (kohm) => kohm, (kohm) => fmt(kohm, 0));
+      wireNumberToRange(num.electrode, el.electrode, (x) => x, (x) => fmt(x, 2));
+      wireNumberToRange(num.ambient, el.ambient, (x) => x, (x) => fmt(x, 2));
+
       ['input','change'].forEach(evt => {
         el.gas.addEventListener(evt, update);
         el.voltage.addEventListener(evt, update);
