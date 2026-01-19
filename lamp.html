@@ -253,7 +253,7 @@
 
         <div>
           <div class="row">
-            <label for="gap">Длина промежутка d (см)</label>
+            <label for="gap">Длина лампы d (см)</label>
             <output id="gapOut" class="mono">25.0 см</output>
           </div>
           <input id="gap" type="range" min="2" max="60" value="25" step="0.5" />
@@ -295,7 +295,7 @@
         <div id="boom" role="alert" aria-live="assertive">
           <div class="card">
             <h3>Авария</h3>
-            <p id="boomText">Лампа взорвалась из-за слишком большого тока – попробуй отрегулировать Балласт</p>
+            <p id="boomText">Лампа взорвалась из-за слишком большого тока – попробуй отрегулировать Балласт и давление</p>
             <div class="row">
               <button id="boomReset" type="button">Сбросить</button>
             </div>
@@ -338,7 +338,8 @@
 
         <h3>Как узнать: загорится лампа или нет? Формула Пашена</h3>
         <div class="eq">
-          <div class="k">Формула (Townsend/Paschen):</div>
+          <div class="k">Посмотри в правый верхний угол симуляции, то увидишь там параметр Vb – это напряжение пробоя. Если ты подашь напряжение на лампу V, которое будет больше чем Vb, то в лампе случится маленькая молния! Более того она еще и не потухнет – это будет настоящая молния в пробирке! Но нужно понимать, что Vb зависит от нескольких параметров твоей лампы и расчитывается вот по этой формуле Пашена:</div>
+
           <math display="block" xmlns="http://www.w3.org/1998/Math/MathML">
             <mrow>
               <msub><mi>V</mi><mi>b</mi></msub>
@@ -356,7 +357,6 @@
           <div class="k">Единицы в этой формуле: p — Па, d — м.</div>
           <div class="k">Что означает каждый символ (простыми словами):</div>
           <ul class="bul">
-            <li><span class="mono">V</span> — напряжение, которое ты подаёшь на лампу (в симуляции это ползунок <span class="mono">V</span>, единицы — <span class="mono">В</span> / <span class="mono">кВ</span>).</li>
             <li><span class="mono">p</span> — давление газа <span class="mono">(Па)</span>. В симуляции ты задаёшь давление ползунком <span class="mono">p</span> (в интерфейсе оно показано в мбар, а в формуле автоматически переводится в Па).</li>
             <li><span class="mono">d</span> — расстояние между электродами <span class="mono">(м)</span>. В симуляции ты задаёшь его ползунком <span class="mono">d</span> (в интерфейсе — в см, а в формуле переводится в м).</li>
             <li><span class="mono">Vb</span> — напряжение пробоя: если <span class="mono">V ≥ Vb</span>, лампа может загореться.</li>
@@ -1458,15 +1458,10 @@
 
       // Labels above tube (free space under tube for the circuit)
       const yLbl1 = Math.max(22, cy - tubeR - 30);
-      const yLbl2 = yLbl1 + 18;
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, yLbl1);
-
-      // Tiny voltage indicator
-      ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText(`V=${fmt(v/1000,2)} кВ   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} кВ   R=${fmt(params.RkOhm,1)} кОм`, cx, yLbl2);
 
       if (state.exploded){
         state.boomT += dt;
