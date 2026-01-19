@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Gas Discharge Lamp Prototype</title>
+  <style>
+    :root{
+      --bg0:#07070b;
+      --bg1:#0d0d16;
+      --panel:#121220cc;
+      --panel2:#151528e6;
+      --stroke:rgba(255,255,255,.12);
+      --text:#e9e9f3;
+      --muted:rgba(233,233,243,.7);
+      --accent:#7cd1ff;
+    }
+    html, body{ margin:0; height:100%; background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 70%); color:var(--text);
+      font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      overflow:hidden;
+    }
+    #app{ position:fixed; inset:0; display:grid; grid-template-columns: 360px 1fr; gap: 14px; padding: 14px; box-sizing:border-box; }
+    @media (max-width: 920px){
+      #app{ grid-template-columns: 1fr; grid-template-rows:auto 1fr; }
+    }
+
+    .panel{ background: var(--panel); border:1px solid var(--stroke); border-radius:14px; box-shadow: 0 14px 45px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+    }
+
+    #controls{ padding: 14px; display:flex; flex-direction:column; gap:12px; }
+    #controls h1{ margin: 4px 0 2px; font-size: 16px; letter-spacing: .2px; }
+    #controls .sub{ margin: 0 0 6px; font-size: 12px; color: var(--muted); line-height:1.35; }
+
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 10px; }
+    .row{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap: 10px; }
+    .row label{ font-size: 12px; color: var(--muted); }
+    .row output{ font-variant-numeric: tabular-nums; font-size: 12px; color: rgba(255,255,255,.88); }
+
+    select, input[type="range"], button{
+      width:100%;
+      box-sizing:border-box;
+      font: inherit;
+    }
+
+    select{
+      background: rgba(255,255,255,.05);
+      border:1px solid var(--stroke);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 10px;
+      outline:none;
+    }
+    select:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+    input[type="range"]{ accent-color: var(--accent); }
+
+    .btnrow{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button{
+      border-radius: 12px;
+      padding: 10px 12px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 650;
+    }
+    button:hover{ background: rgba(255,255,255,.10); }
+    button:active{ transform: translateY(1px); }
+    button:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+    #sim{ position:relative; overflow:hidden; display:flex; flex-direction:column; }
+    #canvasWrap{ position:relative; flex: 1 1 auto; min-height: 320px; }
+    #view{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+    #hud{
+      position:absolute; left: 14px; top: 12px; right: 14px;
+      display:flex; gap: 10px; flex-wrap:wrap; align-items:center;
+      pointer-events:none;
+    }
+    .chip{
+      pointer-events:none;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,.88);
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      font-variant-numeric: tabular-nums;
+    }
+    .chip b{ color:#fff; font-weight:750; }
+
+    #footerHint{
+      position:absolute; left:14px; bottom:12px; right:14px;
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      pointer-events:none;
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+    }
+
+    #math{
+      flex: 0 0 auto;
+      border-top: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.18);
+      padding: 12px 14px;
+      max-height: 42%;
+      overflow:auto;
+    }
+    #math h2{ margin: 0 0 10px; font-size: 14px; letter-spacing: .2px; }
+    #math h3{ margin: 14px 0 8px; font-size: 13px; color: rgba(255,255,255,.9); }
+    #math p{ margin: 6px 0; color: rgba(255,255,255,.75); font-size: 12px; line-height: 1.35; }
+    #math .eq{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: rgba(255,255,255,.86);
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 10px 10px; overflow:auto;
+    }
+    #math .k{ color: rgba(255,255,255,.6); }
+    #math .v{ color: rgba(255,255,255,.95); }
+    #math .lead{ color: rgba(255,255,255,.82); }
+    #math .callout{ margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(124,209,255,0.10), rgba(255,255,255,0.03));
+      color: rgba(255,255,255,.80);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    #math .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 920px){
+      #math .grid2{ grid-template-columns: 1fr; }
+    }
+    #math .bul{ margin: 6px 0 0; padding-left: 18px; }
+    #math .bul li{ margin: 4px 0; color: rgba(255,255,255,.75); font-size: 12px; line-height: 1.35; }
+
+    .lens{
+      position:absolute;
+      right: 14px;
+      top: 58px;
+      width: 180px;
+      height: 180px;
+      pointer-events:none;
+      filter: drop-shadow(0 14px 30px rgba(0,0,0,.65));
+      opacity: 0.95;
+    }
+    .lens::after{
+      content:"";
+      position:absolute;
+      right: 18px;
+      bottom: -26px;
+      width: 92px;
+      height: 10px;
+      transform: rotate(35deg);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0 12px rgba(0,0,0,.35);
+    }
+    .lens .cap{ position:absolute; inset:0; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18);
+      box-shadow: inset 0 0 22px rgba(0,0,0,.45);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.18));
+    }
+    .lens .lbl{ position:absolute; left: 10px; right: 10px; bottom: 10px; text-align:center; font-size: 11px; color: rgba(255,255,255,.72);
+      text-shadow: 0 1px 0 rgba(0,0,0,.55);
+    }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <section id="controls" class="panel">
+      <h1>Симуляция зажигания газоразрядной лампы</h1>
+      <p class="sub">Упрощённая физика: порог пробоя по закону Пашена + режим тления после пробоя. Параметры газа — приблизительные, но поведение правдоподобное.</p>
+
+      <div class="grid">
+        <div>
+          <div class="row">
+            <label for="gas">Газ</label>
+            <output id="gasOut">Ne</output>
+          </div>
+          <select id="gas">
+            <option value="neon" selected>Неон (Ne)</option>
+            <option value="argon">Аргон (Ar)</option>
+            <option value="helium">Гелий (He)</option>
+            <option value="nitrogen">Азот (N₂)</option>
+            <option value="mercury">Пары ртути (Hg) + Ar</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="voltage">Напряжение (кВ)</label>
+            <output id="voltageOut" class="mono">2.00 kV</output>
+          </div>
+          <input id="voltage" type="range" min="0" max="20000" value="2000" step="10" />
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="pressure">Давление (мбар)</label>
+            <output id="pressureOut" class="mono">20.0 mbar</output>
+          </div>
+          <input id="pressure" type="range" min="1" max="200" value="20" step="0.5" />
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="gap">Длина промежутка (см)</label>
+            <output id="gapOut" class="mono">25.0 cm</output>
+          </div>
+          <input id="gap" type="range" min="2" max="60" value="25" step="0.5" />
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="ballast">Балласт (кОм)</label>
+            <output id="ballastOut" class="mono">50.0 kΩ</output>
+          </div>
+          <input id="ballast" type="range" min="1" max="200" value="50" step="1" />
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="electrode">Электроды (нагрев)</label>
+            <output id="electrodeOut" class="mono">0.35</output>
+          </div>
+          <input id="electrode" type="range" min="0" max="1" value="0.35" step="0.01" />
+        </div>
+
+        <div>
+          <div class="row">
+            <label for="ambient">Окружающий свет</label>
+            <output id="ambientOut" class="mono">0.15</output>
+          </div>
+          <input id="ambient" type="range" min="0" max="0.6" value="0.15" step="0.01" />
+        </div>
+
+        <div class="btnrow">
+          <button id="toggle" type="button">Включить</button>
+          <button id="reset" type="button">Сброс</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="sim" class="panel">
+      <div id="canvasWrap">
+        <canvas id="view"></canvas>
+        <div class="lens" aria-hidden="true">
+          <div class="cap"></div>
+          <div class="lbl"><span class="mono" id="lensLbl">collisions: 0.00</span></div>
+        </div>
+        <div id="hud">
+          <div class="chip"><b>V<sub>b</sub></b>: <span id="vb" class="mono">—</span></div>
+          <div class="chip"><b>Состояние</b>: <span id="mode">выкл</span></div>
+          <div class="chip"><b>I</b>: <span id="i" class="mono">0.00 mA</span></div>
+          <div class="chip"><b>E/p</b>: <span id="ep" class="mono">—</span></div>
+        </div>
+        <div id="footerHint">
+          <div>Подсказка: максимум реализма — играйте давлением и длиной промежутка (через <span class="mono">p·d</span>).</div>
+          <div class="mono">Paschen + glow discharge (prototype)</div>
+        </div>
+      </div>
+
+      <div id="math" aria-label="Formulas">
+        <h2>Формулы и подстановка значений</h2>
+
+        <div class="callout">
+          <div class="lead">Что происходит в этой симуляции (коротко)</div>
+          <ul class="bul">
+            <li><span class="mono">До пробоя</span>: носителей почти нет, ток ≈ 0. Разряд не поддерживается.</li>
+            <li><span class="mono">Пробой</span>: при достаточном напряжении электроны успевают набрать энергию между столкновениями и запускают лавину (таунсендовская ионизация). Порог мы считаем по закону Пашена через <span class="mono">p·d</span>.</li>
+            <li><span class="mono">Тление</span>: после пробоя напряжение на плазме падает до сотен вольт, а ток ограничивается балластом. Свет — это в основном возбуждение атомов/молекул электронным ударом и последующая релаксация с излучением.</li>
+          </ul>
+        </div>
+
+        <h3>Как появляется свет (чуть подробнее)</h3>
+        <div class="grid2">
+          <div class="eq">
+            <div class="k">Газовые лампы (Ne/Ar/He/N₂)</div>
+            <div style="height:6px"></div>
+            <div>e⁻ + Atom → Atom* + e⁻</div>
+            <div>Atom* → Atom + hν</div>
+            <div style="height:6px"></div>
+            <div class="k">Смысл:</div>
+            <div class="k">электрон в поле разгоняется, при столкновении переводит атом в возбуждённое состояние, затем атом излучает фотон (цвет зависит от спектральных линий газа).</div>
+          </div>
+          <div class="eq">
+            <div class="k">Люминесцентная (Hg + инертный газ)</div>
+            <div style="height:6px"></div>
+            <div>e⁻ + Hg → Hg* + e⁻</div>
+            <div>Hg* → Hg + hν<sub>UV</sub></div>
+            <div>phosphor + hν<sub>UV</sub> → light (visible)</div>
+            <div style="height:6px"></div>
+            <div class="k">Смысл:</div>
+            <div class="k">много энергии уходит в УФ-линии ртути; в реальных лампах стенки покрывают люминофором, который преобразует УФ в видимый свет.</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="lead">Про твой тезис «довести до нужной частоты столкновений»</div>
+          <div>Корректнее мыслить не про «частоту сама по себе», а про то, чтобы у электронов была нужная <span class="mono">энергия между столкновениями</span>. Энергия набирается из поля и теряется в столкновениях, поэтому ключевой управляющий параметр — приведённое поле (в упрощении) <span class="mono">E/p</span>. В прототипе «частота столкновений» в лупе — это просто наглядная метрика, растущая с <span class="mono">E/p</span> и током.</div>
+        </div>
+
+        <h3>1) Закон Пашена (порог пробоя)</h3>
+        <div class="eq">
+          <div><span class="k">Vb</span> = ( <span class="k">B·p·d</span> ) / ( ln(<span class="k">A·p·d</span>) − ln( ln(1 + 1/<span class="k">γ</span>) ) )</div>
+          <div class="k">Здесь p в Torr, d в cm.</div>
+          <div style="height:8px"></div>
+          <div><span class="k">A</span>=<span class="v" id="mA">—</span>, <span class="k">B</span>=<span class="v" id="mB">—</span>, <span class="k">γ</span>=<span class="v" id="mgamma">—</span></div>
+          <div><span class="k">p</span>=<span class="v" id="mp_mbar">—</span> mbar = <span class="v" id="mp_torr">—</span> Torr</div>
+          <div><span class="k">d</span>=<span class="v" id="md_cm">—</span> cm</div>
+          <div><span class="k">p·d</span>=<span class="v" id="mpd">—</span> Torr·cm</div>
+          <div style="height:8px"></div>
+          <div>ln(A·p·d) = ln(<span class="v" id="mApd">—</span>) = <span class="v" id="mlnApd">—</span></div>
+          <div>ln(ln(1+1/γ)) = ln(ln(<span class="v" id="m1g">—</span>)) = <span class="v" id="mlnln">—</span></div>
+          <div>denom = <span class="v" id="mden">—</span></div>
+          <div style="height:8px"></div>
+          <div><span class="k">Vb</span> ≈ <span class="v" id="mVb">—</span> V = <span class="v" id="mVb_kv">—</span> kV</div>
+        </div>
+
+        <h3>2) Напряжённость поля и приведённое поле</h3>
+        <div class="eq">
+          <div><span class="k">E</span> ≈ V / d</div>
+          <div><span class="k">E/p</span> ≈ (V/d) / p</div>
+          <div style="height:8px"></div>
+          <div><span class="k">V</span>=<span class="v" id="mV">—</span> V, <span class="k">d</span>=<span class="v" id="md2">—</span> cm → <span class="k">E</span>=<span class="v" id="mE">—</span> V/cm</div>
+          <div><span class="k">p</span>=<span class="v" id="mp2">—</span> mbar → <span class="k">E/p</span>=<span class="v" id="mEp">—</span> V/(cm·mbar)</div>
+        </div>
+
+        <h3>3) Ток через балласт (после пробоя)</h3>
+        <div class="eq">
+          <div><span class="k">I</span> ≈ max(0, V − Vplasma) / R</div>
+          <div class="k">В прототипе Vplasma — упрощённое «падение на плазме» (порядка сотен вольт), зависящее от газа и режима.</div>
+          <div style="height:8px"></div>
+          <div><span class="k">R</span>=<span class="v" id="mR">—</span> Ω, <span class="k">Vplasma</span>≈<span class="v" id="mVp">—</span> V → <span class="k">I</span>≈<span class="v" id="mI">—</span> mA</div>
+        </div>
+
+        <h3>4) Реальная инженерная задача (исторически и промышленно)</h3>
+        <p>Одна из ключевых задач в разработке люминесцентных и ртутных ламп: <span class="mono">надёжный запуск</span> и <span class="mono">высокая световая отдача</span> при <span class="mono">долгом сроке службы</span>.</p>
+        <div class="eq">
+          <div class="k">Типичный компромисс (упрощённо):</div>
+          <div style="height:6px"></div>
+          <div><span class="k">Минимизировать</span> V_start(p,d,gas,γ,электроды) и потери P_electrodes</div>
+          <div><span class="k">Максимизировать</span> luminous_efficacy (lm/W) и lifetime</div>
+          <div style="height:6px"></div>
+          <div class="k">При ограничениях:</div>
+          <div class="k">- V_supply ограничено (сетевой/инвертор/балласт)</div>
+          <div class="k">- ток и температура электродов ограничены (иначе распыление/потеря эмиссионного покрытия)</div>
+          <div class="k">- давление/состав газа выбирают так, чтобы разряд был устойчив и эффективен (в т.ч. для спектра Hg и работы люминофора)</div>
+        </div>
+        <p>В терминах этой игрушки это превращается в челлендж: <span class="mono">поднять давление как можно выше</span>, но так, чтобы <span class="mono">V ≥ Vb</span> (иначе не зажжётся) и при этом удержать ток/яркость в «приятной» зоне балластом.</p>
+        <p>Текущая оценка яркости (ориентир для игры): <span class="mono" id="mBright">—</span></p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d', { alpha: true });
+
+    const canvasWrap = document.getElementById('canvasWrap');
+
+    const el = {
+      gas: document.getElementById('gas'),
+      gasOut: document.getElementById('gasOut'),
+      voltage: document.getElementById('voltage'),
+      voltageOut: document.getElementById('voltageOut'),
+      pressure: document.getElementById('pressure'),
+      pressureOut: document.getElementById('pressureOut'),
+      gap: document.getElementById('gap'),
+      gapOut: document.getElementById('gapOut'),
+      ballast: document.getElementById('ballast'),
+      ballastOut: document.getElementById('ballastOut'),
+      electrode: document.getElementById('electrode'),
+      electrodeOut: document.getElementById('electrodeOut'),
+      ambient: document.getElementById('ambient'),
+      ambientOut: document.getElementById('ambientOut'),
+      toggle: document.getElementById('toggle'),
+      reset: document.getElementById('reset'),
+      vb: document.getElementById('vb'),
+      mode: document.getElementById('mode'),
+      i: document.getElementById('i'),
+      ep: document.getElementById('ep'),
+      lensLbl: document.getElementById('lensLbl'),
+      mA: document.getElementById('mA'),
+      mB: document.getElementById('mB'),
+      mgamma: document.getElementById('mgamma'),
+      mp_mbar: document.getElementById('mp_mbar'),
+      mp_torr: document.getElementById('mp_torr'),
+      md_cm: document.getElementById('md_cm'),
+      mpd: document.getElementById('mpd'),
+      mApd: document.getElementById('mApd'),
+      mlnApd: document.getElementById('mlnApd'),
+      m1g: document.getElementById('m1g'),
+      mlnln: document.getElementById('mlnln'),
+      mden: document.getElementById('mden'),
+      mVb: document.getElementById('mVb'),
+      mVb_kv: document.getElementById('mVb_kv'),
+      mV: document.getElementById('mV'),
+      md2: document.getElementById('md2'),
+      mE: document.getElementById('mE'),
+      mp2: document.getElementById('mp2'),
+      mEp: document.getElementById('mEp'),
+      mR: document.getElementById('mR'),
+      mVp: document.getElementById('mVp'),
+      mI: document.getElementById('mI'),
+      mBright: document.getElementById('mBright')
+    };
+
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    const lerp = (a,b,t) => a + (b-a)*t;
+
+    // Fast smoothstep-ish sigmoid
+    const sCurve = (x) => 1 / (1 + Math.exp(-x));
+
+    function resize(){
+      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      const r = (canvasWrap || canvas).getBoundingClientRect();
+      canvas.width = Math.max(2, Math.floor(r.width * dpr));
+      canvas.height = Math.max(2, Math.floor(r.height * dpr));
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      state.w = r.width;
+      state.h = r.height;
+      state.dpr = dpr;
+    }
+
+    // Gas parameters (approx, for plausible behavior).
+    // A and B in Paschen law (Townsend form) using p in Torr and d in cm.
+    // Vb = (B p d) / ( ln(A p d) - ln( ln(1 + 1/gamma) ) )
+    // References vary widely; these are tuned for a nice interactive prototype.
+    const gases = {
+      neon: {
+        label: 'Ne',
+        A: 15.0,
+        B: 365.0,
+        gamma: 0.02,
+        // Color palette
+        rgb: [255, 70, 35],
+        rgb2: [255, 160, 90],
+        lineHueJitter: 0.04,
+        glowK: 1.15,
+        flicker: 0.08
+      },
+      argon: {
+        label: 'Ar',
+        A: 12.0,
+        B: 180.0,
+        gamma: 0.02,
+        rgb: [125, 170, 255],
+        rgb2: [210, 235, 255],
+        lineHueJitter: 0.06,
+        glowK: 1.0,
+        flicker: 0.10
+      },
+      helium: {
+        label: 'He',
+        A: 2.7,
+        B: 27.0,
+        gamma: 0.01,
+        rgb: [255, 210, 140],
+        rgb2: [255, 240, 210],
+        lineHueJitter: 0.03,
+        glowK: 0.85,
+        flicker: 0.06
+      },
+      nitrogen: {
+        label: 'N₂',
+        A: 12.0,
+        B: 365.0,
+        gamma: 0.015,
+        rgb: [120, 80, 255],
+        rgb2: [180, 155, 255],
+        lineHueJitter: 0.08,
+        glowK: 1.05,
+        flicker: 0.12
+      },
+      mercury: {
+        label: 'Hg+Ar',
+        // treat as argon-start + mercury lines: green/blue
+        A: 12.0,
+        B: 180.0,
+        gamma: 0.02,
+        rgb: [80, 255, 210],
+        rgb2: [95, 160, 255],
+        lineHueJitter: 0.10,
+        glowK: 1.1,
+        flicker: 0.10
+      }
+    };
+
+    function toTorrFromMbar(mbar){
+      // 1 mbar = 0.750061683 Torr
+      return mbar * 0.750061683;
+    }
+
+    function paschenBreakdownV({A,B,gamma}, pTorr, dCm){
+      // Guard against invalid ranges. If term becomes <= 0, return Infinity.
+      const pd = Math.max(1e-9, pTorr * dCm);
+      const lnApd = Math.log(A * pd);
+      const lnln = Math.log(Math.log(1 + 1/Math.max(1e-9, gamma)));
+      const denom = lnApd - lnln;
+      if (!isFinite(denom) || denom <= 0.02) return Infinity;
+      const vb = (B * pd) / denom;
+      return vb;
+    }
+
+    function updateMath(params, derived){
+      const { g, v, pMbar, pTorr, dCm, RkOhm, vb } = params;
+      const {
+        pd,
+        Apd,
+        lnApd,
+        onePlusInvGamma,
+        lnln,
+        denom,
+        E,
+        EoverP,
+        vPlasmaApprox,
+        iApproxA,
+        brightnessEst
+      } = derived;
+
+      if (el.mA) el.mA.textContent = fmt(g.A, 2);
+      if (el.mB) el.mB.textContent = fmt(g.B, 1);
+      if (el.mgamma) el.mgamma.textContent = fmt(g.gamma, 4);
+      if (el.mp_mbar) el.mp_mbar.textContent = fmt(pMbar, 2);
+      if (el.mp_torr) el.mp_torr.textContent = fmt(pTorr, 2);
+      if (el.md_cm) el.md_cm.textContent = fmt(dCm, 2);
+      if (el.mpd) el.mpd.textContent = fmt(pd, 3);
+
+      if (el.mApd) el.mApd.textContent = fmt(Apd, 3);
+      if (el.mlnApd) el.mlnApd.textContent = fmt(lnApd, 4);
+      if (el.m1g) el.m1g.textContent = fmt(onePlusInvGamma, 3);
+      if (el.mlnln) el.mlnln.textContent = fmt(lnln, 4);
+      if (el.mden) el.mden.textContent = fmt(denom, 4);
+
+      if (el.mVb) el.mVb.textContent = isFinite(vb) ? fmt(vb, 2) : '∞';
+      if (el.mVb_kv) el.mVb_kv.textContent = isFinite(vb) ? fmt(vb/1000, 3) : '∞';
+
+      if (el.mV) el.mV.textContent = fmt(v, 0);
+      if (el.md2) el.md2.textContent = fmt(dCm, 2);
+      if (el.mE) el.mE.textContent = isFinite(E) ? fmt(E, 2) : '—';
+      if (el.mp2) el.mp2.textContent = fmt(pMbar, 2);
+      if (el.mEp) el.mEp.textContent = isFinite(EoverP) ? fmt(EoverP, 2) : '—';
+
+      if (el.mR) el.mR.textContent = fmt(Math.max(1, RkOhm)*1000, 0);
+      if (el.mVp) el.mVp.textContent = fmt(vPlasmaApprox, 1);
+      if (el.mI) el.mI.textContent = fmt(iApproxA*1000, 2);
+
+      if (el.mBright) el.mBright.textContent = fmt(brightnessEst, 3);
+    }
+
+    function fmt(n, digits=2){
+      if (!isFinite(n)) return '∞';
+      return n.toFixed(digits);
+    }
+
+    const state = {
+      w: 800, h: 600, dpr: 1,
+      power: false,
+      t: 0,
+      // dynamic discharge state
+      conducting: false,
+      // a slow "memory" for transition
+      ionization: 0,
+      // flash around breakdown
+      breakdownFlash: 0,
+      // smoothed current
+      iA: 0,
+      // smoothed voltage across plasma (for glow)
+      vPlasma: 0,
+      micro: {
+        electrons: [],
+        atoms: [],
+        sparks: [],
+        seed: 1,
+        collisionRate: 0
+      }
+    };
+
+    function rand01(){
+      state.micro.seed = (1664525 * state.micro.seed + 1013904223) >>> 0;
+      return (state.micro.seed >>> 0) / 4294967296;
+    }
+
+    function initMicro(){
+      const m = state.micro;
+      m.electrons.length = 0;
+      m.atoms.length = 0;
+      m.sparks.length = 0;
+      for (let i=0;i<26;i++){
+        m.atoms.push({
+          x: rand01(),
+          y: rand01(),
+          ex: 0
+        });
+      }
+      for (let i=0;i<38;i++){
+        m.electrons.push({
+          x: rand01(),
+          y: rand01(),
+          vx: 0.25 + rand01()*0.35,
+          vy: (rand01()-0.5)*0.25
+        });
+      }
+    }
+
+    function microStep(dt, intensity, color){
+      const m = state.micro;
+      const rate = clamp(intensity, 0, 1);
+      m.collisionRate = lerp(m.collisionRate, rate, 1 - Math.exp(-4*dt));
+
+      for (const a of m.atoms){
+        a.ex = Math.max(0, a.ex - dt*1.8);
+      }
+      for (let i=m.sparks.length-1; i>=0; i--){
+        const s = m.sparks[i];
+        s.t -= dt;
+        if (s.t <= 0) m.sparks.splice(i,1);
+      }
+      for (const e of m.electrons){
+        const speed = lerp(0.35, 1.25, m.collisionRate);
+        e.x += e.vx * speed * dt;
+        e.y += e.vy * speed * dt;
+        e.y += (rand01()-0.5) * 0.12 * dt * (0.5 + m.collisionRate);
+        if (e.x > 1.05){
+          e.x = -0.05;
+          e.y = rand01();
+          e.vx = 0.25 + rand01()*0.55;
+          e.vy = (rand01()-0.5)*0.35;
+        }
+        if (e.y < -0.05) e.y = 1.05;
+        if (e.y > 1.05) e.y = -0.05;
+        const pColl = dt * (0.6 + 7.0*m.collisionRate);
+        if (rand01() < pColl){
+          const idx = Math.floor(rand01() * m.atoms.length);
+          const a = m.atoms[idx];
+          if (a){
+            a.ex = clamp(a.ex + 0.65 + 0.6*m.collisionRate, 0, 1.6);
+            m.sparks.push({x: a.x, y: a.y, t: 0.18, c: color});
+          }
+        }
+      }
+    }
+
+    function drawMicroLens(params, lensX, lensY, lensR, dt){
+      const g = params.g;
+      const base = g.rgb;
+      const sec = g.rgb2;
+      const mix = clamp(0.35 + 0.50*state.micro.collisionRate, 0, 1);
+      const col = [
+        lerp(base[0], sec[0], mix),
+        lerp(base[1], sec[1], mix),
+        lerp(base[2], sec[2], mix)
+      ];
+      const color = `rgba(${Math.round(col[0])},${Math.round(col[1])},${Math.round(col[2])},`;
+
+      const intensity = clamp((params.powerOn ? 1 : 0) * (params.glowProxy || 0), 0, 1);
+      microStep(dt, intensity, [col[0], col[1], col[2]]);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR, 0, Math.PI*2);
+      ctx.clip();
+
+      ctx.fillStyle = 'rgba(0,0,0,0.58)';
+      ctx.fillRect(lensX-lensR, lensY-lensR, lensR*2, lensR*2);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      const bg = ctx.createRadialGradient(lensX, lensY, 10, lensX, lensY, lensR);
+      bg.addColorStop(0, `${color}${0.14 + 0.24*state.micro.collisionRate})`);
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(lensX-lensR, lensY-lensR, lensR*2, lensR*2);
+
+      for (const a of state.micro.atoms){
+        const x = lensX + (a.x-0.5) * lensR*1.55;
+        const y = lensY + (a.y-0.5) * lensR*1.55;
+        const r = 2.2;
+        const ex = clamp(a.ex, 0, 1.2);
+        if (ex > 0){
+          const gg = ctx.createRadialGradient(x,y,0.5, x,y, 16);
+          gg.addColorStop(0, `${color}${0.12*ex})`);
+          gg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = gg;
+          ctx.beginPath();
+          ctx.arc(x,y, 16, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.fillStyle = `rgba(255,255,255,${0.14 + 0.10*ex})`;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      for (const e of state.micro.electrons){
+        const x = lensX + (e.x-0.5) * lensR*1.55;
+        const y = lensY + (e.y-0.5) * lensR*1.55;
+        ctx.strokeStyle = `rgba(255,255,255,${0.15 + 0.25*state.micro.collisionRate})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x-4, y);
+        ctx.lineTo(x+4, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y-4);
+        ctx.lineTo(x, y+4);
+        ctx.stroke();
+      }
+
+      for (const s of state.micro.sparks){
+        const x = lensX + (s.x-0.5) * lensR*1.55;
+        const y = lensY + (s.y-0.5) * lensR*1.55;
+        const a = clamp(s.t / 0.18, 0, 1);
+        const gg = ctx.createRadialGradient(x,y,1, x,y, 22);
+        gg.addColorStop(0, `rgba(${Math.round(s.c[0])},${Math.round(s.c[1])},${Math.round(s.c[2])},${0.22*a})`);
+        gg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gg;
+        ctx.beginPath();
+        ctx.arc(x,y, 22, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR-1, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function syncUI(){
+      const g = gases[el.gas.value];
+      el.gasOut.textContent = g ? g.label : String(el.gas.value);
+
+      const v = Number(el.voltage.value);
+      el.voltageOut.textContent = `${fmt(v/1000, 2)} kV`;
+
+      const p = Number(el.pressure.value);
+      el.pressureOut.textContent = `${fmt(p, 1)} mbar`;
+
+      const d = Number(el.gap.value);
+      el.gapOut.textContent = `${fmt(d, 1)} cm`;
+
+      const r = Number(el.ballast.value);
+      el.ballastOut.textContent = `${fmt(r, 1)} kΩ`;
+
+      const e = Number(el.electrode.value);
+      el.electrodeOut.textContent = fmt(e, 2);
+
+      const a = Number(el.ambient.value);
+      el.ambientOut.textContent = fmt(a, 2);
+
+      // Compute breakdown threshold
+      const pT = toTorrFromMbar(p);
+      const vb = paschenBreakdownV(g, pT, d);
+      el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} kV` : '∞';
+
+      // Derived values for the formulas panel (static-ish, for educational display)
+      const pd = Math.max(1e-9, pT * d);
+      const Apd = g.A * pd;
+      const lnApd = Math.log(Apd);
+      const onePlusInvGamma = 1 + 1/Math.max(1e-9, g.gamma);
+      const lnln = Math.log(Math.log(onePlusInvGamma));
+      const denom = lnApd - lnln;
+
+      const E = d > 0 ? v / d : Infinity; // V/cm
+      const EoverP = p > 0 ? (E / p) : Infinity; // V/(cm·mbar)
+
+      const Vglow0 = 180 + (g.label === 'He' ? 120 : 0) + (g.label === 'N₂' ? 80 : 0);
+      const vPlasmaApprox = clamp(Vglow0, 70, 450);
+      const R = Math.max(1, r) * 1000;
+      const iApproxA = (state.power && isFinite(vb) && v >= vb) ? Math.max(0, v - vPlasmaApprox) / R : 0;
+
+      const epThresh = 10.5;
+      const epGain = sCurve((EoverP - epThresh) / 2.2);
+      const i_mA = iApproxA * 1000;
+      const iGain = Math.sqrt(clamp(i_mA / 6.0, 0, 1));
+      const brightnessEst = clamp(g.glowK * epGain * iGain, 0, 2);
+
+      if (el.lensLbl){
+        const coll = clamp(brightnessEst, 0, 1) * (state.power ? 1 : 0);
+        el.lensLbl.textContent = `collisions: ${fmt(coll, 2)}`;
+      }
+
+      updateMath(
+        { g, v, pMbar: p, pTorr: pT, dCm: d, RkOhm: r, electrodeHeat: e, ambient: a, vb },
+        { pd, Apd, lnApd, onePlusInvGamma, lnln, denom, E, EoverP, vPlasmaApprox, iApproxA, brightnessEst }
+      );
+
+      return { g, v, pMbar: p, pTorr: pT, dCm: d, RkOhm: r, electrodeHeat: e, ambient: a, vb };
+    }
+
+    function reset(){
+      state.conducting = false;
+      state.ionization = 0;
+      state.breakdownFlash = 0;
+      state.iA = 0;
+      state.vPlasma = 0;
+      state.micro.collisionRate = 0;
+      initMicro();
+    }
+
+    function srgb(r,g,b,a=1){
+      return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`;
+    }
+
+    function drawTube(params, dt){
+      const {g, v, pMbar, dCm, vb, electrodeHeat, ambient} = params;
+
+      const w = state.w;
+      const h = state.h;
+
+      const cx = w*0.5;
+      const cy = h*0.52;
+
+      const tubeLen = Math.min(w*0.78, 820);
+      const tubeR = Math.max(18, Math.min(34, h*0.05));
+
+      const x0 = cx - tubeLen*0.5;
+      const x1 = cx + tubeLen*0.5;
+
+      // Background
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = `rgba(0,0,0,${0.28 + ambient*0.55})`;
+      ctx.fillRect(0,0,w,h);
+
+      // Subtle vignette
+      const vign = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(w,h)*0.65);
+      vign.addColorStop(0, 'rgba(0,0,0,0)');
+      vign.addColorStop(1, `rgba(0,0,0,${0.55 + ambient*0.2})`);
+      ctx.fillStyle = vign;
+      ctx.fillRect(0,0,w,h);
+
+      // Calculate reduced field E/p for tooltip and glow behavior.
+      // E ~ V / d. Use V in V, d in cm => V/cm. E/p in (V/(cm·mbar)) as a proxy.
+      const E = dCm > 0 ? v / dCm : 0;
+      const EoverP = pMbar > 0 ? (E / pMbar) : 0;
+      el.ep.textContent = isFinite(EoverP) ? `${fmt(EoverP, 1)} V/(cm·mbar)` : '—';
+
+      // Discharge model
+      // 1) Ionization tends to rise if powered and near/above breakdown (hysteresis)
+      // 2) If conducting, we assume plasma drop + ballast defines current.
+      const over = (vb === Infinity) ? -1 : (v / Math.max(1e-6, vb));
+
+      // Soft start: electrodes help start emission at lower v (very simplified)
+      const assist = lerp(0.88, 1.03, clamp(electrodeHeat, 0, 1));
+      const breakdownCondition = state.power && (over * assist) > 1.0;
+
+      // After breakdown, maintain conduction if ionization still present and voltage not too low
+      const sustainK = 0.63; // simplified sustaining ratio
+      const sustainCondition = state.power && (over * assist) > sustainK;
+
+      // Ionization dynamics
+      const targetIon = breakdownCondition ? 1.0 : (sustainCondition ? 0.55 : 0.0);
+      const rise = breakdownCondition ? 3.8 : 1.8;
+      const fall = 1.4;
+      const tau = (targetIon > state.ionization) ? rise : fall;
+      state.ionization = lerp(state.ionization, targetIon, 1 - Math.exp(-tau*dt));
+
+      const becameConducting = (!state.conducting) && (state.ionization > 0.72);
+      if (becameConducting){
+        state.conducting = true;
+        state.breakdownFlash = 1.0;
+      }
+      if (state.conducting && state.ionization < 0.15) state.conducting = false;
+
+      // Plasma voltage drop model (very simplified): depends on gas and current.
+      // Typical glow discharge has ~100-300V drop. We'll use 180V baseline + current-dependent.
+      const Vglow0 = 180 + (g.label === 'He' ? 120 : 0) + (g.label === 'N₂' ? 80 : 0);
+      const Vmin = 70;
+      const Vmax = 450;
+
+      // Compute current through ballast if conducting.
+      const R = Math.max(1, params.RkOhm) * 1000;
+      let iTarget = 0;
+      let vPlasmaTarget = 0;
+      if (state.power && state.conducting){
+        // as ionization rises, plasma drop tends to settle
+        vPlasmaTarget = clamp(lerp(Vmax, Vglow0, clamp(state.ionization, 0, 1)) + 60*Math.sqrt(Math.max(0, state.iA*1000)), Vmin, Vmax);
+        const vAcrossR = Math.max(0, v - vPlasmaTarget);
+        iTarget = vAcrossR / R;
+      }
+
+      // Smooth current and plasma voltage
+      state.iA = lerp(state.iA, iTarget, 1 - Math.exp(-10*dt));
+      state.vPlasma = lerp(state.vPlasma, vPlasmaTarget, 1 - Math.exp(-7*dt));
+
+      // Brightness model: depends on current and E/p beyond some threshold
+      const epThresh = 10.5; // V/(cm·mbar) - tuned
+      const epGain = sCurve((EoverP - epThresh) / 2.2);
+      const i_mA = state.iA * 1000;
+      const iGain = Math.sqrt(clamp(i_mA / 6.0, 0, 1));
+      let glow = g.glowK * epGain * iGain;
+      glow *= lerp(0.25, 1.0, clamp(state.ionization, 0, 1));
+
+      // Breakdown flash decays
+      state.breakdownFlash = Math.max(0, state.breakdownFlash - dt * 2.2);
+
+      // Flicker (very light, pleasant)
+      const flicker = (Math.sin(state.t*13.0) * 0.5 + Math.sin(state.t*23.0) * 0.3 + Math.sin(state.t*41.0) * 0.2);
+      const flickerK = 1 + flicker * g.flicker * clamp(glow, 0, 1);
+      glow *= flickerK;
+      glow = clamp(glow, 0, 1.6);
+
+      const lensR = 78;
+      const lensX = w - 14 - lensR;
+      const lensY = 58 + lensR;
+      drawMicroLens({g, powerOn: state.power, glowProxy: clamp(glow/1.2, 0, 1)}, lensX, lensY, lensR, dt);
+
+      // Update HUD
+      el.mode.textContent = state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл';
+      el.i.textContent = `${fmt(i_mA, 2)} mA`;
+
+      // Tube glass
+      const glassGrad = ctx.createLinearGradient(x0, cy-tubeR, x1, cy+tubeR);
+      glassGrad.addColorStop(0, 'rgba(255,255,255,0.06)');
+      glassGrad.addColorStop(0.5, 'rgba(255,255,255,0.02)');
+      glassGrad.addColorStop(1, 'rgba(255,255,255,0.07)');
+
+      // Outer soft glow (ambient)
+      const amb = clamp(0.08 + ambient*0.45, 0, 0.6);
+      const outer = ctx.createRadialGradient(cx, cy, tubeR, cx, cy, tubeLen*0.62);
+      outer.addColorStop(0, `rgba(255,255,255,${amb*0.10})`);
+      outer.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = outer;
+      ctx.fillRect(0,0,w,h);
+
+      // Draw electrodes
+      const elecW = 20;
+      const elecH = tubeR*1.45;
+      const elecR = 6;
+
+      function roundRect(x,y,ww,hh,r){
+        ctx.beginPath();
+        const rr = Math.min(r, ww*0.5, hh*0.5);
+        ctx.moveTo(x+rr, y);
+        ctx.arcTo(x+ww, y, x+ww, y+hh, rr);
+        ctx.arcTo(x+ww, y+hh, x, y+hh, rr);
+        ctx.arcTo(x, y+hh, x, y, rr);
+        ctx.arcTo(x, y, x+ww, y, rr);
+        ctx.closePath();
+      }
+
+      // Plasma glow inside
+      const insideX0 = x0 + elecW + 10;
+      const insideX1 = x1 - elecW - 10;
+
+      // Glow color mixing
+      const base = g.rgb;
+      const sec = g.rgb2;
+      const mix = clamp(0.35 + 0.45*epGain + 0.25*(state.breakdownFlash), 0, 1);
+      const col = [
+        lerp(base[0], sec[0], mix),
+        lerp(base[1], sec[1], mix),
+        lerp(base[2], sec[2], mix)
+      ];
+
+      // Additive glow layers
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // Main tube glow (soft)
+      const g1 = ctx.createRadialGradient(cx, cy, tubeR*0.15, cx, cy, tubeLen*0.56);
+      const g1a = clamp(0.06 + glow*0.22, 0, 0.35);
+      g1.addColorStop(0, srgb(col[0], col[1], col[2], g1a));
+      g1.addColorStop(0.6, srgb(col[0], col[1], col[2], g1a*0.35));
+      g1.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g1;
+      ctx.fillRect(0,0,w,h);
+
+      // Inside column glow (more concentrated)
+      const a2 = clamp(0.10 + glow*0.45, 0, 0.75);
+      const g2 = ctx.createLinearGradient(insideX0, cy, insideX1, cy);
+      g2.addColorStop(0, srgb(col[0], col[1], col[2], a2*0.55));
+      g2.addColorStop(0.25, srgb(col[0], col[1], col[2], a2));
+      g2.addColorStop(0.75, srgb(col[0], col[1], col[2], a2));
+      g2.addColorStop(1, srgb(col[0], col[1], col[2], a2*0.55));
+
+      // "Striation" lines for visual richness (not physically exact)
+      const lines = Math.floor(10 + glow*22);
+      for (let k=0;k<lines;k++){
+        const t = (k + 0.5)/lines;
+        const x = lerp(insideX0, insideX1, t);
+        const wave = Math.sin(state.t*2.8 + t*12.0) * 0.5 + Math.sin(state.t*5.2 + t*7.0)*0.5;
+        const amp = (0.6 + 0.4*Math.sin(t*3.1415)) * (0.3 + glow);
+        const aLine = clamp((0.003 + glow*0.020) * (0.55 + 0.45*Math.sin(t*12.0 + state.t*7.0)), 0, 0.055);
+        const r = col[0] * (0.92 + 0.08*Math.sin(t*20.0));
+        const gg = col[1] * (0.92 + 0.08*Math.sin(t*14.0 + 1));
+        const b = col[2] * (0.92 + 0.08*Math.sin(t*16.0 + 2));
+        ctx.strokeStyle = srgb(r, gg, b, aLine);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, cy - tubeR*0.55 - wave*amp*6);
+        ctx.lineTo(x, cy + tubeR*0.55 + wave*amp*6);
+        ctx.stroke();
+      }
+
+      // Glow column fill (rounded)
+      ctx.fillStyle = g2;
+      roundRect(insideX0, cy - tubeR*0.62, insideX1 - insideX0, tubeR*1.24, tubeR*0.62);
+      ctx.fill();
+
+      // Breakdown flash (short and bright)
+      if (state.breakdownFlash > 0){
+        const bf = state.breakdownFlash;
+        const aF = clamp(0.08 + bf*0.35, 0, 0.55);
+        const flash = ctx.createRadialGradient(cx, cy, tubeR*0.5, cx, cy, tubeLen*0.62);
+        flash.addColorStop(0, srgb(255, 255, 255, aF));
+        flash.addColorStop(0.7, srgb(col[0], col[1], col[2], aF*0.15));
+        flash.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = flash;
+        ctx.fillRect(0,0,w,h);
+      }
+
+      ctx.restore();
+
+      // Tube body
+      ctx.save();
+      // glass outline
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 2;
+      roundRect(x0, cy - tubeR, tubeLen, tubeR*2, tubeR);
+      ctx.stroke();
+
+      // glass fill
+      ctx.fillStyle = glassGrad;
+      roundRect(x0, cy - tubeR, tubeLen, tubeR*2, tubeR);
+      ctx.fill();
+
+      // Specular highlight
+      const spec = ctx.createLinearGradient(x0, cy - tubeR, x1, cy - tubeR);
+      spec.addColorStop(0, 'rgba(255,255,255,0.05)');
+      spec.addColorStop(0.3, 'rgba(255,255,255,0.12)');
+      spec.addColorStop(0.6, 'rgba(255,255,255,0.06)');
+      spec.addColorStop(1, 'rgba(255,255,255,0.03)');
+      ctx.fillStyle = spec;
+      roundRect(x0+6, cy - tubeR + 6, tubeLen-12, tubeR*0.65, tubeR*0.4);
+      ctx.fill();
+      ctx.restore();
+
+      // Electrodes glow / cathode fall hint
+      const endGlow = clamp(glow, 0, 1) * 0.45;
+      if (endGlow > 0){
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const leftG = ctx.createRadialGradient(insideX0, cy, 6, insideX0, cy, tubeR*1.3);
+        leftG.addColorStop(0, srgb(col[0], col[1], col[2], 0.20*endGlow));
+        leftG.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = leftG; ctx.fillRect(0,0,w,h);
+
+        const rightG = ctx.createRadialGradient(insideX1, cy, 6, insideX1, cy, tubeR*1.3);
+        rightG.addColorStop(0, srgb(col[0], col[1], col[2], 0.14*endGlow));
+        rightG.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = rightG; ctx.fillRect(0,0,w,h);
+        ctx.restore();
+      }
+
+      // Electrode metal
+      ctx.fillStyle = 'rgba(240,240,255,0.15)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      roundRect(x0+8, cy - elecH*0.5, elecW, elecH, elecR);
+      ctx.fill();
+      ctx.stroke();
+      roundRect(x1-elecW-8, cy - elecH*0.5, elecW, elecH, elecR);
+      ctx.fill();
+      ctx.stroke();
+
+      // Labels under tube
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} mbar   d=${fmt(dCm,1)} cm`, cx, cy + tubeR + 28);
+
+      // Tiny voltage indicator
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillText(`V=${fmt(v/1000,2)} kV   Vb≈${isFinite(vb)?fmt(vb/1000,2):'∞'} kV   R=${fmt(params.RkOhm,1)} kΩ`, cx, cy + tubeR + 46);
+
+      // If not powered: show very subtle idle noise
+      if (!state.power){
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const a = 0.03 + ambient*0.07;
+        const idle = ctx.createRadialGradient(cx, cy, tubeR, cx, cy, tubeLen*0.55);
+        idle.addColorStop(0, `rgba(80,110,255,${a})`);
+        idle.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = idle;
+        ctx.fillRect(0,0,w,h);
+        ctx.restore();
+      }
+    }
+
+    function tick(now){
+      const t = now * 0.001;
+      const dt = clamp(t - state.t, 0, 0.05);
+      state.t = t;
+
+      const params = syncUI();
+      drawTube(params, dt);
+
+      requestAnimationFrame(tick);
+    }
+
+    function bind(){
+      const update = () => syncUI();
+      ['input','change'].forEach(evt => {
+        el.gas.addEventListener(evt, update);
+        el.voltage.addEventListener(evt, update);
+        el.pressure.addEventListener(evt, update);
+        el.gap.addEventListener(evt, update);
+        el.ballast.addEventListener(evt, update);
+        el.electrode.addEventListener(evt, update);
+        el.ambient.addEventListener(evt, update);
+      });
+
+      el.toggle.addEventListener('click', () => {
+        state.power = !state.power;
+        el.toggle.textContent = state.power ? 'Выключить' : 'Включить';
+        if (state.power){
+          if (!state.micro.atoms.length || !state.micro.electrons.length) initMicro();
+        } else {
+          reset();
+        }
+      });
+      el.reset.addEventListener('click', () => {
+        el.voltage.value = '2000';
+        el.pressure.value = '20';
+        el.gap.value = '25';
+        el.ballast.value = '50';
+        el.electrode.value = '0.35';
+        el.ambient.value = '0.15';
+        el.gas.value = 'neon';
+        reset();
+        syncUI();
+      });
+
+      window.addEventListener('resize', () => {
+        resize();
+      }, { passive: true });
+
+      // Keyboard
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space'){
+          e.preventDefault();
+          el.toggle.click();
+        }
+        if (e.code === 'KeyR'){
+          e.preventDefault();
+          el.reset.click();
+        }
+      });
+    }
+
+    // Init
+    bind();
+    resize();
+    initMicro();
+    syncUI();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
