@@ -162,12 +162,27 @@
     }
     #math .content{ max-width: 900px; margin: 0 auto; }
     #math h2{ margin: 2px 0 12px; font-size: 22px; letter-spacing: .2px; line-height: 1.22; }
-    #math h3{ margin: 20px 0 12px; font-size: 18px; color: rgba(255,255,255,.92); }
+    #math h3{ margin: 22px 0 12px; font-size: 18px; color: rgba(255,255,255,.92); }
     #math h4{ margin: 14px 0 10px; font-size: 16px; color: rgba(255,255,255,.90); }
-    #math p{ margin: 10px 0; color: rgba(255,255,255,.80); font-size: 16px; line-height: 1.68; }
-    #math .eq{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 14px; color: rgba(255,255,255,.92);
-      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 12px; padding: 12px 12px; overflow:auto;
+    #math p{ margin: 12px 0; color: rgba(255,255,255,.82); font-size: 16px; line-height: 1.7; }
+    #math .eq{
+      font-family: inherit;
+      font-size: 15px;
+      color: rgba(255,255,255,.86);
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      padding: 12px 12px;
+      overflow:auto;
+      line-height: 1.65;
     }
+    #math .eq .k{ color: rgba(255,255,255,.86); font-weight: 650; }
+    #math .eq .k{ display:block; margin: 8px 0 10px; }
+    #math .eq .k:first-child{ margin-top: 0; }
+    #math .eq math{ margin: 18px 0; }
+    #math .eq math,
+    #math .eq .mono,
+    #math .eq .v{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     #math math{ font-size: 19px; }
     #math math mi{ font-style: italic; }
     #math .k{ color: rgba(255,255,255,.6); }
@@ -183,10 +198,10 @@
     @media (max-width: 920px){
       #math .grid2{ grid-template-columns: 1fr; }
     }
-    #math .bul{ margin: 10px 0 0; padding-left: 20px; }
+    #math .bul{ margin: 10px 0 12px; padding-left: 20px; }
     #math .bul li{ margin: 8px 0; color: rgba(255,255,255,.78); font-size: 16px; line-height: 1.68; }
 
-    #math .step{ border-left: 2px solid rgba(124,209,255,0.35); padding-left: 10px; margin: 12px 0; }
+    #math .step{ border-left: 2px solid rgba(124,209,255,0.35); padding-left: 10px; margin: 14px 0; }
     #math .badge{ display:inline-block; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85);
     }
@@ -317,7 +332,7 @@
         <div class="content">
         <h2>Мини‑учебник: как зажигается газоразрядная лампа</h2>
         
-        <h3>Первый опыт: зажги лампу</h3>
+        <h3>Первый опыт: попробуй зажечь лампу!</h3>
         <p>Сверху — <span class="mono">лампа</span>: стеклянная трубка с газом и двумя электродами на концах. Кажется, она «просто стекляшка»… пока ты не подашь достаточно большое напряжение.</p>
         <p>Тут есть четыре ручки, с которыми ты будешь играть как настоящий экспериментатор:</p>
         <ul class="bul">
