@@ -145,6 +145,43 @@
     }
     .chip b{ color:#fff; font-weight:750; }
 
+    #quickCtrlBtn, #quickCtrlPanel{ display:none; }
+    @media (max-width: 700px){
+      #quickCtrlBtn{
+        display:block;
+        position:absolute;
+        right: 10px;
+        bottom: 10px;
+        z-index: 9;
+        width: auto;
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: rgba(0,0,0,.45);
+        border:1px solid rgba(255,255,255,.14);
+        backdrop-filter: blur(10px);
+      }
+      #quickCtrlPanel{
+        display:none;
+        position:absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 58px;
+        z-index: 9;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(10,10,18,.78);
+        border: 1px solid rgba(255,255,255,.12);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 18px 70px rgba(0,0,0,.65);
+      }
+      #quickCtrlPanel.show{ display:block; }
+      #quickCtrlPanel .qgrid{ display:grid; grid-template-columns: 1fr; gap: 10px; }
+      #quickCtrlPanel .qrow{ display:grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items:center; }
+      #quickCtrlPanel .qlbl{ font-size: 12px; color: rgba(255,255,255,.75); }
+      #quickCtrlPanel .qval{ font-size: 12px; color: rgba(255,255,255,.90); font-variant-numeric: tabular-nums; }
+      #quickCtrlPanel .qbtn{ padding: 10px 12px; border-radius: 12px; }
+    }
+
     #footerHint{
       position:absolute; left:14px; bottom:12px; right:14px;
       display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
@@ -343,6 +380,50 @@
     <section id="sim" class="panel">
       <div id="canvasWrap">
         <canvas id="view"></canvas>
+        <button id="quickCtrlBtn" type="button" aria-haspopup="dialog" aria-expanded="false">Параметры</button>
+        <div id="quickCtrlPanel" role="dialog" aria-label="Quick controls">
+          <div class="qgrid">
+            <div class="qrow">
+              <div class="qlbl">Установка</div>
+              <button class="qbtn" id="qPower" type="button">—</button>
+              <span></span>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">Газ</div>
+              <button class="qbtn" id="qGasPrev" type="button">−</button>
+              <button class="qbtn" id="qGasNext" type="button">+</button>
+            </div>
+            <div class="qrow">
+              <div class="qval" id="qGasVal">—</div>
+              <span></span><span></span>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">V <span class="qval" id="qVVal">—</span></div>
+              <button class="qbtn" type="button" data-q="voltage" data-delta="-100">−</button>
+              <button class="qbtn" type="button" data-q="voltage" data-delta="100">+</button>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">p <span class="qval" id="qPVal">—</span></div>
+              <button class="qbtn" type="button" data-q="pressure" data-delta="-1">−</button>
+              <button class="qbtn" type="button" data-q="pressure" data-delta="1">+</button>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">d <span class="qval" id="qDVal">—</span></div>
+              <button class="qbtn" type="button" data-q="gap" data-delta="-1">−</button>
+              <button class="qbtn" type="button" data-q="gap" data-delta="1">+</button>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">R <span class="qval" id="qRVal">—</span></div>
+              <button class="qbtn" type="button" data-q="ballast" data-delta="-5">−</button>
+              <button class="qbtn" type="button" data-q="ballast" data-delta="5">+</button>
+            </div>
+            <div class="qrow">
+              <div class="qlbl">ε <span class="qval" id="qEpsVal">—</span></div>
+              <button class="qbtn" type="button" data-q="electrode" data-delta="-0.05">−</button>
+              <button class="qbtn" type="button" data-q="electrode" data-delta="0.05">+</button>
+            </div>
+          </div>
+        </div>
         <div class="lens" aria-hidden="true">
           <div class="cap"></div>
           <div class="lbl"><span class="mono" id="lensLbl">столкновения: 0.00</span></div>
@@ -1757,7 +1838,130 @@
 
       window.addEventListener('resize', () => {
         resize();
-      }, { passive: true });
+      }, {passive:true});
+
+      const qcBtn = document.getElementById('quickCtrlBtn');
+      const qcPanel = document.getElementById('quickCtrlPanel');
+      const qPower = document.getElementById('qPower');
+      const qGasVal = document.getElementById('qGasVal');
+      const qGasPrev = document.getElementById('qGasPrev');
+      const qGasNext = document.getElementById('qGasNext');
+      const qVVal = document.getElementById('qVVal');
+      const qPVal = document.getElementById('qPVal');
+      const qDVal = document.getElementById('qDVal');
+      const qRVal = document.getElementById('qRVal');
+      const qEpsVal = document.getElementById('qEpsVal');
+      const qcOpen = () => {
+        if (!qcBtn || !qcPanel) return;
+        qcPanel.classList.add('show');
+        qcBtn.setAttribute('aria-expanded', 'true');
+        qcSyncGas();
+        qcSyncValues();
+      };
+      const qcClose = () => {
+        if (!qcBtn || !qcPanel) return;
+        qcPanel.classList.remove('show');
+        qcBtn.setAttribute('aria-expanded', 'false');
+      };
+      const qcToggle = () => {
+        if (!qcBtn || !qcPanel) return;
+        const open = qcPanel.classList.contains('show');
+        if (open) qcClose(); else qcOpen();
+      };
+      const qcSyncGas = () => {
+        if (!qGasVal || !el.gas) return;
+        const opt = el.gas.options[el.gas.selectedIndex];
+        qGasVal.textContent = opt ? opt.textContent : '—';
+      };
+      const qcSyncValues = () => {
+        if (qVVal && el.voltage) qVVal.textContent = `${fmt(Number(el.voltage.value)/1000, 2)} кВ`;
+        if (qPVal && el.pressure) qPVal.textContent = `${fmt(Number(el.pressure.value), 1)} мбар`;
+        if (qDVal && el.gap) qDVal.textContent = `${fmt(Number(el.gap.value), 1)} см`;
+        if (qRVal && el.ballast) qRVal.textContent = `${fmt(Number(el.ballast.value), 0)} кОм`;
+        if (qEpsVal && el.electrode) qEpsVal.textContent = fmt(Number(el.electrode.value), 2);
+        if (qPower){
+          qPower.textContent = el.toggle ? el.toggle.textContent : (state.power ? 'Выключить' : 'Включить');
+          qPower.setAttribute('aria-pressed', String(!!state.power));
+        }
+      };
+      const setRange = (rangeEl, next) => {
+        const min = Number(rangeEl.min);
+        const max = Number(rangeEl.max);
+        const v = Math.max(min, Math.min(max, next));
+        rangeEl.value = String(v);
+        rangeEl.dispatchEvent(new Event('input', {bubbles:true}));
+        rangeEl.dispatchEvent(new Event('change', {bubbles:true}));
+        syncUI();
+        qcSyncValues();
+      };
+      const nudge = (key, delta) => {
+        const rangeEl = el[key];
+        if (!rangeEl) return;
+        const cur = Number(rangeEl.value);
+        setRange(rangeEl, cur + delta);
+        qcSyncValues();
+      };
+      if (qcBtn && qcPanel){
+        qcBtn.addEventListener('click', qcToggle);
+        qcPanel.addEventListener('click', (e) => { e.stopPropagation(); });
+        document.addEventListener('click', (e) => {
+          if (!qcPanel.classList.contains('show')) return;
+          if (e.target === qcBtn || qcPanel.contains(e.target)) return;
+          qcClose();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') qcClose();
+        });
+      }
+      if (qGasPrev && el.gas){
+        qGasPrev.addEventListener('click', ()=>{
+          const n = el.gas.options.length;
+          el.gas.selectedIndex = (el.gas.selectedIndex - 1 + n) % n;
+          el.gas.dispatchEvent(new Event('change', {bubbles:true}));
+          qcSyncGas();
+          qcSyncValues();
+          syncUI();
+        });
+      }
+      if (qGasNext && el.gas){
+        qGasNext.addEventListener('click', ()=>{
+          const n = el.gas.options.length;
+          el.gas.selectedIndex = (el.gas.selectedIndex + 1) % n;
+          el.gas.dispatchEvent(new Event('change', {bubbles:true}));
+          qcSyncGas();
+          qcSyncValues();
+          syncUI();
+        });
+      }
+      if (qPower){
+        qPower.addEventListener('click', ()=>{
+          if (el.toggle) el.toggle.click();
+          qcSyncValues();
+        });
+      }
+      if (qcPanel){
+        qcPanel.querySelectorAll('[data-q][data-delta]').forEach((btn)=>{
+          btn.addEventListener('click', ()=>{
+            const key = btn.getAttribute('data-q');
+            const delta = Number(btn.getAttribute('data-delta'));
+            if (!key || !isFinite(delta)) return;
+            nudge(key, delta);
+          });
+        });
+      }
+      if (el.gas){
+        el.gas.addEventListener('change', ()=>{ qcSyncGas(); });
+        qcSyncGas();
+        qcSyncValues();
+      }
+
+      ['input','change'].forEach((evt)=>{
+        if (el.voltage) el.voltage.addEventListener(evt, qcSyncValues);
+        if (el.pressure) el.pressure.addEventListener(evt, qcSyncValues);
+        if (el.gap) el.gap.addEventListener(evt, qcSyncValues);
+        if (el.ballast) el.ballast.addEventListener(evt, qcSyncValues);
+        if (el.electrode) el.electrode.addEventListener(evt, qcSyncValues);
+      });
 
       // Keyboard
       window.addEventListener('keydown', (e) => {
