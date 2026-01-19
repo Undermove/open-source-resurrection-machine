@@ -130,6 +130,7 @@
       display:flex; gap: 10px; flex-wrap:wrap; align-items:center;
       pointer-events:none;
     }
+    #hud{ display:none; }
     .chip{
       pointer-events:none;
       background: rgba(0,0,0,.35);
@@ -1001,6 +1002,16 @@
       el.gapOut.textContent = `${fmt(d, 1)} см`;
       if (el.gapNum && !isFocused(el.gapNum)) el.gapNum.value = fmt(d, 1);
 
+      // Compute breakdown threshold + reduced field (for HUD)
+      const pPa = toPaFromMbar(p);
+      const dM = toMFromCm(d);
+      const vb = paschenBreakdownV(g, pPa, dM);
+      el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
+
+      const E = dM > 0 ? v / dM : Infinity; // V/m
+      const EoverP = pPa > 0 ? (E / pPa) : Infinity; // V/(m·Pa)
+      el.ep.textContent = isFinite(EoverP) ? `${fmt(EoverP, 2)} В/(м·Па)` : '—';
+
       const r = Number(el.ballast.value);
       el.ballastOut.textContent = `${fmt(r, 1)} кОм`;
       if (el.ballastNum && !isFocused(el.ballastNum)) el.ballastNum.value = fmt(r, 0);
@@ -1011,12 +1022,6 @@
 
       const a = 0.15;
 
-      // Compute breakdown threshold
-      const pPa = toPaFromMbar(p);
-      const dM = toMFromCm(d);
-      const vb = paschenBreakdownV(g, pPa, dM);
-      el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
-
       // Derived values for the formulas panel (static-ish, for educational display)
       const abSI = paschenAB_SI(g);
       const pd = Math.max(1e-12, pPa * dM);
@@ -1025,9 +1030,6 @@
       const onePlusInvGamma = 1 + 1/Math.max(1e-9, g.gamma);
       const lnln = Math.log(Math.log(onePlusInvGamma));
       const denom = lnApd - lnln;
-
-      const E = dM > 0 ? v / dM : Infinity; // V/m
-      const EoverP = pPa > 0 ? (E / pPa) : Infinity; // V/(m·Pa)
 
       const Vglow0 = 180 + (g.label === 'He' ? 120 : 0) + (g.label === 'N₂' ? 80 : 0);
       const vPlasmaApprox = clamp(Vglow0, 70, 450);
@@ -1565,6 +1567,13 @@
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`Gas: ${g.label}   p=${fmt(pMbar,1)} мбар   d=${fmt(dCm,1)} см`, cx, yLbl1);
+
+      const modeStr = state.exploded ? 'авария' : (state.power ? (state.conducting ? 'разряд' : 'зажигание') : 'выкл');
+      const vbStr = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
+      const iStr = `${fmt(state.iA*1000, 2)} мА`;
+      const epStr = isFinite(EoverP) ? `${fmt(EoverP, 2)} В/(м·Па)` : '—';
+      ctx.fillStyle = 'rgba(255,255,255,0.70)';
+      ctx.fillText(`Состояние: ${modeStr}   Vb: ${vbStr}   I: ${iStr}   E/p: ${epStr}`, cx, yLbl1 + 18);
 
       if (state.exploded){
         state.boomT += dt;
