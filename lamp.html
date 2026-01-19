@@ -936,25 +936,27 @@
       const g = gases[el.gas.value];
       el.gasOut.textContent = g ? g.label : String(el.gas.value);
 
+      const isFocused = (node) => node && document.activeElement === node;
+
       const v = Number(el.voltage.value);
       el.voltageOut.textContent = `${fmt(v/1000, 2)} кВ`;
-      if (el.voltageNum) el.voltageNum.value = fmt(v/1000, 2);
+      if (el.voltageNum && !isFocused(el.voltageNum)) el.voltageNum.value = fmt(v/1000, 2);
 
       const p = Number(el.pressure.value);
       el.pressureOut.textContent = `${fmt(p, 1)} мбар`;
-      if (el.pressureNum) el.pressureNum.value = fmt(p, 1);
+      if (el.pressureNum && !isFocused(el.pressureNum)) el.pressureNum.value = fmt(p, 1);
 
       const d = Number(el.gap.value);
       el.gapOut.textContent = `${fmt(d, 1)} см`;
-      if (el.gapNum) el.gapNum.value = fmt(d, 1);
+      if (el.gapNum && !isFocused(el.gapNum)) el.gapNum.value = fmt(d, 1);
 
       const r = Number(el.ballast.value);
       el.ballastOut.textContent = `${fmt(r, 1)} кОм`;
-      if (el.ballastNum) el.ballastNum.value = fmt(r, 0);
+      if (el.ballastNum && !isFocused(el.ballastNum)) el.ballastNum.value = fmt(r, 0);
 
       const e = Number(el.electrode.value);
       el.electrodeOut.textContent = fmt(e, 2);
-      if (el.electrodeNum) el.electrodeNum.value = fmt(e, 2);
+      if (el.electrodeNum && !isFocused(el.electrodeNum)) el.electrodeNum.value = fmt(e, 2);
 
       const a = 0.15;
 
