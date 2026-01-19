@@ -337,10 +337,10 @@
         <div>
           <div class="row">
             <label for="pressure">Давление p (мбар)</label>
-            <output id="pressureOut" class="mono">20.0 мбар</output>
+            <output id="pressureOut" class="mono">5.0 мбар</output>
           </div>
-          <input id="pressure" type="range" min="1" max="200" value="20" step="0.1" />
-          <input id="pressureNum" type="number" min="1" max="200" step="0.1" value="20.0" />
+          <input id="pressure" type="range" min="1" max="200" value="5" step="0.1" />
+          <input id="pressureNum" type="number" min="1" max="200" step="0.1" value="5.0" />
         </div>
 
         <div>
@@ -431,7 +431,7 @@
         <div id="boom" role="alert" aria-live="assertive">
           <div class="card">
             <h3>Авария</h3>
-            <p id="boomText">Лампа взорвалась из-за слишком большого тока – попробуй отрегулировать Балласт и давление</p>
+            <p id="boomText">Лампа взорвалась из-за слишком большого тока – попробуй отрегулировать балласт</p>
             <div class="row">
               <button id="boomReset" type="button">Сбросить</button>
             </div>
