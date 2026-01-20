@@ -516,7 +516,7 @@
           <div class="k">Откуда берутся <span class="mono">A</span>, <span class="mono">B</span> и <span class="mono">γ</span>:</div>
           <p>В реальной инженерии их берут из справочных данных по разрядам (таблицы/кривые Пашена для газов и материалов электродов) и уточняют экспериментом. В этом прототипе значения — <span class="mono">ориентировочные</span> и подобраны так, чтобы поведение было правдоподобным и удобным для обучения.</p>
           <div style="height:10px"></div>
-          <div><span class="k">A</span>=<span class="v" id="mA">—</span>, <span class="k">B</span>=<span class="v" id="mB">—</span>, <span class="k">γ</span>=<span class="v" id="mgamma">—</span></div>
+          <div><span class="k">A</span>=<span class="v" id="mA">—</span>, <span class="k">B</span>=<span class="v" id="mB">—</span>, <span class="k">ε</span>=<span class="v" id="mEps">—</span>, <span class="k">γ₀</span>=<span class="v" id="mgamma0">—</span>, <span class="k">γ</span><sub>eff</sub>=<span class="v" id="mgammaEff">—</span></div>
           <div><span class="k">p</span>=<span class="v" id="mp_torr">—</span> Па<span id="mp_mbar" style="display:none">—</span></div>
           <div><span class="k">d</span>=<span class="v" id="md_m">—</span> м<span id="md_cm" style="display:none">—</span></div>
           <div><span class="k">p·d</span>=<span class="v" id="mpd">—</span> Па·м</div>
@@ -532,6 +532,14 @@
           <div class="badge">Правило</div>
           <p>Если ты увеличиваешь <span class="mono">p</span> или <span class="mono">d</span>, обычно растёт <span class="mono">Vb</span> — и лампу труднее зажечь. Если уменьшаешь — зажечь легче.</p>
           <p>Но есть тонкость: закон Пашена даёт «кривую» с минимумом. Это значит, что для каждого газа есть область <span class="mono">p·d</span>, где зажигается легче всего — а слишком маленькое и слишком большое <span class="mono">p·d</span> могут снова повышать <span class="mono">Vb</span>.</p>
+        </div>
+
+        <h3>Как влияет нагрев электродов (ε) на пробой</h3>
+        <div class="eq">
+          <p>В реальных разрядниках запуск сильно зависит от катода: нагретый или более «эмиссионный» катод легче отдаёт электроны, и разряд легче поддерживать. Это влияние часто сводят к коэффициенту вторичной эмиссии <span class="mono">γ</span>.</p>
+          <p>В этой модели ручка <span class="mono">ε</span> не означает температуру в Кельвинах, а задаёт «насколько электрод помогает эмиссии». Мы пересчитываем базовый коэффициент газа <span class="mono">γ₀</span> в эффективный:</p>
+          <div class="mono">γ_eff = clamp( γ₀ · lerp(0.6, 2.0, ε), 1e−6, 0.2 )</div>
+          <p>И дальше в закон Пашена подставляется именно <span class="mono">γ_eff</span>. Если <span class="mono">ε</span> растёт, то <span class="mono">γ_eff</span> растёт, выражение <span class="mono">ln(ln(1+1/γ))</span> уменьшается, знаменатель становится больше и <span class="mono">Vb</span> получается меньше — лампу легче зажечь.</p>
         </div>
 
         <h3 id="lab1">Мини‑лабораторная 1: зажигаем неон (Ne)</h3>
@@ -691,7 +699,9 @@
       lensLbl: document.getElementById('lensLbl'),
       mA: document.getElementById('mA'),
       mB: document.getElementById('mB'),
-      mgamma: document.getElementById('mgamma'),
+      mEps: document.getElementById('mEps'),
+      mgamma0: document.getElementById('mgamma0'),
+      mgammaEff: document.getElementById('mgammaEff'),
       mp_mbar: document.getElementById('mp_mbar'),
       mp_torr: document.getElementById('mp_torr'),
       md_cm: document.getElementById('md_cm'),
@@ -815,6 +825,12 @@
       return { A_SI: A / k, B_SI: B / k };
     }
 
+    function effectiveGamma(gamma0, electrodeHeat){
+      const eps = clamp(electrodeHeat, 0, 1);
+      const mult = lerp(0.6, 2.0, eps);
+      return clamp(gamma0 * mult, 1e-6, 0.2);
+    }
+
     function paschenBreakdownV({A,B,gamma}, pPa, dM){
       // Guard against invalid ranges. If term becomes <= 0, return Infinity.
       const {A_SI, B_SI} = paschenAB_SI({A,B});
@@ -828,7 +844,7 @@
     }
 
     function updateMath(params, derived){
-      const { g, v, pMbar, pPa, dCm, dM, RkOhm, vb } = params;
+      const { g, v, pMbar, pPa, dCm, dM, RkOhm, vb, electrodeHeat, gammaEff } = params;
       const {
         pd,
         Apd,
@@ -846,7 +862,9 @@
       const abSI = paschenAB_SI(g);
       if (el.mA) el.mA.textContent = fmt(abSI.A_SI, 3);
       if (el.mB) el.mB.textContent = fmt(abSI.B_SI, 2);
-      if (el.mgamma) el.mgamma.textContent = fmt(g.gamma, 4);
+      if (el.mEps) el.mEps.textContent = fmt(clamp(electrodeHeat, 0, 1), 2);
+      if (el.mgamma0) el.mgamma0.textContent = fmt(g.gamma, 4);
+      if (el.mgammaEff) el.mgammaEff.textContent = fmt(gammaEff, 4);
       if (el.mp_mbar) el.mp_mbar.textContent = fmt(pMbar, 2);
       if (el.mp_torr) el.mp_torr.textContent = fmt(pPa, 0);
       if (el.md_cm) el.md_cm.textContent = fmt(dCm, 2);
@@ -1087,7 +1105,13 @@
       // Compute breakdown threshold + reduced field (for HUD)
       const pPa = toPaFromMbar(p);
       const dM = toMFromCm(d);
-      const vb = paschenBreakdownV(g, pPa, dM);
+
+      const e = Number(el.electrode.value);
+      el.electrodeOut.textContent = fmt(e, 2);
+      if (el.electrodeNum && !isFocused(el.electrodeNum)) el.electrodeNum.value = fmt(e, 2);
+
+      const gammaEff = effectiveGamma(g.gamma, e);
+      const vb = paschenBreakdownV({A: g.A, B: g.B, gamma: gammaEff}, pPa, dM);
       el.vb.textContent = isFinite(vb) ? `${fmt(vb/1000, 2)} кВ` : '∞';
 
       const E = dM > 0 ? v / dM : Infinity; // V/m
@@ -1098,10 +1122,6 @@
       el.ballastOut.textContent = `${fmt(r, 1)} кОм`;
       if (el.ballastNum && !isFocused(el.ballastNum)) el.ballastNum.value = fmt(r, 0);
 
-      const e = Number(el.electrode.value);
-      el.electrodeOut.textContent = fmt(e, 2);
-      if (el.electrodeNum && !isFocused(el.electrodeNum)) el.electrodeNum.value = fmt(e, 2);
-
       const a = 0.15;
 
       // Derived values for the formulas panel (static-ish, for educational display)
@@ -1109,7 +1129,7 @@
       const pd = Math.max(1e-12, pPa * dM);
       const Apd = abSI.A_SI * pd;
       const lnApd = Math.log(Apd);
-      const onePlusInvGamma = 1 + 1/Math.max(1e-9, g.gamma);
+      const onePlusInvGamma = 1 + 1/Math.max(1e-9, gammaEff);
       const lnln = Math.log(Math.log(onePlusInvGamma));
       const denom = lnApd - lnln;
 
@@ -1131,11 +1151,11 @@
       }
 
       updateMath(
-        { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb },
+        { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb, gammaEff },
         { pd, Apd, lnApd, onePlusInvGamma, lnln, denom, E, EoverP, vPlasmaApprox, iApproxA, brightnessEst }
       );
 
-      return { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb };
+      return { g, v, pMbar: p, pPa, dCm: d, dM, RkOhm: r, electrodeHeat: e, ambient: a, vb, gammaEff };
     }
 
     function reset(){
@@ -1229,13 +1249,11 @@
       // 2) If conducting, we assume plasma drop + ballast defines current.
       const over = (vb === Infinity) ? -1 : (v / Math.max(1e-6, vb));
 
-      // Soft start: electrodes help start emission at lower v (very simplified)
-      const assist = lerp(0.88, 1.03, clamp(electrodeHeat, 0, 1));
-      const breakdownCondition = state.power && (over * assist) > 1.0;
+      const breakdownCondition = state.power && over > 1.0;
 
       // After breakdown, maintain conduction if ionization still present and voltage not too low
       const sustainK = 0.63; // simplified sustaining ratio
-      const sustainCondition = state.power && (over * assist) > sustainK;
+      const sustainCondition = state.power && over > sustainK;
 
       // Ionization dynamics
       const targetIon = breakdownCondition ? 1.0 : (sustainCondition ? 0.55 : 0.0);
