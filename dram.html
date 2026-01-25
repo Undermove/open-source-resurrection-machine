@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>DRAM (1T1C) — RAS/CAS/Refresh (учебная симуляция)</title>
+  <style>
+    :root{
+      --bg0:#07070b;
+      --bg1:#0d0d16;
+      --stroke:rgba(255,255,255,.12);
+      --text:#e9e9f3;
+      --muted:rgba(233,233,243,.7);
+      --accent:#7cd1ff;
+      --ok:#7aff8f;
+      --warn:#ffcf5b;
+      --bad:#ff6b6b;
+    }
+    html, body{
+      margin:0;
+      height:100%;
+      background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 70%);
+      color:var(--text);
+      font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      overflow:hidden;
+    }
+
+    #app{
+      position:fixed;
+      inset:0;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap: 14px;
+      padding: 14px;
+      box-sizing: border-box;
+      height: 100%;
+    }
+    @media (max-width: 980px){
+      #app{ grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      #logPanel{ max-height: 36svh; }
+      #canvasWrap{ min-height: 52svh; }
+    }
+
+    #canvasWrap{
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(0,0,0,.18);
+      min-height: 0;
+    }
+    canvas{ display:block; width:100%; height:100%; }
+
+    #logPanel{
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+
+    #logPanelHeader{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    #logPanelHeader .t{ font-weight: 800; font-size: 13px; letter-spacing: .2px; }
+    #logPanelHeader .s{ font-size: 11px; color: var(--muted); line-height: 1.25; }
+
+    #timeline{
+      padding: 10px 10px 0;
+      overflow:auto;
+      flex: 1 1 auto;
+      min-height: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.35;
+      white-space: pre;
+    }
+
+    .logline{
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+      margin-bottom: 8px;
+      cursor: default;
+    }
+    .logline:hover{ border-color: rgba(124,209,255,.35); background: rgba(124,209,255,.06); }
+
+    #detail{
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: rgba(233,233,243,.90);
+      line-height: 1.35;
+      min-height: 84px;
+      background: rgba(0,0,0,.12);
+    }
+    #detail .k{ color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="canvasWrap">
+      <canvas id="view"></canvas>
+    </div>
+    <aside id="logPanel" aria-label="Simulation log">
+      <div id="logPanelHeader">
+        <div class="t">Timeline</div>
+        <div class="s">Наведи на шаг, чтобы увидеть подробное объяснение. Клик по CPU — настройка операции.</div>
+      </div>
+      <div id="timeline"></div>
+      <div id="detail">
+        <div class="k">Explanation</div>
+        <div id="detailText">—</div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+  (() => {
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d', { alpha: true });
+
+    const ui = {
+      timeline: document.getElementById('timeline'),
+      detailText: document.getElementById('detailText'),
+    };
+
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    const lerp = (a,b,t) => a + (b-a)*t;
+
+    const COLORS = {
+      stroke: 'rgba(255,255,255,.12)',
+      grid: 'rgba(255,255,255,.06)',
+      text: 'rgba(233,233,243,.95)',
+      muted: 'rgba(233,233,243,.70)',
+      panel: 'rgba(0,0,0,.26)',
+      panel2: 'rgba(0,0,0,.42)',
+      accent: 'rgba(124,209,255,.95)',
+      ok: 'rgba(122,255,143,.95)',
+      warn: 'rgba(255,207,91,.95)',
+      bad: 'rgba(255,107,107,.95)',
+      cpu: 'rgba(124,209,255,.85)',
+      mc: 'rgba(255,207,91,.85)',
+      dram: 'rgba(122,255,143,.80)',
+    };
+
+    const CONFIG = {
+      memBytes: 32,
+      stepMs: 420,
+      packetSpeed: 520, // px/s
+    };
+
+    const state = {
+      w: 0,
+      h: 0,
+      dpr: 1,
+      t: 0,
+      pointer: { x: 0, y: 0, down: false },
+      mem: new Uint8Array(CONFIG.memBytes),
+      ui: {
+        menuOpen: false,
+        menuFor: 'cpu',
+        op: 'load',
+        addr: 0,
+        value: 170,
+      },
+      sim: {
+        running: false,
+        nextStepAt: 0,
+        stepId: 0,
+        queue: [],
+        packets: [],
+        logs: { timeline: [], cpu: [], mc: [], dram: [] },
+        dramSig: { cmd: 'IDLE', row: null, col: null, flashT: 0 },
+        lastAddr: null,
+        lastOp: null,
+      },
+      layout: {
+        nodes: {},
+        buttons: {},
+        menu: null,
+        logs: {},
+      }
+    };
+
+    function roundRect(c, x, y, w, h, r){
+      const rr = Math.min(r, w*0.5, h*0.5);
+      c.beginPath();
+      c.moveTo(x+rr, y);
+      c.arcTo(x+w, y, x+w, y+h, rr);
+      c.arcTo(x+w, y+h, x, y+h, rr);
+      c.arcTo(x, y+h, x, y, rr);
+      c.arcTo(x, y, x+w, y, rr);
+      c.closePath();
+    }
+
+    function hitRect(px, py, r){
+      return !!r && px >= r.x && py >= r.y && px <= r.x + r.w && py <= r.y + r.h;
+    }
+
+    function explainEvent(kind, device, text){
+      const t = String(text);
+      if (device === 'CPU' && t.startsWith('LD')){
+        return 'CPU выполняет инструкцию чтения (load). Ядро формирует запрос на чтение по адресу и отправляет его в контроллер памяти. В реальности это обычно обслуживается кешем, но здесь мы показываем путь до DRAM.';
+      }
+      if (device === 'CPU' && t.startsWith('ST')){
+        return 'CPU выполняет инструкцию записи (store). Запись обычно попадает в кеш и помечается dirty, а в DRAM уходит позже. Здесь мы упрощаем и показываем запись как последовательность команд в DRAM.';
+      }
+      if (device === 'MC' && t.includes('decode')){
+        return 'Контроллер памяти декодирует адрес и разбивает его на компоненты DRAM (условно: row/col). В реальном DDR адресация сложнее (bank/group/rank, burst), но идея row/col сохраняется.';
+      }
+      if (device === 'MC' && t.startsWith('ACT')){
+        return 'ACTIVATE (ACT): команда активации строки. Это соответствует сигналу RAS: выбирается строка массива, и она подключается к sense amplifiers (row buffer).';
+      }
+      if (device === 'DRAM' && t.startsWith('ACT')){
+        return 'DRAM получила ACT: поднимается wordline для выбранной строки (RAS), ячейки строки подключаются к bitlines, данные усиливаются sense amplifiers. Это делает доступ к колонкам этой строки возможным.';
+      }
+      if (device === 'DRAM' && t.startsWith('RD')){
+        return 'READ (RD): команда чтения по колонке (CAS). DRAM выдаёт данные из активной строки/колонки на шину данных. У настоящей DRAM чтение разрушительное, поэтому далее происходит восстановление заряда.';
+      }
+      if (device === 'DRAM' && t.startsWith('WR')){
+        return 'WRITE (WR): команда записи по колонке (CAS). Контроллер подаёт данные на шину, а DRAM записывает их в выбранную ячейку активной строки.';
+      }
+      if (t.startsWith('PRE')){
+        return 'PRECHARGE (PRE): закрытие строки. Bitlines приводятся к опорному уровню (примерно Vdd/2), чтобы следующая активация строки могла корректно “сдвинуть” bitline и быть усиленной sense amplifier.';
+      }
+      return 'Шаг симуляции. Этот проект намеренно упрощает реальные протоколы DDR, чтобы визуально показать цепочку CPU → контроллер → DRAM.';
+    }
+
+    function renderTimeline(){
+      if (!ui.timeline) return;
+      ui.timeline.innerHTML = '';
+      for (const e of state.sim.logs.timeline){
+        const div = document.createElement('div');
+        div.className = 'logline';
+        div.textContent = e.line;
+        div.title = e.explain;
+        div.addEventListener('mouseenter', () => {
+          if (ui.detailText) ui.detailText.textContent = e.explain;
+        });
+        ui.timeline.appendChild(div);
+      }
+    }
+
+    function pushEvent(kind, device, text){
+      const id = ++state.sim.stepId;
+      const line = `${String(id).padStart(3,'0')}  [${device}] ${text}`;
+      const explain = explainEvent(kind, device, text);
+
+      state.sim.logs.timeline.unshift({ line, explain });
+      if (state.sim.logs.timeline.length > 24) state.sim.logs.timeline.length = 24;
+
+      if (kind === 'CPU'){
+        state.sim.logs.cpu.unshift({ line, explain });
+        if (state.sim.logs.cpu.length > 8) state.sim.logs.cpu.length = 8;
+      } else if (kind === 'MC'){
+        state.sim.logs.mc.unshift({ line, explain });
+        if (state.sim.logs.mc.length > 8) state.sim.logs.mc.length = 8;
+      } else if (kind === 'DRAM'){
+        state.sim.logs.dram.unshift({ line, explain });
+        if (state.sim.logs.dram.length > 8) state.sim.logs.dram.length = 8;
+      }
+
+      renderTimeline();
+    }
+
+    function layout(){
+      const w = state.w;
+      const h = state.h;
+
+      const cx = w * 0.5;
+      const cy = h * 0.40;
+
+      const nodeH = 92;
+      const dramExtraH = 64;
+      const minGap = 36;
+      const maxNodeW = 260;
+      const nodeW = clamp((w - 2*18 - 2*minGap) / 3, 150, maxNodeW);
+      const totalW = nodeW*3 + minGap*2;
+
+      const canSingleRow = totalW <= (w - 36);
+      const rowY = cy - nodeH*0.5;
+
+      let cpu, mc, dram;
+      if (canSingleRow){
+        const left = cx - totalW*0.5;
+        cpu = { x: left, y: rowY, w: nodeW, h: nodeH, label: 'CPU', key: 'cpu' };
+        mc  = { x: left + nodeW + minGap, y: rowY, w: nodeW, h: nodeH, label: 'Memory\nController', key: 'mc' };
+        dram= { x: left + (nodeW + minGap)*2, y: rowY - Math.floor(dramExtraH*0.5), w: nodeW, h: nodeH + dramExtraH, label: 'DRAM', key: 'dram' };
+      } else {
+        // Two-row fallback: CPU + MC on first row, DRAM centered on second.
+        const nodeW2 = clamp((w - 36 - minGap) / 2, 160, maxNodeW);
+        const left2 = cx - (nodeW2*2 + minGap)*0.5;
+        cpu = { x: left2, y: rowY, w: nodeW2, h: nodeH, label: 'CPU', key: 'cpu' };
+        mc  = { x: left2 + nodeW2 + minGap, y: rowY, w: nodeW2, h: nodeH, label: 'Memory\nController', key: 'mc' };
+        dram= { x: cx - nodeW2*0.5, y: rowY + nodeH + 34, w: nodeW2, h: nodeH + dramExtraH, label: 'DRAM', key: 'dram' };
+      }
+
+      const btnW = 92;
+      const btnH = 60;
+      const btnGap = 14;
+      const rowW = btnW*3 + btnGap*2;
+      const bottom = Math.max(cpu.y + cpu.h, mc.y + mc.h, dram.y + dram.h);
+      let btnY = bottom + 18;
+      const maxY = h - btnH - 16;
+      btnY = clamp(btnY, 16, maxY);
+      if (btnY < bottom + 10){
+        const above = Math.min(cpu.y, mc.y, dram.y) - btnH - 18;
+        btnY = clamp(above, 16, maxY);
+      }
+      const startX = cx - rowW*0.5;
+      const buttons = {
+        step: { x: startX, y: btnY, w: btnW, h: btnH, label: 'Step', icon: 'step' },
+        play: { x: startX + btnW + btnGap, y: btnY, w: btnW, h: btnH, label: state.sim.running ? 'Pause' : 'Play', icon: state.sim.running ? 'pause' : 'play' },
+        reset:{ x: startX + (btnW + btnGap)*2, y: btnY, w: btnW, h: btnH, label: 'Reset', icon: 'reset' },
+      };
+
+      const menuW = clamp(w * 0.36, 260, 420);
+      const menuH = 240;
+      const menu = { x: cx - menuW*0.5, y: cy + nodeH*0.5 - 10 - menuH, w: menuW, h: menuH };
+
+      state.layout = { nodes: { cpu, mc, dram }, buttons, menu };
+    }
+
+    function resize(){
+      const r = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      canvas.width = Math.max(2, Math.floor(r.width * dpr));
+      canvas.height = Math.max(2, Math.floor(r.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      state.w = r.width;
+      state.h = r.height;
+      state.dpr = dpr;
+      layout();
+    }
+
+    function addPacket(fromKey, toKey, label, color){
+      const A = state.layout.nodes[fromKey];
+      const B = state.layout.nodes[toKey];
+      if (!A || !B) return;
+      const x0 = A.x + A.w;
+      const y0 = A.y + A.h*0.5;
+      const x1 = B.x;
+      const y1 = B.y + B.h*0.5;
+      state.sim.packets.push({ x0, y0, x1, y1, t: 0, label, color });
+    }
+
+    function enqueue(step){
+      state.sim.queue.push(step);
+    }
+
+    function clearSim(){
+      state.sim.queue = [];
+      state.sim.packets = [];
+      state.sim.running = false;
+      state.sim.nextStepAt = 0;
+      state.sim.stepId = 0;
+      state.sim.logs.timeline = [];
+      state.sim.logs.cpu = [];
+      state.sim.logs.mc = [];
+      state.sim.logs.dram = [];
+      state.sim.dramSig = { cmd: 'IDLE', row: null, col: null, flashT: 0 };
+      state.sim.lastAddr = null;
+      state.sim.lastOp = null;
+      pushEvent('CPU', 'CPU', 'ready');
+    }
+
+    function addrToRowCol(addr){
+      const row = Math.floor(addr / 8);
+      const col = addr % 8;
+      return { row, col };
+    }
+
+    function setDramSig(cmd, row=null, col=null){
+      state.sim.dramSig.cmd = cmd;
+      state.sim.dramSig.row = row;
+      state.sim.dramSig.col = col;
+      state.sim.dramSig.flashT = 0.45;
+    }
+
+    function queueCpuScenario(){
+      const op = state.ui.op;
+      const addr = clamp(Math.floor(state.ui.addr), 0, CONFIG.memBytes - 1);
+      const value = clamp(Math.floor(state.ui.value), 0, 255);
+
+      const hexAddr = '0x' + addr.toString(16).toUpperCase().padStart(2,'0');
+
+      if (op === 'load'){
+        pushEvent('CPU', 'CPU', `LD r0, [${hexAddr}]`);
+        addPacket('cpu', 'mc', 'LD', COLORS.cpu);
+      } else {
+        pushEvent('CPU', 'CPU', `ST [${hexAddr}], r0   ; r0=${value}`);
+        addPacket('cpu', 'mc', 'ST', COLORS.cpu);
+      }
+
+      const { row, col } = addrToRowCol(addr);
+
+      enqueue({
+        device: 'MC',
+        text: `decode addr=${hexAddr} -> row=${row} col=${col}`,
+        run: () => {
+          pushEvent('MC', 'MC', `decode addr=${hexAddr} -> row=${row} col=${col}`);
+          return true;
+        }
+      });
+
+      enqueue({
+        device: 'MC',
+        text: `issue ACT row=${row}`,
+        run: () => {
+          pushEvent('MC', 'MC', `ACT row=${row} (RAS)`);
+          addPacket('mc', 'dram', `ACT r${row}`, COLORS.warn);
+          return true;
+        }
+      });
+
+      enqueue({
+        device: 'DRAM',
+        text: `ACT row=${row}`,
+        run: () => {
+          pushEvent('DRAM', 'DRAM', `ACT row=${row} (RAS)`);
+          setDramSig('ACT', row, null);
+          return true;
+        }
+      });
+
+      if (op === 'store'){
+        enqueue({
+          device: 'DRAM',
+          text: `WR col=${col}`,
+          run: () => {
+            state.mem[addr] = value;
+            state.sim.lastAddr = addr;
+            state.sim.lastOp = 'store';
+            pushEvent('DRAM', 'DRAM', `WR col=${col} (CAS)  [${hexAddr}] <= ${value}`);
+            setDramSig('WR', row, col);
+            addPacket('dram', 'mc', 'WR-ACK', COLORS.ok);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'MC',
+          text: 'issue PRE',
+          run: () => {
+            pushEvent('MC', 'MC', 'PRE (close row)');
+            addPacket('mc', 'dram', 'PRE', COLORS.warn);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'DRAM',
+          text: 'PRE',
+          run: () => {
+            pushEvent('DRAM', 'DRAM', 'PRE (precharge)');
+            setDramSig('PRE', null, null);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'MC',
+          text: 'complete store',
+          run: () => {
+            pushEvent('MC', 'MC', 'store complete');
+            addPacket('mc', 'cpu', 'DONE', COLORS.ok);
+            pushEvent('CPU', 'CPU', 'STORE complete');
+            return true;
+          }
+        });
+      } else {
+        enqueue({
+          device: 'DRAM',
+          text: `RD col=${col}`,
+          run: () => {
+            const v = state.mem[addr];
+            state.sim.lastAddr = addr;
+            state.sim.lastOp = 'load';
+            pushEvent('DRAM', 'DRAM', `RD col=${col} (CAS)  [${hexAddr}] -> ${v}`);
+            setDramSig('RD', row, col);
+            addPacket('dram', 'mc', `D=${v.toString(16).toUpperCase().padStart(2,'0')}`, COLORS.ok);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'MC',
+          text: 'issue PRE',
+          run: () => {
+            pushEvent('MC', 'MC', 'PRE (close row)');
+            addPacket('mc', 'dram', 'PRE', COLORS.warn);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'DRAM',
+          text: 'PRE',
+          run: () => {
+            pushEvent('DRAM', 'DRAM', 'PRE (precharge)');
+            setDramSig('PRE', null, null);
+            return true;
+          }
+        });
+
+        enqueue({
+          device: 'MC',
+          text: 'return data',
+          run: () => {
+            const v = state.mem[addr];
+            pushEvent('MC', 'MC', `return data ${v}`);
+            addPacket('mc', 'cpu', `DATA=${v}`, COLORS.ok);
+            pushEvent('CPU', 'CPU', `LOAD result = ${v} (0x${v.toString(16).padStart(2,'0')})`);
+            return true;
+          }
+        });
+      }
+    }
+
+    function doStep(){
+      if (!state.sim.queue.length) return;
+      const cur = state.sim.queue.shift();
+      try{
+        if (cur && cur.run) cur.run();
+      }catch(e){
+        pushEvent('CPU', 'SIM', `ERROR: ${e && e.message ? e.message : String(e)}`);
+        state.sim.running = false;
+      }
+    }
+
+    function drawNode(n, accent){
+      ctx.save();
+      ctx.fillStyle = COLORS.panel;
+      ctx.strokeStyle = accent || COLORS.stroke;
+      roundRect(ctx, n.x, n.y, n.w, n.h, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      // header strip
+      const headerH = 22;
+      const col = (n.key === 'cpu') ? COLORS.cpu : ((n.key === 'mc') ? COLORS.mc : COLORS.dram);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.18;
+      roundRect(ctx, n.x+1, n.y+1, n.w-2, headerH, 14);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '700 15px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (n.key === 'dram'){
+        // Keep DRAM title in the header so the internal grid has space.
+        ctx.fillText('DRAM', n.x + n.w*0.5, n.y + 13);
+      } else {
+        const lines = String(n.label).split('\n');
+        const lh = 16;
+        const baseY = n.y + n.h*0.5 - (lines.length-1)*lh*0.5;
+        for (let i=0; i<lines.length; i++){
+          ctx.fillText(lines[i], n.x + n.w*0.5, baseY + i*lh);
+        }
+      }
+
+      // role label
+      if (n.key !== 'dram'){
+        ctx.fillStyle = 'rgba(233,233,243,.80)';
+        ctx.font = '600 11px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText(n.key === 'cpu' ? 'executes load/store' : 'schedules DRAM commands', n.x + n.w*0.5, n.y + 8);
+      }
+
+      if (n.key === 'dram'){
+        drawDramInside(n);
+      }
+
+      ctx.restore();
+    }
+
+    function drawDramInside(n){
+      const pad = 10;
+      const headerH = 22;
+      const sigH = 20;
+      const x0 = n.x + pad;
+      const y0 = n.y + headerH + 12;
+      const w = n.w - pad*2;
+      const h = Math.max(10, n.h - headerH - sigH - 18);
+
+      const cols = 8;
+      const rows = 4;
+      const cellW = w / cols;
+      const cellH = h / rows;
+
+      // Mini grid
+      const sig = state.sim.dramSig;
+      ctx.save();
+      for (let i=0; i<CONFIG.memBytes; i++){
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        const x = x0 + c*cellW;
+        const y = y0 + r*cellH;
+
+        const isActiveAddr = (state.sim.lastAddr === i);
+        const rr = Math.floor(i / cols);
+        const cc = i % cols;
+        const isActiveRow = (sig.row !== null && rr === sig.row);
+        const isActiveCol = (sig.col !== null && cc === sig.col);
+
+        // Base background for readability
+        ctx.fillStyle = 'rgba(255,255,255,.06)';
+        roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+        ctx.fill();
+
+        if (sig.flashT > 0 && (isActiveRow || isActiveCol)){
+          const a = clamp(sig.flashT / 0.45, 0, 1);
+          ctx.fillStyle = isActiveRow ? `rgba(124,209,255,${0.08 + a*0.18})` : `rgba(255,207,91,${0.06 + a*0.16})`;
+          roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+          ctx.fill();
+        }
+
+        if (isActiveAddr){
+          ctx.fillStyle = (state.sim.lastOp === 'store') ? 'rgba(122,255,143,.18)' : 'rgba(124,209,255,.18)';
+          roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = 'rgba(255,255,255,.14)';
+        roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(233,233,243,.95)';
+        ctx.font = '800 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const v = state.mem[i];
+        const hex = v.toString(16).toUpperCase().padStart(2,'0');
+        ctx.fillText(hex, x + cellW*0.5, y + cellH*0.55);
+      }
+
+      // Signals strip (dedicated area below the grid)
+      const stripY = y0 + h + 10;
+      ctx.fillStyle = 'rgba(0,0,0,.22)';
+      ctx.strokeStyle = 'rgba(255,255,255,.10)';
+      roundRect(ctx, n.x + 8, stripY - 12, n.w - 16, 18, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(233,233,243,.92)';
+      ctx.font = '800 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const ras = (sig.row === null) ? '—' : String(sig.row);
+      const cas = (sig.col === null) ? '—' : String(sig.col);
+      ctx.fillText(`RAS:${ras}  CAS:${cas}  CMD:${sig.cmd}`, n.x + 14, stripY - 3);
+
+      ctx.restore();
+    }
+
+    function drawButton(b){
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,.06)';
+      ctx.strokeStyle = 'rgba(255,255,255,.16)';
+      roundRect(ctx, b.x, b.y, b.w, b.h, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      // icon
+      const cx = b.x + b.w*0.5;
+      const cy = b.y + b.h*0.40;
+      drawIcon(b.icon || 'dot', cx, cy, 16);
+
+      // label
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '800 11px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(b.label, cx, b.y + b.h*0.80);
+      ctx.restore();
+    }
+
+    function drawIcon(kind, x, y, s){
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(233,233,243,.85)';
+      ctx.fillStyle = 'rgba(233,233,243,.85)';
+
+      if (kind === 'play'){
+        ctx.beginPath();
+        ctx.moveTo(x - s*0.45, y - s*0.55);
+        ctx.lineTo(x - s*0.45, y + s*0.55);
+        ctx.lineTo(x + s*0.60, y);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === 'pause'){
+        const w = s*0.22;
+        const h = s*1.1;
+        ctx.fillRect(x - w - s*0.12, y - h*0.5, w, h);
+        ctx.fillRect(x + s*0.12, y - h*0.5, w, h);
+      } else if (kind === 'step'){
+        // bar + arrow
+        ctx.beginPath();
+        ctx.moveTo(x - s*0.60, y);
+        ctx.lineTo(x + s*0.10, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + s*0.10, y - s*0.35);
+        ctx.lineTo(x + s*0.60, y);
+        ctx.lineTo(x + s*0.10, y + s*0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x - s*0.72, y - s*0.55);
+        ctx.lineTo(x - s*0.72, y + s*0.55);
+        ctx.stroke();
+      } else if (kind === 'reset'){
+        // circular arrow
+        const r = s*0.55;
+        ctx.beginPath();
+        ctx.arc(x, y, r, Math.PI*0.15, Math.PI*1.6);
+        ctx.stroke();
+        // arrow head
+        const ax = x + r*Math.cos(Math.PI*0.15);
+        const ay = y + r*Math.sin(Math.PI*0.15);
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + s*0.35, ay - s*0.15);
+        ctx.lineTo(ax + s*0.10, ay + s*0.28);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, s*0.18, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawArrow(from, to){
+      const x0 = from.x + from.w;
+      const y0 = from.y + from.h*0.5;
+      const x1 = to.x;
+      const y1 = to.y + to.h*0.5;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,.10)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0 + 10, y0);
+      ctx.lineTo(x1 - 10, y1);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPackets(dt){
+      const speed = CONFIG.packetSpeed;
+      const alive = [];
+      for (const p of state.sim.packets){
+        const dx = p.x1 - p.x0;
+        const dy = p.y1 - p.y0;
+        const dist = Math.max(1e-3, Math.hypot(dx,dy));
+        p.t = clamp(p.t + (speed * dt) / dist, 0, 1);
+        const x = lerp(p.x0, p.x1, p.t);
+        const y = lerp(p.y0, p.y1, p.t);
+
+        ctx.save();
+        ctx.fillStyle = p.color || COLORS.accent;
+        ctx.strokeStyle = 'rgba(0,0,0,.35)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, x - 18, y - 10, 36, 20, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0,0,0,.75)';
+        ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(p.label).slice(0,8), x, y+0.5);
+        ctx.restore();
+
+        if (p.t < 1) alive.push(p);
+      }
+      state.sim.packets = alive;
+    }
+
+
+    function drawMenu(){
+      if (!state.ui.menuOpen) return;
+      const M = state.layout.menu;
+      ctx.save();
+
+      // opaque overlay + opaque panel (no background mixing)
+      ctx.fillStyle = 'rgba(0,0,0,.85)';
+      ctx.fillRect(0,0,state.w,state.h);
+
+      ctx.fillStyle = 'rgb(10,10,16)';
+      ctx.strokeStyle = COLORS.stroke;
+      roundRect(ctx, M.x, M.y, M.w, M.h, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '700 14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('CPU operation', M.x + 14, M.y + 14);
+
+      const btn = (key, x, y, w, h, label, active=false) => {
+        const r = { x, y, w, h, key };
+        ctx.fillStyle = active ? 'rgba(124,209,255,.18)' : 'rgba(255,255,255,.06)';
+        ctx.strokeStyle = active ? 'rgba(124,209,255,.45)' : COLORS.stroke;
+        roundRect(ctx, x, y, w, h, 12);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = COLORS.text;
+        ctx.font = '700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x + w*0.5, y + h*0.5);
+        return r;
+      };
+
+      const hit = [];
+      const top = M.y + 44;
+      hit.push(btn('op_load', M.x + 14, top, (M.w-34)/2, 32, 'LOAD', state.ui.op === 'load'));
+      hit.push(btn('op_store', M.x + 20 + (M.w-34)/2, top, (M.w-34)/2, 32, 'STORE', state.ui.op === 'store'));
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Address (byte)', M.x + 14, top + 48);
+
+      const rowY = top + 68;
+      const smallW = 42;
+      hit.push(btn('addr_dec', M.x + 14, rowY, smallW, 32, '−'));
+      hit.push(btn('addr_inc', M.x + M.w - 14 - smallW, rowY, smallW, 32, '+'));
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '700 16px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(state.ui.addr), M.x + M.w*0.5, rowY + 16);
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Value (0..255)', M.x + 14, rowY + 46);
+
+      const valY = rowY + 66;
+      hit.push(btn('val_dec', M.x + 14, valY, smallW, 32, '−'));
+      hit.push(btn('val_inc', M.x + M.w - 14 - smallW, valY, smallW, 32, '+'));
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '700 16px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const valLabel = (state.ui.op === 'store') ? String(state.ui.value) : '—';
+      ctx.fillText(valLabel, M.x + M.w*0.5, valY + 16);
+
+      const botY = M.y + M.h - 46;
+      hit.push(btn('menu_close', M.x + 14, botY, 110, 32, 'Close'));
+      hit.push(btn('menu_queue', M.x + M.w - 14 - 140, botY, 140, 32, 'Queue', false));
+
+      state.layout.menuHits = hit;
+      ctx.restore();
+    }
+
+    function draw(dt){
+      ctx.clearRect(0,0,state.w,state.h);
+
+      const { cpu, mc, dram } = state.layout.nodes;
+      drawArrow(cpu, mc);
+      drawArrow(mc, dram);
+
+      drawNode(cpu, COLORS.cpu);
+      drawNode(mc, COLORS.mc);
+      drawNode(dram, COLORS.dram);
+
+      // current operation preview under CPU
+      ctx.save();
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const opLine = `op: ${state.ui.op.toUpperCase()}  addr: ${state.ui.addr}` + (state.ui.op==='store' ? (`  value: ${state.ui.value}`) : '');
+      ctx.fillText(opLine, cpu.x + cpu.w*0.5, cpu.y + cpu.h + 4);
+      ctx.restore();
+
+      // buttons
+      state.layout.buttons.play.label = state.sim.running ? 'Pause' : 'Play';
+      drawButton(state.layout.buttons.step);
+      drawButton(state.layout.buttons.play);
+      drawButton(state.layout.buttons.reset);
+
+      drawPackets(dt);
+      drawMenu();
+    }
+
+    function canvasPos(e){
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    function onClick(px, py){
+      // menu interactions have priority
+      if (state.ui.menuOpen && state.layout.menuHits){
+        for (const h of state.layout.menuHits){
+          if (hitRect(px, py, h)){
+            if (h.key === 'menu_close') state.ui.menuOpen = false;
+            else if (h.key === 'menu_queue'){
+              queueCpuScenario();
+              state.ui.menuOpen = false;
+            }
+            else if (h.key === 'op_load') state.ui.op = 'load';
+            else if (h.key === 'op_store') state.ui.op = 'store';
+            else if (h.key === 'addr_dec') state.ui.addr = clamp(state.ui.addr - 1, 0, CONFIG.memBytes - 1);
+            else if (h.key === 'addr_inc') state.ui.addr = clamp(state.ui.addr + 1, 0, CONFIG.memBytes - 1);
+            else if (h.key === 'val_dec') state.ui.value = clamp(state.ui.value - 1, 0, 255);
+            else if (h.key === 'val_inc') state.ui.value = clamp(state.ui.value + 1, 0, 255);
+            return;
+          }
+        }
+        // click outside menu closes
+        const M = state.layout.menu;
+        if (!hitRect(px, py, M)) state.ui.menuOpen = false;
+        return;
+      }
+
+      const { cpu } = state.layout.nodes;
+      const btns = state.layout.buttons;
+
+      if (hitRect(px, py, cpu)){
+        state.ui.menuOpen = true;
+        return;
+      }
+      if (hitRect(px, py, btns.reset)){
+        state.mem = new Uint8Array(CONFIG.memBytes);
+        clearSim();
+        return;
+      }
+      if (hitRect(px, py, btns.step)){
+        doStep();
+        return;
+      }
+      if (hitRect(px, py, btns.play)){
+        state.sim.running = !state.sim.running;
+        return;
+      }
+    }
+
+    function bind(){
+      window.addEventListener('resize', () => resize(), { passive: true });
+
+      canvas.addEventListener('mousemove', (e) => {
+        const p = canvasPos(e);
+        state.pointer.x = p.x;
+        state.pointer.y = p.y;
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        state.pointer.down = true;
+        const p = canvasPos(e);
+        onClick(p.x, p.y);
+      });
+      window.addEventListener('mouseup', () => { state.pointer.down = false; });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space'){
+          e.preventDefault();
+          state.sim.running = !state.sim.running;
+        }
+        if (e.code === 'KeyS'){
+          e.preventDefault();
+          doStep();
+        }
+        if (e.code === 'Escape'){
+          state.ui.menuOpen = false;
+        }
+      });
+    }
+
+    function tick(now){
+      const t = now * 0.001;
+      const dt = clamp(t - state.t, 0, 0.05);
+      state.t = t;
+
+      if (state.sim.dramSig && state.sim.dramSig.flashT > 0){
+        state.sim.dramSig.flashT = Math.max(0, state.sim.dramSig.flashT - dt);
+      }
+
+      if (state.sim.running){
+        if (performance.now() >= state.sim.nextStepAt){
+          if (!state.sim.queue.length){
+            // If there is nothing queued, do nothing. User must Queue from CPU menu.
+          } else {
+            doStep();
+          }
+          state.sim.nextStepAt = performance.now() + CONFIG.stepMs;
+        }
+      }
+
+      draw(dt);
+      requestAnimationFrame(tick);
+    }
+
+    bind();
+    resize();
+    clearSim();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
