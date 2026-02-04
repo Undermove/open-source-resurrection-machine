@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Team Health Check (Spotify model) — CSV export</title>
+  <style>
+    :root{
+      --bg0:#f6f7fb;
+      --bg1:#ffffff;
+      --panel:#ffffff;
+      --stroke:rgba(15, 23, 42, .10);
+      --stroke2:rgba(15, 23, 42, .08);
+      --text:#0f172a;
+      --muted:rgba(15, 23, 42, .62);
+      --accent:#2563eb;
+      --ok:#16a34a;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --shadow: 0 14px 45px rgba(2, 6, 23, .10);
+      --shadow2: 0 10px 24px rgba(2, 6, 23, .08);
+      --chip: rgba(15, 23, 42, .05);
+      --chip2: rgba(15, 23, 42, .08);
+      --radius: 14px;
+      --glass: rgba(255,255,255,.58);
+      --glass2: rgba(255,255,255,.72);
+    }
+    html, body{
+      margin:0;
+      min-height:100%;
+      background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 60%);
+      color:var(--text);
+      font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg0:#07070b;
+        --bg1:#0d0d16;
+        --panel:rgba(0,0,0,.22);
+        --stroke:rgba(255,255,255,.12);
+        --stroke2:rgba(255,255,255,.08);
+        --text:#e9e9f3;
+        --muted:rgba(233,233,243,.72);
+        --accent:#7cd1ff;
+        --ok:#7aff8f;
+        --warn:#ffcf5b;
+        --bad:#ff6b6b;
+        --shadow: 0 14px 45px rgba(0,0,0,.55);
+        --shadow2: 0 10px 24px rgba(0,0,0,.45);
+        --chip: rgba(255,255,255,.06);
+        --chip2: rgba(255,255,255,.10);
+        --glass: rgba(10,10,16,.46);
+        --glass2: rgba(10,10,16,.58);
+      }
+    }
+
+    a{ color: inherit; text-decoration: underline; }
+    a:focus-visible{ outline:2px dashed var(--accent); outline-offset: 3px; }
+
+    .skip{
+      position:absolute;
+      top:0;
+      left:0;
+      transform: translateY(-120%);
+      padding:10px 12px;
+      background: rgba(0,0,0,.75);
+      border: 1px solid var(--stroke);
+      border-radius: 0 0 10px 0;
+      color: var(--text);
+      z-index: 50;
+    }
+    .skip:focus{ transform: translateY(0); }
+
+    header{
+      padding: 18px clamp(14px, 4vw, 28px);
+      border-bottom: 1px solid var(--stroke2);
+      background: color-mix(in srgb, var(--panel) 86%, transparent);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    header .row{
+      display:flex;
+      gap: 12px;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    header h1{
+      margin:0;
+      font-size: clamp(18px, 2.4vw, 24px);
+      letter-spacing: .2px;
+    }
+    header p{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      max-width: 74ch;
+    }
+
+    main{ padding: 18px clamp(14px, 4vw, 28px) 34px; }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .toolbar .left{
+      display:flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toolbar .hint{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 72ch;
+    }
+
+    .panel{
+      background: var(--panel);
+      border: none;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+    .panel .hd{
+      padding: 12px 14px;
+      border-bottom: none;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel .hd h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
+    .panel .bd{ padding: 14px; }
+
+    label{ display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], textarea{
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 12px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 86%, transparent);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, .06);
+    }
+    textarea{ min-height: 92px; resize: vertical; }
+    input[type="text"]:focus-visible, input[type="date"]:focus-visible, textarea:focus-visible{
+      outline: 2px dashed var(--accent);
+      outline-offset: 2px;
+    }
+
+    .matrixWrap{
+      overflow:auto;
+      border-radius: var(--radius);
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    table.matrix{
+      width: 100%;
+      min-width: 860px;
+      border-collapse: separate;
+      border-spacing: 10px;
+      table-layout: fixed;
+    }
+    table.matrix th, table.matrix td{
+      border-right: none;
+      border-bottom: none;
+      vertical-align: top;
+      padding: 0;
+      background: transparent;
+    }
+    table.matrix thead th{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: transparent;
+      backdrop-filter: blur(10px);
+    }
+    table.matrix th:first-child,
+    table.matrix td:first-child{
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: transparent;
+      backdrop-filter: blur(10px);
+      width: 300px;
+      min-width: 300px;
+      max-width: 300px;
+    }
+    table.matrix thead th:first-child{
+      z-index: 3;
+    }
+
+    .glassCard{
+      background: color-mix(in srgb, var(--glass) 92%, transparent);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 28px rgba(2, 6, 23, .10);
+      backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .glassCard:hover{
+      box-shadow: 0 16px 36px rgba(2, 6, 23, .14);
+    }
+    .glassPad{ padding: 12px; }
+
+    .indicatorCard{
+      display:grid;
+      grid-template-columns: 54px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .indicatorFixed{
+      width: 300px;
+      min-height: 360px;
+      max-height: 360px;
+    }
+
+    .indicatorFixed .glassPad{
+      height: 360px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .indicatorFixed .indicatorCard{
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .indicatorFixed .indicatorCard > div:last-child{
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .indicatorFixed .indicatorTitleV{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height: 100%;
+      align-self: stretch;
+    }
+
+    .indicatorText{
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      display:flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 8px;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .indicatorText::-webkit-scrollbar{ width: 8px; }
+    .indicatorText::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.18); border-radius: 999px; }
+    @media (prefers-color-scheme: dark){
+      .indicatorText::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); }
+    }
+
+    table.matrix tbody tr{ height: 360px; }
+
+    .cellFixed{
+      height: 360px;
+    }
+
+    .cellFixed .glassPad{
+      height: 360px;
+      box-sizing: border-box;
+    }
+
+    .cellFixed .cell{
+      height: 100%;
+      align-content: start;
+    }
+    .indicatorTitleV{
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-weight: 900;
+      letter-spacing: .4px;
+      font-size: 12px;
+      color: color-mix(in srgb, var(--text) 90%, transparent);
+      padding: 8px 6px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--accent) 10%, var(--glass2));
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
+    }
+    .indTitle{ font-weight: 900; font-size: 13px; margin: 0; line-height: 1.25; }
+    .indMeta{ color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 0; }
+    .indMeta .k{ font-weight: 800; color: color-mix(in srgb, var(--text) 86%, transparent); }
+
+    .colHead{
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 140px;
+    }
+    .colRow{
+      display:flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .colRow .colTitle{ font-weight: 850; font-size: 13px; }
+    .colRow .colActions{ display:flex; gap: 8px; }
+    .iconBtn{
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,.10); }
+    .iconBtn:active{ transform: translateY(1px); }
+    .iconBtn:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
+
+    .plusBtn{
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 78%, transparent);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+    }
+    .plusBtn:hover{ box-shadow: 0 16px 32px rgba(2, 6, 23, .14); }
+    .plusBtn:active{ transform: translateY(1px); }
+    .plusBtn:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
+
+    .colFields{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .participantCard .glassPad{ padding: 10px; }
+    .colFields input[type="text"],
+    .colFields input[type="date"]{
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .cell{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      min-width: 140px;
+    }
+
+    /* Participant columns: keep narrow and don't stretch across the whole viewport */
+    table.matrix thead th:not(:first-child){
+      width: 160px;
+      min-width: 160px;
+      max-width: 160px;
+    }
+    table.matrix thead th:last-child{ /* plus column */
+      width: 84px;
+      min-width: 84px;
+      max-width: 84px;
+    }
+
+    table.matrix tbody td{ width: 160px; min-width: 160px; max-width: 160px; }
+    table.matrix tbody td:last-child{ width: 84px; min-width: 84px; max-width: 84px; }
+
+    /* Let table be content-width, not stretched */
+    #matrix{ width: max-content; }
+    #matrixHead, #matrixBody{ width: max-content; }
+    .statusDots{
+      display:flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .statusDots input{ position:absolute; opacity:0; pointer-events:none; }
+    .dotLbl{
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 82%, transparent);
+      cursor: pointer;
+      display:inline-flex;
+      align-items: center;
+      justify-content: center;
+      user-select:none;
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
+    }
+    .dotLbl:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
+    .dot{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display:inline-block;
+    }
+    .dot.ok{ background: var(--ok); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{ background: var(--bad); }
+    .statusDots input:checked + .dotLbl{
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--stroke));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+      background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+    }
+
+    .trendSel{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+    }
+    select{
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 12px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 82%, transparent);
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 12px;
+      outline: none;
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
+    }
+    select:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+    .trendHidden{
+      display:none;
+    }
+    .trendHint{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .06);
+    }
+
+    .cell details{
+      border: none;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--glass2) 72%, transparent);
+      overflow:hidden;
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .06);
+    }
+    .cell details summary{
+      cursor: pointer;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: color-mix(in srgb, var(--text) 88%, transparent);
+      user-select: none;
+      background: var(--chip);
+    }
+    .cell details summary:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
+    .cell details .noteBody{ padding: 10px 12px 12px; }
+    .cell details textarea{ min-height: 72px; font-size: 12px; }
+
+    .metaGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 860px){
+      .metaGrid{ grid-template-columns: 2fr 1fr 2fr; }
+      .metaGrid .span3{ grid-column: 1 / -1; }
+    }
+
+    .btnrow{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    button{
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 78%, transparent);
+      color: var(--text);
+      cursor:pointer;
+      font: inherit;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+    }
+    button:hover{ background: rgba(255,255,255,.10); }
+    button:active{ transform: translateY(1px); }
+    button:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sr{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip: rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    footer{
+      padding: 14px clamp(14px, 4vw, 28px) 24px;
+      color: rgba(233,233,243,.68);
+      font-size: 12px;
+      line-height: 1.5;
+      border-top: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.10);
+    }
+    footer .wrap{ max-width: 1100px; margin: 0 auto; }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Перейти к содержимому</a>
+
+  <header>
+    <div class="row">
+      <div>
+        <h1>Team Health Check (Spotify Squad Health Check)</h1>
+        <p>Заполни оценки по 10 индикаторам (зелёный/жёлтый/красный) и тренд (улучшается/стабильно/ухудшается). Затем выгрузи результат в CSV.</p>
+      </div>
+      <nav aria-label="Навигация">
+        <a href="index.html">На главную</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <section class="panel" aria-label="Метаданные">
+        <div class="hd">
+          <h2>Сессия</h2>
+          <div class="status" id="autosaveStatus" aria-live="polite"></div>
+        </div>
+        <div class="bd">
+          <div class="metaGrid">
+            <div>
+              <label for="teamName">Команда / Squad</label>
+              <input id="teamName" name="teamName" type="text" autocomplete="organization" />
+            </div>
+            <div>
+              <label for="checkDate">Дата</label>
+              <input id="checkDate" name="checkDate" type="date" />
+            </div>
+            <div>
+              <label for="facilitator">Фасилитатор / Автор</label>
+              <input id="facilitator" name="facilitator" type="text" autocomplete="name" />
+            </div>
+            <div class="span3">
+              <label for="globalNotes">Общие заметки (для экспорта)</label>
+              <textarea id="globalNotes" name="globalNotes"></textarea>
+            </div>
+          </div>
+
+          <div style="height: 14px;"></div>
+          <div class="btnrow" style="justify-content: flex-end;">
+            <button id="btnDone" type="button">Готово</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Результат" id="resultPanel" style="display:none;">
+        <div class="hd">
+          <div class="toolbar">
+            <div class="left">
+              <h2 style="margin:0;">Результат (агрегация)</h2>
+              <div class="hint">Сводка по всем участникам: сколько голосов за Green/Yellow/Red и доминирующий тренд.</div>
+            </div>
+            <div class="btnrow">
+              <button id="btnBack" type="button">Назад</button>
+              <button id="btnExportSummary" type="button">Скачать CSV (сводка)</button>
+            </div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="matrixWrap" role="region" aria-label="Таблица результата" tabindex="0">
+            <table class="matrix" id="resultTable">
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <div class="glassCard indicatorFixed">
+                      <div class="glassPad"><strong>Индикатор</strong></div>
+                    </div>
+                  </th>
+                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Green</strong></div></div></th>
+                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Yellow</strong></div></div></th>
+                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Red</strong></div></div></th>
+                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Тренд</strong></div></div></th>
+                </tr>
+              </thead>
+              <tbody id="resultBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Матрица Health Check">
+        <div class="hd">
+          <div class="toolbar">
+            <div class="left">
+              <h2 style="margin:0;">Матрица (индикаторы × колонки)</h2>
+            </div>
+            <div class="btnrow">
+              <button id="btnExport" type="button">Скачать CSV</button>
+              <button id="btnReset" type="button">Сбросить</button>
+            </div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="toolbar" style="margin-bottom: 12px;">
+            <div class="hint">Колонка = один участник. Каждый участник выставляет свои оценки по каждому индикатору.</div>
+          </div>
+          <div class="matrixWrap" role="region" aria-label="Матрица Team Health Check" tabindex="0">
+            <table class="matrix" id="matrix">
+              <thead id="matrixHead"></thead>
+              <tbody id="matrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Формат CSV">
+        <div class="hd">
+          <h2>Что попадёт в CSV</h2>
+        </div>
+        <div class="bd">
+          <p style="margin:0; color: var(--muted); font-size: 12px; line-height: 1.6;">Каждая строка CSV — это один индикатор одного участника. Поля: <span style="color: rgba(233,233,243,.9);">participant_id, participant_name, team, date, facilitator, indicator, status, trend, note, overall_notes</span>.</p>
+          <p style="margin:10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6;">Модель взята из статьи Spotify Engineering: <a href="https://engineering.atspotify.com/2014/09/squad-health-check-model" target="_blank" rel="noopener noreferrer">Squad Health Check model</a>.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>Подсказка: обычно Health Check проводят как воркшоп и пытаются прийти к консенсусу. Здесь форма — для фиксации результата и выгрузки.</div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'teamHealthCheck_matrix_v1';
+      const LEGACY_STORAGE_KEY = 'teamHealthCheck_v1';
+
+      const indicators = [
+        {
+          id: 'easy_to_release',
+          title: 'Лёгкость релиза',
+          short: 'Релиз',
+          awesome: 'Релизить просто, безопасно, без боли и в основном автоматически.',
+          crappy: 'Релиз — рискованный, болезненный, много ручной работы и занимает вечность.'
+        },
+        {
+          id: 'suitable_process',
+          title: 'Подходящий процесс',
+          short: 'Процесс',
+          awesome: 'Наш способ работы нам подходит идеально.',
+          crappy: 'Наш способ работы нам не подходит / «всё не так».'
+        },
+        {
+          id: 'tech_quality',
+          title: 'Тех. качество (здоровье кодовой базы)',
+          short: 'Качество',
+          awesome: 'Мы гордимся качеством кода: он чистый, читаемый, с хорошим покрытием тестами.',
+          crappy: 'Код в плохом состоянии, техдолг выходит из-под контроля.'
+        },
+        {
+          id: 'value',
+          title: 'Ценность',
+          short: 'Ценность',
+          awesome: 'Мы поставляем отличные вещи. Мы этим гордимся, стейкхолдеры довольны.',
+          crappy: 'Мы поставляем «ерунду», стыдно показывать результат, стейкхолдеры недовольны.'
+        },
+        {
+          id: 'speed',
+          title: 'Скорость',
+          short: 'Скорость',
+          awesome: 'Мы делаем вещи быстро: без ожиданий и задержек.',
+          crappy: 'Мы ничего не доводим до конца: постоянно залипаем на зависимостях/прерываниях.'
+        },
+        {
+          id: 'mission',
+          title: 'Миссия',
+          short: 'Миссия',
+          awesome: 'Мы чётко понимаем, зачем мы существуем, и нас это вдохновляет.',
+          crappy: 'Непонятно, зачем мы здесь: нет общей картины/фокуса, миссия неясная и не вдохновляет.'
+        },
+        {
+          id: 'fun',
+          title: 'Фан',
+          short: 'Фан',
+          awesome: 'Нам нравится работать вместе, кайфуем от процесса.',
+          crappy: 'Скучно и неинтересно.'
+        },
+        {
+          id: 'learning',
+          title: 'Обучение',
+          short: 'Обучение',
+          awesome: 'Мы постоянно учимся и узнаём новое.',
+          crappy: 'У нас никогда нет времени учиться.'
+        },
+        {
+          id: 'support',
+          title: 'Поддержка',
+          short: 'Поддержка',
+          awesome: 'Мы быстро получаем помощь/поддержку, когда она нужна.',
+          crappy: 'Мы регулярно стопоримся, потому что не можем получить нужную поддержку.'
+        },
+        {
+          id: 'pawns_or_players',
+          title: 'Пешки или игроки',
+          short: 'Влияние',
+          awesome: 'Мы управляем своей судьбой: решаем, что и как делать.',
+          crappy: 'Мы «пешки»: почти не влияем на то, что и как мы делаем.'
+        }
+      ];
+
+      const $ = (id) => document.getElementById(id);
+
+      const autosaveStatus = $('autosaveStatus');
+      const teamNameEl = $('teamName');
+      const checkDateEl = $('checkDate');
+      const facilitatorEl = $('facilitator');
+      const globalNotesEl = $('globalNotes');
+      const matrixEl = $('matrix');
+      const matrixHeadEl = $('matrixHead');
+      const matrixBodyEl = $('matrixBody');
+      const btnExport = $('btnExport');
+      const btnReset = $('btnReset');
+      const btnDone = $('btnDone');
+      const resultPanel = $('resultPanel');
+      const resultBodyEl = $('resultBody');
+      const btnBack = $('btnBack');
+      const btnExportSummary = $('btnExportSummary');
+
+      function pad2(n){
+        const s = String(n);
+        return s.length >= 2 ? s : `0${s}`;
+      }
+
+      function todayISO(){
+        const d = new Date();
+        return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+      }
+
+      function uid(){
+        const rnd = Math.random().toString(16).slice(2);
+        return `c_${Date.now().toString(16)}_${rnd}`;
+      }
+
+      function escapeCsvCell(v){
+        const s = v == null ? '' : String(v);
+        if (/[",\n\r]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+        return s;
+      }
+
+      function buildFilename(meta){
+        const date = meta.date || todayISO();
+        const team = (meta.team || 'team').trim().replaceAll(/\s+/g, '_').replaceAll(/[^a-zA-Z0-9_\-а-яА-Я]/g, '');
+        return `team-health-check_${team || 'team'}_${date}.csv`;
+      }
+
+      function getGlobal(){
+        return {
+          team: teamNameEl ? teamNameEl.value : '',
+          date: checkDateEl ? checkDateEl.value : '',
+          facilitator: facilitatorEl ? facilitatorEl.value : '',
+          overallNotes: globalNotesEl ? globalNotesEl.value : ''
+        };
+      }
+
+      function setGlobal(g){
+        const gg = g && typeof g === 'object' ? g : {};
+        if (teamNameEl) teamNameEl.value = typeof gg.team === 'string' ? gg.team : '';
+        if (checkDateEl) checkDateEl.value = typeof gg.date === 'string' ? gg.date : todayISO();
+        if (facilitatorEl) facilitatorEl.value = typeof gg.facilitator === 'string' ? gg.facilitator : '';
+        if (globalNotesEl) globalNotesEl.value = typeof gg.overallNotes === 'string' ? gg.overallNotes : '';
+      }
+
+      function getCellState(indicatorId, columnId){
+        const status = document.querySelector(`input[name="${indicatorId}__${columnId}__status"]:checked`);
+        const trend = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
+        const note = document.querySelector(`textarea[name="${indicatorId}__${columnId}__note"]`);
+        return {
+          status: status ? status.value : '',
+          trend: trend ? trend.value : '',
+          note: note ? note.value : ''
+        };
+      }
+
+      function setCellState(indicatorId, columnId, s){
+        const statusValue = s && typeof s.status === 'string' ? s.status : '';
+        const trendValue = s && typeof s.trend === 'string' ? s.trend : '';
+        const noteValue = s && typeof s.note === 'string' ? s.note : '';
+
+        if (statusValue){
+          const el = document.querySelector(`input[name="${indicatorId}__${columnId}__status"][value="${statusValue}"]`);
+          if (el) el.checked = true;
+        }
+        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
+        if (trendEl) trendEl.value = trendValue;
+        const noteEl = document.querySelector(`textarea[name="${indicatorId}__${columnId}__note"]`);
+        if (noteEl) noteEl.value = noteValue;
+
+        updateTrendUI(indicatorId, columnId);
+      }
+
+      function updateTrendUI(indicatorId, columnId){
+        const status = document.querySelector(`input[name="${indicatorId}__${columnId}__status"]:checked`);
+        const trendWrap = document.querySelector(`[data-trend-wrap="${indicatorId}__${columnId}"]`);
+        const hint = document.querySelector(`[data-trend-hint="${indicatorId}__${columnId}"]`);
+        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
+
+        const hasStatus = !!status;
+
+        if (trendEl) trendEl.disabled = !hasStatus;
+        if (trendWrap) trendWrap.classList.toggle('trendHidden', !hasStatus);
+        if (hint) hint.classList.toggle('trendHidden', hasStatus);
+      }
+
+      function getParticipantMeta(participantId){
+        const nameEl = document.querySelector(`input[name="p__${participantId}__name"]`);
+        return {
+          id: participantId,
+          name: nameEl ? nameEl.value : ''
+        };
+      }
+
+      function setParticipantMeta(participantId, meta){
+        const m = meta && typeof meta === 'object' ? meta : {};
+        const nameEl = document.querySelector(`input[name="p__${participantId}__name"]`);
+        if (nameEl) nameEl.value = typeof m.name === 'string' ? m.name : '';
+      }
+
+      let state = {
+        global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' },
+        columns: [],
+        data: {}
+      };
+
+      function blankColumn(){
+        const id = uid();
+        return {
+          id,
+          name: ''
+        };
+      }
+
+      function ensureStateShape(){
+        if (!state || typeof state !== 'object') state = { global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [], data: {} };
+        if (!state.global || typeof state.global !== 'object') state.global = { team: '', date: todayISO(), facilitator: '', overallNotes: '' };
+        if (!Array.isArray(state.columns)) state.columns = [];
+        if (!state.data || typeof state.data !== 'object') state.data = {};
+
+        if (!state.columns.length){
+          state.columns = [blankColumn()];
+        }
+        for (const ind of indicators){
+          if (!state.data[ind.id] || typeof state.data[ind.id] !== 'object') state.data[ind.id] = {};
+          for (const col of state.columns){
+            if (!state.data[ind.id][col.id] || typeof state.data[ind.id][col.id] !== 'object'){
+              state.data[ind.id][col.id] = { status: '', trend: '', note: '' };
+            }
+          }
+        }
+      }
+
+      function serialize(){
+        const global = getGlobal();
+        const columns = state.columns.map((c) => getParticipantMeta(c.id));
+        const data = {};
+        for (const ind of indicators){
+          data[ind.id] = {};
+          for (const col of state.columns){
+            data[ind.id][col.id] = getCellState(ind.id, col.id);
+          }
+        }
+        return { global, columns, data };
+      }
+
+      function applyState(saved){
+        const s = saved && typeof saved === 'object' ? saved : null;
+        state = {
+          global: (s && s.global && typeof s.global === 'object') ? s.global : { team: '', date: todayISO(), facilitator: '', overallNotes: '' },
+          columns: (s && Array.isArray(s.columns)) ? s.columns : [],
+          data: (s && s.data && typeof s.data === 'object') ? s.data : {}
+        };
+        ensureStateShape();
+        render();
+        setGlobal(state.global);
+        for (const col of state.columns){
+          setParticipantMeta(col.id, col);
+        }
+        for (const ind of indicators){
+          const perInd = state.data[ind.id] && typeof state.data[ind.id] === 'object' ? state.data[ind.id] : {};
+          for (const col of state.columns){
+            if (perInd && Object.prototype.hasOwnProperty.call(perInd, col.id)){
+              setCellState(ind.id, col.id, perInd[col.id]);
+            }
+          }
+        }
+      }
+
+      let autosaveTimer = null;
+      function setAutosaveText(t){
+        if (!autosaveStatus) return;
+        autosaveStatus.textContent = t;
+      }
+
+      function scheduleAutosave(){
+        if (autosaveTimer) window.clearTimeout(autosaveTimer);
+        setAutosaveText('Сохранение...');
+        autosaveTimer = window.setTimeout(() => {
+          try{
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize()));
+            setAutosaveText(`Сохранено локально в ${new Date().toLocaleTimeString()}`);
+          }catch(_){
+            setAutosaveText('Не удалось сохранить в localStorage');
+          }
+        }, 250);
+      }
+
+      function render(){
+        if (!matrixHeadEl || !matrixBodyEl) return;
+
+        matrixHeadEl.innerHTML = '';
+        matrixBodyEl.innerHTML = '';
+
+        const tr = document.createElement('tr');
+
+        const th0 = document.createElement('th');
+        th0.scope = 'col';
+        th0.innerHTML = '';
+        tr.appendChild(th0);
+
+        for (const col of state.columns){
+          const th = document.createElement('th');
+          th.scope = 'col';
+
+          th.innerHTML = `
+            <div class="glassCard participantCard">
+              <div class="glassPad">
+                <div class="colHead">
+                  <div class="colRow">
+                    <div class="colTitle">Участник</div>
+                    <div class="colActions">
+                      <button type="button" class="iconBtn" data-action="remove-column" data-col="${col.id}" aria-label="Удалить участника" title="Удалить участника">🗑️</button>
+                    </div>
+                  </div>
+                  <div class="colFields">
+                    <div>
+                      <label class="sr" for="p__${col.id}__name">Имя участника</label>
+                      <input id="p__${col.id}__name" name="p__${col.id}__name" type="text" autocomplete="name" placeholder="Имя" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          tr.appendChild(th);
+        }
+
+        {
+          const thAdd = document.createElement('th');
+          thAdd.scope = 'col';
+          thAdd.innerHTML = `
+            <div class="glassCard participantCard">
+              <div class="glassPad" style="display:flex; align-items:center; justify-content:center; min-height: 74px;">
+                <button type="button" class="plusBtn" data-action="add-column" aria-label="Добавить участника">+</button>
+              </div>
+            </div>
+          `;
+          tr.appendChild(thAdd);
+        }
+
+        matrixHeadEl.appendChild(tr);
+
+        for (const ind of indicators){
+          const row = document.createElement('tr');
+
+          const th = document.createElement('th');
+          th.scope = 'row';
+          th.innerHTML = `
+            <div class="glassCard indicatorFixed">
+              <div class="glassPad indicatorCard">
+                <div class="indicatorTitleV" aria-hidden="true">${ind.short || ind.title}</div>
+                <div class="indicatorText">
+                  <div class="indTitle">${ind.title}</div>
+                  <div class="indMeta"><span class="k">Отлично:</span> ${ind.awesome}</div>
+                  <div class="indMeta"><span class="k">Плохо:</span> ${ind.crappy}</div>
+                </div>
+              </div>
+            </div>
+          `;
+          row.appendChild(th);
+
+          for (const col of state.columns){
+            const td = document.createElement('td');
+
+            const sName = `${ind.id}__${col.id}__status`;
+            const tName = `${ind.id}__${col.id}__trend`;
+            const nName = `${ind.id}__${col.id}__note`;
+
+            td.innerHTML = `
+              <div class="glassCard cellFixed">
+                <div class="glassPad">
+                  <div class="cell">
+                    <div>
+                      <div class="sr">Status</div>
+                      <div class="statusDots" role="radiogroup" aria-label="${ind.title}: статус">
+                        <input id="${sName}__green" type="radio" name="${sName}" value="green" />
+                        <label class="dotLbl" for="${sName}__green" aria-label="Green"><span class="dot ok" aria-hidden="true"></span></label>
+
+                        <input id="${sName}__yellow" type="radio" name="${sName}" value="yellow" />
+                        <label class="dotLbl" for="${sName}__yellow" aria-label="Yellow"><span class="dot warn" aria-hidden="true"></span></label>
+
+                        <input id="${sName}__red" type="radio" name="${sName}" value="red" />
+                        <label class="dotLbl" for="${sName}__red" aria-label="Red"><span class="dot bad" aria-hidden="true"></span></label>
+                      </div>
+                    </div>
+
+                    <div class="trendHint" data-trend-hint="${ind.id}__${col.id}">Сначала выбери цвет</div>
+
+                    <div class="trendHidden" data-trend-wrap="${ind.id}__${col.id}">
+                      <label class="sr" for="${tName}__sel">Тренд</label>
+                      <select id="${tName}__sel" name="${tName}" aria-label="${ind.title}: тренд" disabled>
+                        <option value="">—</option>
+                        <option value="up">↗ Улучшается</option>
+                        <option value="stable">→ Стабильно</option>
+                        <option value="down">↘ Ухудшается</option>
+                      </select>
+                    </div>
+
+                    <details>
+                      <summary>Заметка</summary>
+                      <div class="noteBody">
+                        <label class="sr" for="${nName}">Заметка</label>
+                        <textarea id="${nName}" name="${nName}"></textarea>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            row.appendChild(td);
+          }
+
+          matrixBodyEl.appendChild(row);
+        }
+
+        // Apply gate logic after DOM is in place
+        for (const ind of indicators){
+          for (const col of state.columns){
+            updateTrendUI(ind.id, col.id);
+          }
+        }
+      }
+
+      function validateForExport(){
+        const invalid = [];
+        for (const ind of indicators){
+          for (const col of state.columns){
+            const s = getCellState(ind.id, col.id);
+            const p = getParticipantMeta(col.id);
+            if (!s.status) invalid.push(`${ind.title} / ${p && p.name ? p.name : 'Участник'}`);
+          }
+        }
+        return invalid;
+      }
+
+      function exportCsv(){
+        const global = getGlobal();
+        const missing = validateForExport();
+
+        if (missing.length){
+          const msg = `Не заполнено состояние (зел/жёлт/красн) для ${missing.length} индикаторов.\n\nПродолжить экспорт?`;
+          if (!window.confirm(msg)) return;
+        }
+
+        const header = ['participant_id','participant_name','team','date','facilitator','indicator','status','trend','note','overall_notes'];
+        const rows = [header];
+
+        for (const ind of indicators){
+          for (const col of state.columns){
+            const p = getParticipantMeta(col.id);
+            const s = getCellState(ind.id, col.id);
+            rows.push([
+              col.id,
+              (p && p.name) ? p.name : '',
+              global.team || '',
+              global.date || '',
+              global.facilitator || '',
+              ind.title,
+              s.status,
+              s.trend,
+              s.note,
+              global.overallNotes || ''
+            ]);
+          }
+        }
+
+        const csv = rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = buildFilename({ team: global.team || 'team', date: global.date || todayISO() });
+        a.className = 'sr';
+        a.textContent = 'download';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+
+      function resetAll(){
+        const ok = window.confirm('Сбросить форму и локально сохранённое состояние?');
+        if (!ok) return;
+        try{ localStorage.removeItem(STORAGE_KEY); }catch(_){ }
+        try{ localStorage.removeItem(LEGACY_STORAGE_KEY); }catch(_){ }
+        applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
+        setAutosaveText('Сброшено');
+      }
+
+      function bindAutosave(){
+        const root = document.body;
+        if (!root) return;
+        root.addEventListener('input', (e) => {
+          const t = e.target;
+          if (!t) return;
+          if (t.matches('input, textarea, select')) scheduleAutosave();
+        });
+        root.addEventListener('change', (e) => {
+          const t = e.target;
+          if (!t) return;
+          if (t.matches('input[type="radio"], input[type="date"], input[type="text"], select')) scheduleAutosave();
+        });
+
+        if (!matrixEl) return;
+        matrixEl.addEventListener('change', (e) => {
+          const t = e.target;
+          if (!t) return;
+          if (t instanceof HTMLInputElement && t.type === 'radio'){
+            const name = t.getAttribute('name') || '';
+            const parts = name.split('__');
+            if (parts.length === 3 && parts[2] === 'status'){
+              const indicatorId = parts[0];
+              const columnId = parts[1];
+              updateTrendUI(indicatorId, columnId);
+            }
+          }
+        });
+      }
+
+      function addColumn(){
+        const col = blankColumn();
+        state.columns.push(col);
+        ensureStateShape();
+        render();
+        setGlobal(state.global);
+        for (const c of state.columns){
+          setParticipantMeta(c.id, c);
+        }
+        for (const ind of indicators){
+          for (const c of state.columns){
+            setCellState(ind.id, c.id, (state.data[ind.id] && state.data[ind.id][c.id]) ? state.data[ind.id][c.id] : { status: '', trend: '', note: '' });
+          }
+        }
+        scheduleAutosave();
+      }
+
+      function removeColumn(columnId){
+        if (state.columns.length <= 1){
+          window.alert('Нельзя удалить последнюю колонку.');
+          return;
+        }
+        const ok = window.confirm('Удалить колонку? Данные в ней будут потеряны.');
+        if (!ok) return;
+        state.columns = state.columns.filter((c) => c.id !== columnId);
+        for (const ind of indicators){
+          if (state.data[ind.id] && typeof state.data[ind.id] === 'object'){
+            delete state.data[ind.id][columnId];
+          }
+        }
+        ensureStateShape();
+        render();
+        setGlobal(state.global);
+        for (const c of state.columns){
+          setParticipantMeta(c.id, c);
+        }
+        for (const ind of indicators){
+          for (const c of state.columns){
+            setCellState(ind.id, c.id, (state.data[ind.id] && state.data[ind.id][c.id]) ? state.data[ind.id][c.id] : { status: '', trend: '', note: '' });
+          }
+        }
+        scheduleAutosave();
+      }
+
+      function bindMatrixActions(){
+        if (!matrixEl) return;
+        matrixEl.addEventListener('click', (e) => {
+          const t = e.target;
+          if (!t || !(t instanceof HTMLElement)) return;
+          const action = t.getAttribute('data-action');
+          if (action === 'add-column'){
+            addColumn();
+            return;
+          }
+          if (action === 'remove-column'){
+            const col = t.getAttribute('data-col');
+            if (col) removeColumn(col);
+          }
+        });
+      }
+
+      function migrateLegacyIfNeeded(){
+        let hasNew = false;
+        try{ hasNew = !!localStorage.getItem(STORAGE_KEY); }catch(_){ hasNew = false; }
+        if (hasNew) return;
+
+        let legacyRaw = null;
+        try{ legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY); }catch(_){ legacyRaw = null; }
+        if (!legacyRaw) return;
+
+        try{
+          const legacy = JSON.parse(legacyRaw);
+          const meta = legacy && legacy.meta && typeof legacy.meta === 'object' ? legacy.meta : {};
+          const col = blankColumn();
+          col.name = 'Участник';
+
+          const data = {};
+          for (const ind of indicators){
+            const v = legacy && legacy.data && legacy.data[ind.id] ? legacy.data[ind.id] : { status: '', trend: '', note: '' };
+            data[ind.id] = { [col.id]: { status: v.status || '', trend: v.trend || '', note: v.note || '' } };
+          }
+
+          const migrated = {
+            global: {
+              team: typeof meta.team === 'string' ? meta.team : '',
+              date: typeof meta.date === 'string' ? meta.date : todayISO(),
+              facilitator: typeof meta.facilitator === 'string' ? meta.facilitator : '',
+              overallNotes: typeof meta.overallNotes === 'string' ? meta.overallNotes : ''
+            },
+            columns: [col],
+            data
+          };
+          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)); }catch(_){ }
+        }catch(_){ }
+      }
+
+      function migrateMatrixToParticipantsIfNeeded(){
+        let raw = null;
+        try{ raw = localStorage.getItem(STORAGE_KEY); }catch(_){ raw = null; }
+        if (!raw) return;
+
+        try{
+          const saved = JSON.parse(raw);
+          const cols = saved && Array.isArray(saved.columns) ? saved.columns : null;
+          const global = saved && saved.global && typeof saved.global === 'object' ? saved.global : null;
+          const isOldMatrix = !!cols && cols.length && (Object.prototype.hasOwnProperty.call(cols[0], 'title') || Object.prototype.hasOwnProperty.call(cols[0], 'team'));
+          if (!isOldMatrix) return;
+
+          const newGlobal = {
+            team: (global && typeof global.team === 'string') ? global.team : '',
+            date: (global && typeof global.date === 'string') ? global.date : todayISO(),
+            facilitator: (global && typeof global.facilitator === 'string') ? global.facilitator : '',
+            overallNotes: (global && typeof global.overallNotes === 'string') ? global.overallNotes : ''
+          };
+
+          // Try to recover team/date/facilitator from the first old column
+          const first = cols[0];
+          if (first && typeof first === 'object'){
+            if (!newGlobal.team && typeof first.team === 'string') newGlobal.team = first.team;
+            if (typeof first.date === 'string') newGlobal.date = first.date;
+            if (!newGlobal.facilitator && typeof first.facilitator === 'string') newGlobal.facilitator = first.facilitator;
+          }
+
+          const newCols = cols.map((c) => ({
+            id: c.id,
+            name: (typeof c.title === 'string' && c.title.trim()) ? c.title.trim() : (typeof c.name === 'string' ? c.name : '')
+          }));
+
+          const migrated = {
+            global: newGlobal,
+            columns: newCols,
+            data: saved.data && typeof saved.data === 'object' ? saved.data : {}
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        }catch(_){ }
+      }
+
+      migrateLegacyIfNeeded();
+      migrateMatrixToParticipantsIfNeeded();
+
+      const savedRaw = (() => {
+        try{ return localStorage.getItem(STORAGE_KEY); }catch(_){ return null; }
+      })();
+      if (savedRaw){
+        try{
+          const saved = JSON.parse(savedRaw);
+          applyState(saved);
+          setAutosaveText('Загружено из localStorage');
+        }catch(_){
+          applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
+          setAutosaveText('');
+        }
+      } else {
+        applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
+      }
+
+      bindAutosave();
+      bindMatrixActions();
+
+      if (btnExport) btnExport.addEventListener('click', exportCsv);
+      if (btnReset) btnReset.addEventListener('click', resetAll);
+
+      function computeSummary(){
+        const res = [];
+        for (const ind of indicators){
+          let g = 0, y = 0, r = 0;
+          const trendCounts = { up: 0, stable: 0, down: 0 };
+
+          for (const col of state.columns){
+            const s = getCellState(ind.id, col.id);
+            if (s.status === 'green') g++;
+            if (s.status === 'yellow') y++;
+            if (s.status === 'red') r++;
+            if (s.trend && Object.prototype.hasOwnProperty.call(trendCounts, s.trend)) trendCounts[s.trend]++;
+          }
+
+          const dominantTrend = (() => {
+            const entries = Object.entries(trendCounts);
+            entries.sort((a, b) => b[1] - a[1]);
+            const top = entries[0];
+            if (!top || top[1] === 0) return '';
+            if (top[0] === 'up') return '↗ Улучшается';
+            if (top[0] === 'stable') return '→ Стабильно';
+            if (top[0] === 'down') return '↘ Ухудшается';
+            return '';
+          })();
+
+          res.push({ indicator: ind.title, short: ind.short || ind.title, awesome: ind.awesome, crappy: ind.crappy, green: g, yellow: y, red: r, trend: dominantTrend });
+        }
+        return res;
+      }
+
+      function renderSummary(){
+        if (!resultBodyEl) return;
+        resultBodyEl.innerHTML = '';
+        const summary = computeSummary();
+
+        for (const row of summary){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <th scope="row">
+              <div class="glassCard indicatorFixed">
+                <div class="glassPad indicatorCard">
+                  <div class="indicatorTitleV" aria-hidden="true">${row.short}</div>
+                  <div>
+                    <div class="indTitle">${row.indicator}</div>
+                    <div class="indMeta"><span class="k">Отлично:</span> ${row.awesome}</div>
+                    <div class="indMeta"><span class="k">Плохо:</span> ${row.crappy}</div>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <td><div class="glassCard"><div class="glassPad">${row.green}</div></div></td>
+            <td><div class="glassCard"><div class="glassPad">${row.yellow}</div></div></td>
+            <td><div class="glassCard"><div class="glassPad">${row.red}</div></div></td>
+            <td><div class="glassCard"><div class="glassPad">${row.trend || '—'}</div></div></td>
+          `;
+          resultBodyEl.appendChild(tr);
+        }
+      }
+
+      function showResult(){
+        renderSummary();
+        const matrixPanel = document.querySelector('section[aria-label="Матрица Health Check"]');
+        if (matrixPanel) matrixPanel.style.display = 'none';
+        if (resultPanel) resultPanel.style.display = '';
+        if (resultPanel) resultPanel.scrollIntoView({ block: 'start' });
+      }
+
+      function showMatrix(){
+        const matrixPanel = document.querySelector('section[aria-label="Матрица Health Check"]');
+        if (resultPanel) resultPanel.style.display = 'none';
+        if (matrixPanel) matrixPanel.style.display = '';
+        if (matrixPanel) matrixPanel.scrollIntoView({ block: 'start' });
+      }
+
+      function exportSummaryCsv(){
+        const global = getGlobal();
+        const summary = computeSummary();
+        const header = ['team','date','facilitator','indicator','green','yellow','red','trend','overall_notes'];
+        const rows = [header];
+        for (const r of summary){
+          rows.push([
+            global.team || '',
+            global.date || '',
+            global.facilitator || '',
+            r.indicator,
+            String(r.green),
+            String(r.yellow),
+            String(r.red),
+            r.trend,
+            global.overallNotes || ''
+          ]);
+        }
+        const csv = rows.map((rr) => rr.map(escapeCsvCell).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `team-health-check_summary_${(global.team || 'team').replaceAll(/\s+/g,'_')}_${global.date || todayISO()}.csv`;
+        a.className = 'sr';
+        a.textContent = 'download';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+
+      if (btnDone) btnDone.addEventListener('click', showResult);
+      if (btnBack) btnBack.addEventListener('click', showMatrix);
+      if (btnExportSummary) btnExportSummary.addEventListener('click', exportSummaryCsv);
+    })();
+  </script>
+</body>
+</html>
