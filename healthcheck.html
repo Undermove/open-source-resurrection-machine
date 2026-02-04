@@ -25,6 +25,82 @@
       --glass: rgba(255,255,255,.58);
       --glass2: rgba(255,255,255,.72);
     }
+
+    .sumCell{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      min-height: 34px;
+    }
+    .sumDot{
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .10);
+      border: 2px solid color-mix(in srgb, var(--glass2) 70%, transparent);
+    }
+    .sumDot.ok{ background: var(--ok); }
+    .sumDot.warn{ background: var(--warn); }
+    .sumDot.bad{ background: var(--bad); }
+    .sumTrend{
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
+
+    .smPad{ padding: 8px 10px; }
+    .smPadTight{ padding: 6px 10px; }
+
+    #multiTable{
+      border-spacing: 4px;
+      table-layout: fixed;
+    }
+    #multiTable tbody tr{ height: auto; }
+
+    .multiWrapHidden{ display:none; }
+
+    .dropzone{
+      border-radius: var(--radius);
+      border: 2px dashed color-mix(in srgb, var(--accent) 28%, var(--stroke));
+      background: color-mix(in srgb, var(--glass) 82%, transparent);
+      box-shadow: 0 14px 30px rgba(2, 6, 23, .10);
+      backdrop-filter: blur(14px);
+      padding: 22px 18px;
+      min-height: 120px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color: color-mix(in srgb, var(--text) 90%, transparent);
+    }
+    .dropzone strong{ display:block; font-size: 14px; margin-bottom: 6px; }
+    .dropzone .muted{ color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .dropzone.dragover{
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--stroke));
+      box-shadow: 0 18px 40px rgba(2, 6, 23, .14);
+    }
+
+    .multiFileInput{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    /* Multi table: equal column widths and equal row heights */
+    #multiTable th,
+    #multiTable td{ width: 150px; min-width: 150px; max-width: 150px; }
+    #multiTable thead th,
+    #multiTable tbody th,
+    #multiTable tbody td{ vertical-align: middle; }
+    #multiTable tbody tr{ height: 44px; }
+    #multiTable .glassPad{ padding: 6px 10px; }
     html, body{
       margin:0;
       min-height:100%;
@@ -561,6 +637,53 @@
       justify-content: flex-end;
     }
 
+    .tabbar{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 14px;
+    }
+    .tabbtn{
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 70%, transparent);
+      color: var(--text);
+      cursor:pointer;
+      font: inherit;
+      font-weight: 850;
+      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+    }
+    .tabbtn[aria-selected="true"]{
+      background: color-mix(in srgb, var(--accent) 16%, var(--glass2));
+      box-shadow: 0 16px 32px rgba(2, 6, 23, .14);
+    }
+    .tabbtn:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+    .fileRow{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    input[type="file"]{
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 12px;
+      border: none;
+      background: color-mix(in srgb, var(--glass2) 86%, transparent);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, .06);
+    }
+    input[type="file"]:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+
     button{
       border-radius: 12px;
       padding: 10px 12px;
@@ -629,7 +752,13 @@
 
   <main id="main">
     <div class="wrap">
-      <section class="panel" aria-label="Метаданные">
+      <div class="tabbar" role="tablist" aria-label="Разделы">
+        <button class="tabbtn" id="tabMatrix" type="button" role="tab" aria-selected="true" aria-controls="matrixPanel">Чек-лист</button>
+        <button class="tabbtn" id="tabResult" type="button" role="tab" aria-selected="false" aria-controls="resultPanel">Результат</button>
+        <button class="tabbtn" id="tabMulti" type="button" role="tab" aria-selected="false" aria-controls="multiPanel">Сводка по файлам</button>
+      </div>
+
+      <section class="panel" aria-label="Метаданные" id="sessionPanel">
         <div class="hd">
           <h2>Сессия</h2>
           <div class="status">
@@ -707,7 +836,38 @@
         </div>
       </section>
 
-      <section class="panel" aria-label="Матрица Health Check">
+      <section class="panel" aria-label="Сводка по нескольким командам" id="multiPanel" style="display:none;">
+        <div class="hd">
+          <div class="toolbar">
+            <div class="left">
+              <h2 class="sr">Сводка по нескольким командам</h2>
+            </div>
+            <div class="btnrow" id="multiActions" style="display:none;">
+              <button id="btnClearMulti" type="button">Очистить</button>
+              <button id="btnExportMulti" type="button">Скачать CSV (сводка)</button>
+            </div>
+          </div>
+        </div>
+        <div class="bd">
+          <input id="multiFiles" class="multiFileInput" type="file" accept=".csv,text/csv" multiple />
+
+          <label id="multiDrop" class="dropzone" for="multiFiles">
+            <div>
+              <strong>Перетащи CSV-файлы сюда</strong>
+              <div class="muted">или нажми, чтобы выбрать несколько файлов хелсчеков команд</div>
+            </div>
+          </label>
+
+          <div id="multiTableWrap" class="matrixWrap multiWrapHidden" role="region" aria-label="Сводная таблица по файлам" tabindex="0">
+            <table class="matrix" id="multiTable">
+              <thead id="multiHead"></thead>
+              <tbody id="multiBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Матрица Health Check" id="matrixPanel">
         <div class="hd">
           <div class="toolbar">
             <div class="left">
@@ -838,6 +998,21 @@
       const resultBodyEl = $('resultBody');
       const btnBack = $('btnBack');
       const btnExportSummary = $('btnExportSummary');
+
+      const tabMatrix = $('tabMatrix');
+      const tabResult = $('tabResult');
+      const tabMulti = $('tabMulti');
+      const sessionPanel = $('sessionPanel');
+      const matrixPanel = $('matrixPanel');
+      const multiPanel = $('multiPanel');
+      const multiFiles = $('multiFiles');
+      const multiDrop = $('multiDrop');
+      const multiActions = $('multiActions');
+      const multiTableWrap = $('multiTableWrap');
+      const multiHeadEl = $('multiHead');
+      const multiBodyEl = $('multiBody');
+      const btnClearMulti = $('btnClearMulti');
+      const btnExportMulti = $('btnExportMulti');
 
       function pad2(n){
         const s = String(n);
@@ -1501,18 +1676,395 @@
       }
 
       function showResult(){
-        renderSummary();
-        const matrixPanel = document.querySelector('section[aria-label="Матрица Health Check"]');
-        if (matrixPanel) matrixPanel.style.display = 'none';
-        if (resultPanel) resultPanel.style.display = '';
-        if (resultPanel) resultPanel.scrollIntoView({ block: 'start' });
+        setView('result');
       }
 
       function showMatrix(){
-        const matrixPanel = document.querySelector('section[aria-label="Матрица Health Check"]');
-        if (resultPanel) resultPanel.style.display = 'none';
-        if (matrixPanel) matrixPanel.style.display = '';
-        if (matrixPanel) matrixPanel.scrollIntoView({ block: 'start' });
+        setView('matrix');
+      }
+
+      function setSelectedTab(which){
+        const isMatrix = which === 'matrix';
+        const isResult = which === 'result';
+        const isMulti = which === 'multi';
+        if (tabMatrix) tabMatrix.setAttribute('aria-selected', isMatrix ? 'true' : 'false');
+        if (tabResult) tabResult.setAttribute('aria-selected', isResult ? 'true' : 'false');
+        if (tabMulti) tabMulti.setAttribute('aria-selected', isMulti ? 'true' : 'false');
+      }
+
+      function setView(which){
+        setSelectedTab(which);
+
+        if (sessionPanel) sessionPanel.style.display = (which === 'multi') ? 'none' : '';
+        if (matrixPanel) matrixPanel.style.display = (which === 'matrix') ? '' : 'none';
+        if (resultPanel) resultPanel.style.display = (which === 'result') ? '' : 'none';
+        if (multiPanel) multiPanel.style.display = (which === 'multi') ? '' : 'none';
+
+        if (which === 'result') renderSummary();
+        if (which === 'multi') renderMultiSummary();
+
+        const el = (which === 'matrix') ? matrixPanel : (which === 'result') ? resultPanel : multiPanel;
+        if (el) el.scrollIntoView({ block: 'start' });
+      }
+
+      function bindTabs(){
+        if (tabMatrix) tabMatrix.addEventListener('click', () => setView('matrix'));
+        if (tabResult) tabResult.addEventListener('click', () => setView('result'));
+        if (tabMulti) tabMulti.addEventListener('click', () => setView('multi'));
+      }
+
+      function parseCsv(text){
+        const rows = [];
+        let row = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < text.length; i++){
+          const ch = text[i];
+          if (inQ){
+            if (ch === '"'){
+              const next = text[i+1];
+              if (next === '"'){
+                cur += '"';
+                i++;
+              } else {
+                inQ = false;
+              }
+            } else {
+              cur += ch;
+            }
+            continue;
+          }
+
+          if (ch === '"'){
+            inQ = true;
+            continue;
+          }
+          if (ch === ','){
+            row.push(cur);
+            cur = '';
+            continue;
+          }
+          if (ch === '\n'){
+            row.push(cur);
+            cur = '';
+            if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
+            row = [];
+            continue;
+          }
+          if (ch === '\r') continue;
+          cur += ch;
+        }
+        row.push(cur);
+        if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
+        return rows;
+      }
+
+      function normalizeHeader(h){
+        return String(h || '').trim().toLowerCase();
+      }
+
+      function rowsToObjects(rows){
+        if (!rows || rows.length < 2) return [];
+        const header = rows[0].map(normalizeHeader);
+        const out = [];
+        for (let i = 1; i < rows.length; i++){
+          const r = rows[i];
+          const o = {};
+          for (let j = 0; j < header.length; j++){
+            o[header[j]] = (r[j] == null) ? '' : String(r[j]);
+          }
+          out.push(o);
+        }
+        return out;
+      }
+
+      let multiAgg = new Map();
+
+      function getMultiBucket(team, date, indicator){
+        const t = team || '—';
+        const d = date || '—';
+        const i = indicator || '—';
+        const key = `${t}__${d}__${i}`;
+        const prev = multiAgg.get(key) || { team: t, date: d, indicator: i, green: 0, yellow: 0, red: 0, trendCounts: { up: 0, stable: 0, down: 0 }, responses: 0, votes: [] };
+        multiAgg.set(key, prev);
+        return prev;
+      }
+
+      function addParticipantExport(objects){
+        for (const o of objects){
+          const team = (o.team || '').trim() || '—';
+          const date = (o.date || '').trim() || '—';
+          const indicator = (o.indicator || '').trim() || '—';
+          const status = (o.status || '').trim();
+          const trend = (o.trend || '').trim();
+          const participantName = (o.participant_name || '').trim();
+          const participantId = (o.participant_id || '').trim();
+          const note = (o.note || '').trim();
+          const prev = getMultiBucket(team, date, indicator);
+          if (status === 'green') prev.green++;
+          if (status === 'yellow') prev.yellow++;
+          if (status === 'red') prev.red++;
+          if (trend && Object.prototype.hasOwnProperty.call(prev.trendCounts, trend)) prev.trendCounts[trend]++;
+          prev.responses++;
+          if (Array.isArray(prev.votes)){
+            prev.votes.push({
+              participantId,
+              participantName,
+              status,
+              trend,
+              note
+            });
+          }
+        }
+      }
+
+      function addSummaryExport(objects){
+        for (const o of objects){
+          const team = (o.team || '').trim() || '—';
+          const date = (o.date || '').trim() || '—';
+          const indicator = (o.indicator || '').trim() || '—';
+          const prev = getMultiBucket(team, date, indicator);
+
+          const green = Number(o.green || 0) || 0;
+          const yellow = Number(o.yellow || 0) || 0;
+          const red = Number(o.red || 0) || 0;
+          const responses = green + yellow + red;
+
+          prev.green += green;
+          prev.yellow += yellow;
+          prev.red += red;
+          prev.responses += responses;
+
+          const tr = (o.trend || '').trim();
+          if (tr.includes('↗')) prev.trendCounts.up++;
+          if (tr.includes('→')) prev.trendCounts.stable++;
+          if (tr.includes('↘')) prev.trendCounts.down++;
+        }
+      }
+
+      function dominantTrendLabel(trendCounts){
+        const entries = Object.entries(trendCounts);
+        entries.sort((a, b) => b[1] - a[1]);
+        const top = entries[0];
+        if (!top || top[1] === 0) return '—';
+        if (top[0] === 'up') return '↗ Улучшается';
+        if (top[0] === 'stable') return '→ Стабильно';
+        if (top[0] === 'down') return '↘ Ухудшается';
+        return '—';
+      }
+
+      function worstTrendLabel(trendCounts){
+        if (!trendCounts || typeof trendCounts !== 'object') return '—';
+        if ((trendCounts.down || 0) > 0) return '↘ Ухудшается';
+        if ((trendCounts.stable || 0) > 0) return '→ Стабильно';
+        if ((trendCounts.up || 0) > 0) return '↗ Улучшается';
+        return '—';
+      }
+
+      function pickMajorityStatus(bucket){
+        if (!bucket) return '';
+        const g = bucket.green || 0;
+        const y = bucket.yellow || 0;
+        const r = bucket.red || 0;
+        const max = Math.max(g, y, r);
+        if (max === 0) return '';
+        if (g === max) return 'green';
+        if (y === max) return 'yellow';
+        return 'red';
+      }
+
+      function worstStatus(bucket){
+        if (!bucket) return '';
+        if ((bucket.red || 0) > 0) return 'red';
+        if ((bucket.yellow || 0) > 0) return 'yellow';
+        if ((bucket.green || 0) > 0) return 'green';
+        return '';
+      }
+
+      function labelStatusRu(s){
+        if (s === 'green') return 'Зелёный';
+        if (s === 'yellow') return 'Жёлтый';
+        if (s === 'red') return 'Красный';
+        return '—';
+      }
+
+      function labelTrendRu(t){
+        if (t === 'up') return '↗ Улучшается';
+        if (t === 'stable') return '→ Стабильно';
+        if (t === 'down') return '↘ Ухудшается';
+        return '—';
+      }
+
+      function escapeAttr(s){
+        return String(s == null ? '' : s)
+          .replaceAll('&', '&amp;')
+          .replaceAll('"', '&quot;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;');
+      }
+
+      function pickLatestDatePerTeam(){
+        const m = new Map();
+        for (const b of multiAgg.values()){
+          const team = b.team || '—';
+          const date = b.date || '—';
+          if (m.has(team)){
+            const prev = m.get(team);
+            if (prev < date) m.set(team, date);
+          } else {
+            m.set(team, date);
+          }
+        }
+        return m;
+      }
+
+      function getBucket(team, date, indicator){
+        const t = (team || '—');
+        const d = (date || '—');
+        const i = (indicator || '—');
+        return multiAgg.get(`${t}__${d}__${i}`) || null;
+      }
+
+      function renderMultiSummary(){
+        if (!multiBodyEl || !multiHeadEl) return;
+        multiHeadEl.innerHTML = '';
+        multiBodyEl.innerHTML = '';
+
+        const latest = pickLatestDatePerTeam();
+        const teams = Array.from(latest.keys()).sort((a, b) => a.localeCompare(b));
+
+        const hasData = !!teams.length;
+        if (multiActions) multiActions.style.display = hasData ? '' : 'none';
+        if (multiTableWrap) multiTableWrap.classList.toggle('multiWrapHidden', !hasData);
+        if (multiDrop) multiDrop.style.display = hasData ? 'none' : '';
+        if (!hasData) return;
+
+        const hr = document.createElement('tr');
+        const h0 = document.createElement('th');
+        h0.scope = 'col';
+        h0.innerHTML = `<div class="glassCard"><div class="glassPad smPad"><strong>Критерий</strong></div></div>`;
+        hr.appendChild(h0);
+        for (const team of teams){
+          const date = latest.get(team);
+          const th = document.createElement('th');
+          th.scope = 'col';
+          th.innerHTML = `<div class="glassCard"><div class="glassPad smPad"><strong>${team}</strong><div class="indMeta" style="margin-top:4px;">${date || ''}</div></div></div>`;
+          hr.appendChild(th);
+        }
+        multiHeadEl.appendChild(hr);
+
+        for (const ind of indicators){
+          const tr = document.createElement('tr');
+          const th = document.createElement('th');
+          th.scope = 'row';
+          const indTip = `Отлично: ${ind.awesome}\nПлохо: ${ind.crappy}`;
+          th.innerHTML = `<div class="glassCard"><div class="glassPad smPadTight" title="${escapeAttr(indTip)}"><strong>${escapeAttr(ind.title)}</strong></div></div>`;
+          tr.appendChild(th);
+
+          for (const team of teams){
+            const date = latest.get(team);
+            const b = getBucket(team, date, ind.title);
+            const status = worstStatus(b);
+            const trendLabel = b ? worstTrendLabel(b.trendCounts) : '—';
+
+            const cls = status === 'green' ? 'ok' : status === 'yellow' ? 'warn' : status === 'red' ? 'bad' : '';
+            const trendChar = trendLabel.includes('↗') ? '↗' : trendLabel.includes('↘') ? '↘' : trendLabel.includes('→') ? '→' : '—';
+            const aria = `${team}${date ? `, ${date}` : ''}: ${ind.title}. Статус: ${labelStatusRu(status)}. Тренд: ${trendLabel || '—'}.`;
+
+            const tip = (() => {
+              if (!b) return '';
+              const votes = Array.isArray(b.votes) ? b.votes : [];
+              if (votes.length){
+                const lines = votes.map((v) => {
+                  const who = (v.participantName || v.participantId || 'Участник').trim();
+                  const st = labelStatusRu(v.status);
+                  const tr = labelTrendRu(v.trend);
+                  return `${who}: ${st}, ${tr}`;
+                });
+                return lines.join('\n');
+              }
+              return `Green: ${b.green || 0}\nYellow: ${b.yellow || 0}\nRed: ${b.red || 0}`;
+            })();
+
+            const td = document.createElement('td');
+            td.innerHTML = `
+              <div class="glassCard">
+                <div class="glassPad">
+                  <div class="sumCell" aria-label="${escapeAttr(aria)}" title="${escapeAttr(tip)}">
+                    <span class="sumDot ${cls}" aria-hidden="true"></span>
+                    <span class="sumTrend" aria-hidden="true">${trendChar}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+            tr.appendChild(td);
+          }
+
+          multiBodyEl.appendChild(tr);
+        }
+      }
+
+      async function handleMultiFiles(files){
+        const list = Array.from(files || []);
+        if (!list.length) return;
+        for (const f of list){
+          const text = await f.text();
+          const rows = parseCsv(text);
+          const objects = rowsToObjects(rows);
+          const header = rows && rows[0] ? rows[0].map(normalizeHeader) : [];
+
+          if (header.includes('participant_id') && header.includes('indicator') && header.includes('status')){
+            addParticipantExport(objects);
+          } else if (header.includes('green') && header.includes('yellow') && header.includes('red') && header.includes('indicator')){
+            addSummaryExport(objects);
+          }
+        }
+        renderMultiSummary();
+      }
+
+      function clearMulti(){
+        multiAgg = new Map();
+        if (multiFiles) multiFiles.value = '';
+        renderMultiSummary();
+      }
+
+      function exportMultiCsv(){
+        const latest = pickLatestDatePerTeam();
+        const teams = Array.from(latest.keys()).sort((a, b) => a.localeCompare(b));
+        const header = ['team','date','indicator','status','trend','green','yellow','red','responses'];
+        const rows = [header];
+
+        for (const team of teams){
+          const date = latest.get(team);
+          for (const ind of indicators){
+            const b = getBucket(team, date, ind.title);
+            const status = worstStatus(b);
+            const trend = b ? worstTrendLabel(b.trendCounts) : '';
+            rows.push([
+              team,
+              date || '',
+              ind.title,
+              status,
+              trend,
+              String(b ? b.green : 0),
+              String(b ? b.yellow : 0),
+              String(b ? b.red : 0),
+              String(b ? b.responses : 0)
+            ]);
+          }
+        }
+        const csv = rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `team-health-check_multi_summary_${todayISO()}.csv`;
+        a.className = 'sr';
+        a.textContent = 'download';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
       }
 
       function exportSummaryCsv(){
@@ -1550,6 +2102,38 @@
       if (btnDone) btnDone.addEventListener('click', showResult);
       if (btnBack) btnBack.addEventListener('click', showMatrix);
       if (btnExportSummary) btnExportSummary.addEventListener('click', exportSummaryCsv);
+
+      bindTabs();
+      setView('matrix');
+
+      if (multiFiles) multiFiles.addEventListener('change', (e) => {
+        const t = e.target;
+        if (!t || !(t instanceof HTMLInputElement)) return;
+        if (t.files) handleMultiFiles(t.files);
+      });
+
+      if (multiDrop){
+        const prevent = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((type) => {
+          multiDrop.addEventListener(type, prevent);
+        });
+
+        multiDrop.addEventListener('dragenter', () => multiDrop.classList.add('dragover'));
+        multiDrop.addEventListener('dragover', () => multiDrop.classList.add('dragover'));
+        multiDrop.addEventListener('dragleave', () => multiDrop.classList.remove('dragover'));
+        multiDrop.addEventListener('drop', (e) => {
+          multiDrop.classList.remove('dragover');
+          const dt = e.dataTransfer;
+          if (!dt || !dt.files) return;
+          handleMultiFiles(dt.files);
+        });
+      }
+      if (btnClearMulti) btnClearMulti.addEventListener('click', clearMulti);
+      if (btnExportMulti) btnExportMulti.addEventListener('click', exportMultiCsv);
     })();
   </script>
 </body>
