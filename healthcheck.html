@@ -754,7 +754,6 @@
     <div class="wrap">
       <div class="tabbar" role="tablist" aria-label="Разделы">
         <button class="tabbtn" id="tabMatrix" type="button" role="tab" aria-selected="true" aria-controls="matrixPanel">Чек-лист</button>
-        <button class="tabbtn" id="tabResult" type="button" role="tab" aria-selected="false" aria-controls="resultPanel">Результат</button>
         <button class="tabbtn" id="tabMulti" type="button" role="tab" aria-selected="false" aria-controls="multiPanel">Сводка по файлам</button>
       </div>
 
@@ -796,42 +795,6 @@
 
           <div style="height: 14px;"></div>
           <div class="btnrow" style="justify-content: flex-end;">
-            <button id="btnDone" type="button">Готово</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel" aria-label="Результат" id="resultPanel" style="display:none;">
-        <div class="hd">
-          <div class="toolbar">
-            <div class="left">
-              <h2 style="margin:0;">Результат (агрегация)</h2>
-              <div class="hint">Сводка по всем участникам: сколько голосов за Green/Yellow/Red и доминирующий тренд.</div>
-            </div>
-            <div class="btnrow">
-              <button id="btnBack" type="button">Назад</button>
-              <button id="btnExportSummary" type="button">Скачать CSV (сводка)</button>
-            </div>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="matrixWrap" role="region" aria-label="Таблица результата" tabindex="0">
-            <table class="matrix" id="resultTable">
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <div class="glassCard indicatorFixed">
-                      <div class="glassPad"><strong>Индикатор</strong></div>
-                    </div>
-                  </th>
-                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Green</strong></div></div></th>
-                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Yellow</strong></div></div></th>
-                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Red</strong></div></div></th>
-                  <th scope="col"><div class="glassCard"><div class="glassPad"><strong>Тренд</strong></div></div></th>
-                </tr>
-              </thead>
-              <tbody id="resultBody"></tbody>
-            </table>
           </div>
         </div>
       </section>
@@ -993,14 +956,8 @@
       const matrixBodyEl = $('matrixBody');
       const btnExport = $('btnExport');
       const btnReset = $('btnReset');
-      const btnDone = $('btnDone');
-      const resultPanel = $('resultPanel');
-      const resultBodyEl = $('resultBody');
-      const btnBack = $('btnBack');
-      const btnExportSummary = $('btnExportSummary');
 
       const tabMatrix = $('tabMatrix');
-      const tabResult = $('tabResult');
       const tabMulti = $('tabMulti');
       const sessionPanel = $('sessionPanel');
       const matrixPanel = $('matrixPanel');
@@ -1616,79 +1573,10 @@
       if (btnExport) btnExport.addEventListener('click', exportCsv);
       if (btnReset) btnReset.addEventListener('click', resetAll);
 
-      function computeSummary(){
-        const res = [];
-        for (const ind of indicators){
-          let g = 0, y = 0, r = 0;
-          const trendCounts = { up: 0, stable: 0, down: 0 };
-
-          for (const col of state.columns){
-            const s = getCellState(ind.id, col.id);
-            if (s.status === 'green') g++;
-            if (s.status === 'yellow') y++;
-            if (s.status === 'red') r++;
-            if (s.trend && Object.prototype.hasOwnProperty.call(trendCounts, s.trend)) trendCounts[s.trend]++;
-          }
-
-          const dominantTrend = (() => {
-            const entries = Object.entries(trendCounts);
-            entries.sort((a, b) => b[1] - a[1]);
-            const top = entries[0];
-            if (!top || top[1] === 0) return '';
-            if (top[0] === 'up') return '↗ Улучшается';
-            if (top[0] === 'stable') return '→ Стабильно';
-            if (top[0] === 'down') return '↘ Ухудшается';
-            return '';
-          })();
-
-          res.push({ indicator: ind.title, short: ind.short || ind.title, awesome: ind.awesome, crappy: ind.crappy, green: g, yellow: y, red: r, trend: dominantTrend });
-        }
-        return res;
-      }
-
-      function renderSummary(){
-        if (!resultBodyEl) return;
-        resultBodyEl.innerHTML = '';
-        const summary = computeSummary();
-
-        for (const row of summary){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <th scope="row">
-              <div class="glassCard indicatorFixed">
-                <div class="glassPad indicatorCard">
-                  <div class="indicatorTitleV" aria-hidden="true">${row.short}</div>
-                  <div>
-                    <div class="indTitle">${row.indicator}</div>
-                    <div class="indMeta"><span class="k">Отлично:</span> ${row.awesome}</div>
-                    <div class="indMeta"><span class="k">Плохо:</span> ${row.crappy}</div>
-                  </div>
-                </div>
-              </div>
-            </th>
-            <td><div class="glassCard"><div class="glassPad">${row.green}</div></div></td>
-            <td><div class="glassCard"><div class="glassPad">${row.yellow}</div></div></td>
-            <td><div class="glassCard"><div class="glassPad">${row.red}</div></div></td>
-            <td><div class="glassCard"><div class="glassPad">${row.trend || '—'}</div></div></td>
-          `;
-          resultBodyEl.appendChild(tr);
-        }
-      }
-
-      function showResult(){
-        setView('result');
-      }
-
-      function showMatrix(){
-        setView('matrix');
-      }
-
       function setSelectedTab(which){
         const isMatrix = which === 'matrix';
-        const isResult = which === 'result';
         const isMulti = which === 'multi';
         if (tabMatrix) tabMatrix.setAttribute('aria-selected', isMatrix ? 'true' : 'false');
-        if (tabResult) tabResult.setAttribute('aria-selected', isResult ? 'true' : 'false');
         if (tabMulti) tabMulti.setAttribute('aria-selected', isMulti ? 'true' : 'false');
       }
 
@@ -1697,19 +1585,16 @@
 
         if (sessionPanel) sessionPanel.style.display = (which === 'multi') ? 'none' : '';
         if (matrixPanel) matrixPanel.style.display = (which === 'matrix') ? '' : 'none';
-        if (resultPanel) resultPanel.style.display = (which === 'result') ? '' : 'none';
         if (multiPanel) multiPanel.style.display = (which === 'multi') ? '' : 'none';
 
-        if (which === 'result') renderSummary();
         if (which === 'multi') renderMultiSummary();
 
-        const el = (which === 'matrix') ? matrixPanel : (which === 'result') ? resultPanel : multiPanel;
+        const el = (which === 'matrix') ? matrixPanel : multiPanel;
         if (el) el.scrollIntoView({ block: 'start' });
       }
 
       function bindTabs(){
         if (tabMatrix) tabMatrix.addEventListener('click', () => setView('matrix'));
-        if (tabResult) tabResult.addEventListener('click', () => setView('result'));
         if (tabMulti) tabMulti.addEventListener('click', () => setView('multi'));
       }
 
@@ -2066,42 +1951,6 @@
         a.remove();
         window.setTimeout(() => URL.revokeObjectURL(url), 0);
       }
-
-      function exportSummaryCsv(){
-        const global = getGlobal();
-        const summary = computeSummary();
-        const header = ['team','date','facilitator','indicator','green','yellow','red','trend','overall_notes'];
-        const rows = [header];
-        for (const r of summary){
-          rows.push([
-            global.team || '',
-            global.date || '',
-            global.facilitator || '',
-            r.indicator,
-            String(r.green),
-            String(r.yellow),
-            String(r.red),
-            r.trend,
-            global.overallNotes || ''
-          ]);
-        }
-        const csv = rows.map((rr) => rr.map(escapeCsvCell).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `team-health-check_summary_${(global.team || 'team').replaceAll(/\s+/g,'_')}_${global.date || todayISO()}.csv`;
-        a.className = 'sr';
-        a.textContent = 'download';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      }
-
-      if (btnDone) btnDone.addEventListener('click', showResult);
-      if (btnBack) btnBack.addEventListener('click', showMatrix);
-      if (btnExportSummary) btnExportSummary.addEventListener('click', exportSummaryCsv);
 
       bindTabs();
       setView('matrix');
