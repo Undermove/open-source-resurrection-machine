@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎃 Open Source Resurrection Machine</title>
+<style>
+body {
+  margin:0;
+  background: radial-gradient(circle at center, #1a001a 0%, #000010 100%);
+  color:#9effd1;
+  font-family:"Courier New",monospace;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding: clamp(16px, 5vw, 28px);
+  gap: 12px;
+  /* Avoid horizontal scroll from glows/lever on mobile */
+  overflow-x: clip;
+  opacity:0;
+  animation:fadeIn 2s forwards;
+}
+@keyframes fadeIn {to{opacity:1;}}
+h1 {
+  color:#ff9df5;
+  text-shadow:0 0 10px #ff50f0, 0 0 30px #ff50f0;
+  margin-bottom:12px;
+  text-align:center;
+  font-size:clamp(1rem,4.5vw,1.6rem);
+}
+.machine {
+  position:relative;
+  width:100%;
+  max-width:560px;
+  min-height: clamp(260px, 60vw, 360px);
+  background:#150015;
+  border:2px solid #ff6eff;
+  border-radius:20px;
+  box-shadow:0 0 25px #ff45ff inset, 0 0 50px #220022;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  align-items:center;
+  padding: clamp(14px, 3.5vw, 20px);
+  overflow:visible;
+  flex:1 1 auto;
+}
+.machine::before {
+  content:"";
+  position:absolute;
+  top:-50%;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(140%, 520px);
+  height:min(140%, 520px);
+  background:radial-gradient(circle,rgba(255,200,100,0.15) 0%,transparent 70%);
+  z-index:-2;
+}
+.machine::after {
+  content:"";
+  position:absolute;
+  top:-30%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,0.06) 0%,rgba(0,0,0,0) 70%);
+  opacity:0.25;
+  animation:smoke 12s infinite alternate ease-in-out;
+  filter:blur(40px);
+  z-index:-1;
+}
+@keyframes smoke {
+  0%{transform:translate(0,0);}
+  50%{transform:translate(8px,-8px);}
+  100%{transform:translate(-8px,8px);}
+}
+#msg {
+  text-align:center;
+  font-size:clamp(0.8rem,3vw,1rem);
+  opacity:0.9;
+  color:#ffaaff;
+  text-shadow:0 0 8px #ff66ff;
+  margin-bottom:8px;
+  animation:floatText 3s ease-in-out infinite alternate;
+}
+@keyframes floatText {from{transform:translateY(0);}to{transform:translateY(6px);}}
+.reels {
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+  perspective:900px;
+  margin-top:15px;
+  width:100%;
+}
+.reel {
+  min-height: clamp(96px, 22vw, 130px);
+  background:#050008;
+  border:2px solid #00ffaa;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:clamp(0.8rem,3vw,1rem);
+  color:#00ffaa;
+  box-shadow:inset 0 0 15px #000;
+  transform-style:preserve-3d;
+  cursor:pointer;
+  padding:6px;
+  text-align:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.reel:focus-visible { outline:2px dashed #ff70ff; outline-offset:2px; }
+.reel .card{ width:100%; display:grid; grid-template-rows:auto auto auto; row-gap:4px; }
+.reel .name{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  overflow-wrap:anywhere;
+}
+.reel .meta{ opacity:0.9; }
+.reel.spin {animation:spin 0.45s linear infinite;}
+@keyframes spin {from{transform:rotateX(0deg);}to{transform:rotateX(-360deg);}}
+.lever {
+  position:relative;
+  width:16px;
+  height: clamp(120px, 24vw, 170px);
+  background: transparent;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  z-index:1;
+  appearance: none;
+  flex: 0 0 auto;
+  margin-top: 12px;
+}
+.lever::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:#330033;
+  border-radius:inherit;
+  border:2px solid #ff70ff;
+  box-sizing: border-box;
+  transform-origin:center;
+  transform: scaleX(var(--shaftScale, 1));
+  clip-path: inset(var(--shaftTop, 0px) 0 0 0);
+  transition: transform 0.3s ease, clip-path 0.3s ease;
+}
+.lever.dragging::before{ transition: none; }
+.knob {
+  width:32px;
+  height:32px;
+  background:#f60;
+  border:2px solid #ffbb55;
+  border-radius:50%;
+  box-shadow:0 0 15px #f80;
+  position:relative;
+  top:-18px;
+  transition:transform 0.3s;
+  animation:pulse 1.5s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes pulse {
+  from{box-shadow:0 0 10px #f80;}
+}
+.knob.dragging{ transition: none; animation: none; }
+#counter {
+  margin-top:10px;
+  text-align:center;
+  font-size: clamp(0.9rem,3vw,1.1rem);
+  text-shadow:0 0 15px #fff;
+}
+
+/* Row wrapper to keep lever on the right with spacing */
+.machine-row {
+  width:100%;
+  max-width: 640px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap: clamp(10px, 2.5vw, 18px);
+  margin-top: clamp(100px, 2.5vw, 22px);
+}
+
+/* Filters */
+.filters{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top: clamp(50px, 2vw, 16px);
+  color:#ffb4ff;
+}
+.filters label{ font-size: 0.9rem; opacity:0.95; }
+.filters select{
+  background:#1b001b;
+  color:#ffaaff;
+  border:1px solid #ff70ff;
+  border-radius:6px;
+  padding:4px 8px;
+  font-family: inherit;
+}
+
+/* Sound toggle button */
+.sound-toggle{
+  position:absolute;
+  top:8px;
+  right:8px;
+  background:#1b001b;
+  color:#ffaaff;
+  border:1px solid #ff70ff;
+  border-radius:6px;
+  padding:4px 8px;
+  font-family: inherit;
+  cursor:pointer;
+}
+.sound-toggle:focus-visible{ outline:2px dashed #ff70ff; outline-offset:2px; }
+
+/* Larger screens tweaks */
+@media (min-width: 640px){
+  .machine { min-height: 330px; }
+  .reel { 
+      min-height: 120px;
+      min-width: 120px;
+      max-width: 120px;
+  }
+}
+
+/* Reduce animations for users who prefer less motion */
+@media (prefers-reduced-motion: reduce){
+  #msg{ animation: none; }
+  .machine::after{ animation: none; }
+  .knob{ animation: none; }
+  .reel.spin{ animation: none; }
+}
+
+/* Footer spacing */
+footer#footer {
+  margin-top: clamp(120px, 3vw, 24px);
+}
+</style>
+</head>
+ <body>
+  <header>
+    <h1>🎃 Open Source Resurrection Machine</h1>
+  </header>
+  <main id="content">
+    <nav aria-label="Projects" style="margin: 6px 0 0; text-align: center;">
+      <a href="index.html" style="color: #ffaaff; text-decoration: underline;">All projects</a>
+      <span aria-hidden="true"> · </span>
+      <a href="healthcheck.html" style="color: #ffaaff; text-decoration: underline;">Squad Health Checklist</a>
+    </nav>
+    <div class="machine-row">
+      <section class="machine" aria-label="Slot machine">
+        <button id="muteToggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Toggle sound">🔊</button>
+        <p id="msg">☠️ Pull the lever to see dead repositories -></p>
+        <div class="reels" role="list" aria-live="polite" aria-atomic="true">
+          <div class="reel" id="r1" role="listitem" tabindex="0">💀</div>
+          <div class="reel" id="r2" role="listitem" tabindex="0">💀</div>
+          <div class="reel" id="r3" role="listitem" tabindex="0">💀</div>
+        </div>
+        <div class="filters" aria-label="Filters">
+          <label for="langFilter">Language:</label>
+          <select id="langFilter" name="langFilter">
+            <option value="any">Any</option>
+            <option value="C#">C#</option>
+            <option value="C++">C++</option>
+            <option value="C">C</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="Python">Python</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+            <option value="Java">Java</option>
+            <option value="Swift">Swift</option>
+            <option value="Kotlin">Kotlin</option>
+            <option value="PHP">PHP</option>
+            <option value="Ruby">Ruby</option>
+            <option value="Scala">Scala</option>
+            <option value="Elixir">Elixir</option>
+            <option value="Haskell">Haskell</option>
+            <option value="Lua">Lua</option>
+            <option value="Shell">Shell</option>
+          </select>
+        </div>
+      </section>
+      <button class="lever" id="lever" type="button" aria-label="Pull the lever">
+        <span class="knob" id="knob" aria-hidden="true"></span>
+      </button>
+    </div>
+    <p id="counter" aria-live="polite"></p>
+  </main>
+  <footer id="footer">⭐ If you enjoy this project, please <a href="https://github.com/Undermove/open-source-resurrection-machine" target="_blank" rel="noopener noreferrer">star the repository</a> or follow me on <a href="https://t.me/dimasshortposts" target="_blank" rel="noopener noreferrer">Telegram</a></footer>
+
+<!-- sounds -->
+<audio id="spinSound" src="https://orangefreesounds.com/wp-content/uploads/2024/12/Slot-machine-sound-effect.mp3" preload="auto" loop></audio>
+<audio id="stopSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+<audio id="dingSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+<audio id="cashSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_25c4d9d739.mp3?filename=cash-register-02.mp3" preload="auto"></audio>
+<audio id="leverSound" src="https://orangefreesounds.com/wp-content/uploads/2022/06/Lever-pull-sound-effect.mp3" preload="auto"></audio>
+
+<script>
+const reels=document.querySelectorAll(".reel");
+const knob=document.getElementById("knob");
+const lever=document.getElementById("lever");
+const msg=document.getElementById("msg");
+const counter=document.getElementById("counter");
+const langFilter=document.getElementById("langFilter");
+const spinSound=document.getElementById("spinSound");
+const stopSound=document.getElementById("stopSound");
+const dingSound=document.getElementById("dingSound");
+const cashSound=document.getElementById("cashSound");
+const leverSound=document.getElementById("leverSound");
+const muteToggle=document.getElementById("muteToggle");
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Fake global counter: number of 5s intervals since 2025-10-31 00:00:00 (local)
+function setCounterText(v){ counter.innerText = `✨ Souls revived: ${v}`; }
+const START_MS = new Date(2025, 9, 31, 0, 0, 0, 0).getTime(); // Oct=9
+function computeSouls(){ const diff=Math.max(0, Date.now()-START_MS); return Math.floor(diff/5000); }
+let souls = computeSouls();
+setCounterText(souls);
+(function schedule(){
+  function randMs(){ return (Math.floor(Math.random()*30)+1)*1000; } // 1..30s
+  function scheduleNext(){ setTimeout(tick, randMs()); }
+  function tick(){
+    souls = Math.max(0, Math.floor((Date.now() - START_MS)/5000)); // initial baseline
+    setCounterText(souls);
+    scheduleNext();
+  }
+  scheduleNext();
+})();
+
+let isSpinning=false,triggered=false,currentOffset=0,startY=0,dragging=false;
+
+// Mute handling
+let isMuted = localStorage.getItem('muted') === 'true';
+function applyMute(m){ [spinSound, stopSound, dingSound, cashSound, leverSound].forEach(a=>{ if(a) a.muted = m; }); }
+function updateMuteUI(){ if(!muteToggle) return; muteToggle.setAttribute('aria-pressed', String(isMuted)); muteToggle.textContent = isMuted ? '🔇' : '🔊'; }
+applyMute(isMuted);
+updateMuteUI();
+if(muteToggle){
+  muteToggle.addEventListener('click', ()=>{
+    isMuted = !isMuted;
+    localStorage.setItem('muted', String(isMuted));
+    applyMute(isMuted);
+    updateMuteUI();
+    if(isMuted){ try{ spinSound.pause(); }catch(_){} }
+  });
+}
+
+// Initialize language filter from localStorage
+if(langFilter){
+  const savedLang = localStorage.getItem('langFilter') || 'any';
+  langFilter.value = savedLang;
+  langFilter.addEventListener('change', ()=>{
+    localStorage.setItem('langFilter', langFilter.value);
+  });
+}
+
+async function getRepos(){
+  const page=Math.floor(Math.random()*30)+1;
+  const qualifiers = [
+    'stars:>1000',
+    'pushed:<2021-01-01',
+    'archived:false'
+  ];
+  const lang = langFilter ? langFilter.value : 'any';
+  if(lang && lang !== 'any'){
+    qualifiers.push(`language:${lang}`);
+  }
+  const q = qualifiers.join(' ');
+  const params = new URLSearchParams({
+    q,
+    sort:'stars',
+    order:'desc',
+    per_page:'3',
+    page:String(page)
+  });
+  const url=`https://api.github.com/search/repositories?${params.toString()}`;
+  const resp=await fetch(url);
+  const data=await resp.json();
+  return data.items||[];
+}
+function startSpin(){
+  if(isSpinning)return;
+  isSpinning=true;
+  msg.innerText="⚙️ Spinning...";
+  if(!reduceMotion){ reels.forEach(r=>r.classList.add("spin")); }
+  spinSound.volume=0.12;
+  spinSound.play().catch(()=>{});
+}
+function stopSpin(data){
+  spinSound.pause();
+  reels.forEach((r,i)=>{
+    setTimeout(()=>{
+      r.classList.remove("spin");
+      stopSound.currentTime=0;
+      stopSound.volume=0.25;
+      stopSound.play().catch(()=>{});
+      const repo=data[i];
+      if(!repo){
+        r.innerHTML="💀 Empty tomb. </br>Spin more";
+        r.onclick=null;
+        r.removeAttribute('aria-label');
+      } else {
+        const year=new Date(repo.pushed_at).getFullYear();
+        r.innerHTML=`<div class="card">
+          <strong class="name">🪦 ${repo.name}</strong>
+          <div class="meta">⭐ ${repo.stargazers_count}</div>
+          <div class="meta" title="Year of last commit">💀 ${year}</div>
+        </div>`;
+        r.onclick=()=>{
+          window.open(repo.html_url,"_blank");
+          msg.innerText="⭐ Light a star to bless one of them";
+          dingSound.play().catch(()=>{});
+        };
+        r.setAttribute('aria-label', `${repo.full_name||repo.name} — ${repo.stargazers_count} stars, last update ${year}`);
+      }
+      if(i===2){
+        isSpinning=false;
+        msg.innerText="⭐ Light a star to bless one of them";
+      }
+    },2000+i*500);
+  });
+}
+
+// Dragging logic (mouse + touch) with threshold
+function handleStart(y){
+  dragging=true; startY=y; triggered=false; currentOffset=0;
+  knob.classList.add('dragging');
+  lever.classList.add('dragging');
+}
+function handleMove(y){
+  if(!dragging) return;
+  currentOffset=Math.min(Math.max(y-startY,0),120);
+  const progress = currentOffset/120;
+  const knobScale = 1 + 0.50*progress; // up to +50% size
+  const shaftScale = 1 - 0.2*progress; // down to -20% width
+  knob.style.transform=`translateY(${currentOffset}px) scale(${knobScale.toFixed(3)})`;
+  lever.style.setProperty('--shaftScale', shaftScale.toFixed(3));
+  lever.style.setProperty('--shaftTop', `${Math.round(currentOffset)}px`);
+  if(currentOffset>90 && !triggered){
+    triggered=true; leverSound.currentTime=0; leverSound.volume=0.6; leverSound.play().catch(()=>{});
+  }
+}
+async function handleEnd(){
+  if(!dragging) return; dragging=false;
+  knob.classList.remove('dragging');
+  lever.classList.remove('dragging');
+  knob.style.transform='translateY(0px) scale(1)';
+  lever.style.setProperty('--shaftScale', '1');
+  lever.style.setProperty('--shaftTop', '0px');
+  if(currentOffset>90){
+    startSpin();
+    try{
+      const data=await getRepos();
+      setTimeout(()=>stopSpin(data),2200);
+    }catch(e){
+      msg.innerText="⚠️ Spirits refused to answer.";
+      reels.forEach(r=>r.classList.remove("spin"));
+      isSpinning=false;
+    }
+  }
+}
+
+// Mouse
+knob.addEventListener('mousedown', e=>{ handleStart(e.clientY); });
+window.addEventListener('mousemove', e=>{ handleMove(e.clientY); });
+window.addEventListener('mouseup', ()=>{ handleEnd(); });
+
+// Touch
+knob.addEventListener('touchstart', e=>{ handleStart(e.touches[0].clientY); }, {passive:true});
+window.addEventListener('touchmove', e=>{ handleMove(e.touches[0].clientY); }, {passive:true});
+window.addEventListener('touchend', ()=>{ handleEnd(); });
+
+// Click lever (keyboard/assistive)
+lever.addEventListener('click', async ()=>{
+  if(isSpinning) return;
+  try{ leverSound.currentTime=0; leverSound.volume=0.6; leverSound.play().catch(()=>{}); }catch(_){}
+  startSpin();
+  try{
+    const data=await getRepos();
+    setTimeout(()=>stopSpin(data),2200);
+  }catch(e){
+    msg.innerText="⚠️ Spirits refused to answer.";
+    reels.forEach(r=>r.classList.remove("spin"));
+    isSpinning=false;
+  }
+});
+
+// Keyboard activate reels
+document.querySelector('.reels').addEventListener('keydown', e=>{
+  if((e.key==='Enter' || e.key===' ') && e.target.classList.contains('reel')){
+    e.preventDefault(); e.target.click();
+  }
+});
+</script>
+</body>
+</html>
