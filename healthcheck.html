@@ -793,9 +793,6 @@
             </div>
           </div>
 
-          <div style="height: 14px;"></div>
-          <div class="btnrow" style="justify-content: flex-end;">
-          </div>
         </div>
       </section>
 
@@ -1580,7 +1577,7 @@
         if (tabMulti) tabMulti.setAttribute('aria-selected', isMulti ? 'true' : 'false');
       }
 
-      function setView(which){
+      function setView(which, opts){
         setSelectedTab(which);
 
         if (sessionPanel) sessionPanel.style.display = (which === 'multi') ? 'none' : '';
@@ -1588,6 +1585,9 @@
         if (multiPanel) multiPanel.style.display = (which === 'multi') ? '' : 'none';
 
         if (which === 'multi') renderMultiSummary();
+
+        const shouldScroll = !opts || opts.scroll !== false;
+        if (!shouldScroll) return;
 
         const el = (which === 'matrix') ? matrixPanel : multiPanel;
         if (el) el.scrollIntoView({ block: 'start' });
@@ -1953,7 +1953,7 @@
       }
 
       bindTabs();
-      setView('matrix');
+      setView('matrix', { scroll: false });
 
       if (multiFiles) multiFiles.addEventListener('change', (e) => {
         const t = e.target;

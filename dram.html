@@ -162,7 +162,20 @@
       dpr: 1,
       t: 0,
       pointer: { x: 0, y: 0, down: false },
+      scene: {
+        ox: 0,
+        oy: 0,
+        drag: null,
+        nodes: null,
+        click: { x: 0, y: 0, moved: false },
+      },
       mem: new Uint8Array(CONFIG.memBytes),
+      cache: {
+        lineSize: 8,
+        lineCount: 4,
+        lines: [],
+        last: { lineIndex: null, byteIndex: null, op: null, flashT: 0 },
+      },
       ui: {
         menuOpen: false,
         menuFor: 'cpu',
@@ -188,6 +201,24 @@
         logs: {},
       }
     };
+
+    function toWorld(px, py){
+      return { x: px - state.scene.ox, y: py - state.scene.oy };
+    }
+
+    function toScreen(px, py){
+      return { x: px + state.scene.ox, y: py + state.scene.oy };
+    }
+
+    function initCache(){
+      state.cache.lines = new Array(state.cache.lineCount).fill(0).map(() => ({
+        valid: false,
+        tag: 0,
+        dirty: false,
+        data: new Uint8Array(state.cache.lineSize),
+      }));
+      state.cache.last = { lineIndex: null, byteIndex: null, op: null, flashT: 0 };
+    }
 
     function roundRect(c, x, y, w, h, r){
       const rr = Math.min(r, w*0.5, h*0.5);
@@ -274,47 +305,43 @@
       const w = state.w;
       const h = state.h;
 
-      const cx = w * 0.5;
+      const cx = w * 0.46;
       const cy = h * 0.40;
 
-      const nodeH = 92;
-      const dramExtraH = 64;
-      const minGap = 36;
-      const maxNodeW = 260;
-      const nodeW = clamp((w - 2*18 - 2*minGap) / 3, 150, maxNodeW);
-      const totalW = nodeW*3 + minGap*2;
+      const cpuW = clamp(w * 0.34, 260, 420);
+      const cpuH = clamp(h * 0.30, 220, 340);
+      const dramW = clamp(w * 0.28, 220, 340);
+      const dramH = clamp(h * 0.30, 200, 320);
+      const gap = clamp(w * 0.06, 30, 80);
 
-      const canSingleRow = totalW <= (w - 36);
-      const rowY = cy - nodeH*0.5;
+      const cpu = { x: cx - cpuW*0.5, y: cy - cpuH*0.5, w: cpuW, h: cpuH, label: 'CPU', key: 'cpu', type: 'rect' };
+      const dram = { x: cpu.x + cpuW + gap, y: cy - dramH*0.5, w: dramW, h: dramH, label: 'DRAM', key: 'dram', type: 'rect' };
 
-      let cpu, mc, dram;
-      if (canSingleRow){
-        const left = cx - totalW*0.5;
-        cpu = { x: left, y: rowY, w: nodeW, h: nodeH, label: 'CPU', key: 'cpu' };
-        mc  = { x: left + nodeW + minGap, y: rowY, w: nodeW, h: nodeH, label: 'Memory\nController', key: 'mc' };
-        dram= { x: left + (nodeW + minGap)*2, y: rowY - Math.floor(dramExtraH*0.5), w: nodeW, h: nodeH + dramExtraH, label: 'DRAM', key: 'dram' };
-      } else {
-        // Two-row fallback: CPU + MC on first row, DRAM centered on second.
-        const nodeW2 = clamp((w - 36 - minGap) / 2, 160, maxNodeW);
-        const left2 = cx - (nodeW2*2 + minGap)*0.5;
-        cpu = { x: left2, y: rowY, w: nodeW2, h: nodeH, label: 'CPU', key: 'cpu' };
-        mc  = { x: left2 + nodeW2 + minGap, y: rowY, w: nodeW2, h: nodeH, label: 'Memory\nController', key: 'mc' };
-        dram= { x: cx - nodeW2*0.5, y: rowY + nodeH + 34, w: nodeW2, h: nodeH + dramExtraH, label: 'DRAM', key: 'dram' };
+      // init persistent nodes once; keep user dragging offsets across resizes
+      if (!state.scene.nodes){
+        state.scene.nodes = {
+          cpu: { x: cpu.x, y: cpu.y },
+          dram: { x: dram.x, y: dram.y },
+        };
       }
+      cpu.x = state.scene.nodes.cpu.x; cpu.y = state.scene.nodes.cpu.y;
+      dram.x = state.scene.nodes.dram.x; dram.y = state.scene.nodes.dram.y;
+
+      const bus = {
+        y: clamp(Math.max(cpu.y + cpu.h, dram.y + dram.h) + 22, 140, h - 120),
+        x0: cpu.x + cpu.w + 10,
+        x1: dram.x - 10,
+      };
 
       const btnW = 92;
       const btnH = 60;
       const btnGap = 14;
       const rowW = btnW*3 + btnGap*2;
-      const bottom = Math.max(cpu.y + cpu.h, mc.y + mc.h, dram.y + dram.h);
-      let btnY = bottom + 18;
+      const bottom = Math.max(cpu.y + cpu.h, dram.y + dram.h);
+      let btnY = bottom + 14;
       const maxY = h - btnH - 16;
       btnY = clamp(btnY, 16, maxY);
-      if (btnY < bottom + 10){
-        const above = Math.min(cpu.y, mc.y, dram.y) - btnH - 18;
-        btnY = clamp(above, 16, maxY);
-      }
-      const startX = cx - rowW*0.5;
+      const startX = clamp((cpu.x + cpu.w*0.5) - rowW*0.5, 16, w - rowW - 16);
       const buttons = {
         step: { x: startX, y: btnY, w: btnW, h: btnH, label: 'Step', icon: 'step' },
         play: { x: startX + btnW + btnGap, y: btnY, w: btnW, h: btnH, label: state.sim.running ? 'Pause' : 'Play', icon: state.sim.running ? 'pause' : 'play' },
@@ -323,9 +350,9 @@
 
       const menuW = clamp(w * 0.36, 260, 420);
       const menuH = 240;
-      const menu = { x: cx - menuW*0.5, y: cy + nodeH*0.5 - 10 - menuH, w: menuW, h: menuH };
+      const menu = { x: cpu.x + cpu.w*0.5 - menuW*0.5, y: cpu.y - 18 - menuH, w: menuW, h: menuH };
 
-      state.layout = { nodes: { cpu, mc, dram }, buttons, menu };
+      state.layout = { nodes: { cpu, dram }, buttons, menu, bus };
     }
 
     function resize(){
@@ -340,15 +367,55 @@
       layout();
     }
 
+    function getPort(node, side){
+      if (side === 'right') return { x: node.x + node.w, y: node.y + node.h*0.5 };
+      if (side === 'left') return { x: node.x, y: node.y + node.h*0.5 };
+      if (side === 'top') return { x: node.x + node.w*0.5, y: node.y };
+      if (side === 'bottom') return { x: node.x + node.w*0.5, y: node.y + node.h };
+      return { x: node.x + node.w*0.5, y: node.y + node.h*0.5 };
+    }
+
+    function polyLen(pts){
+      let L = 0;
+      for (let i=1; i<pts.length; i++) L += Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y);
+      return Math.max(1e-3, L);
+    }
+
+    function pointOnPoly(pts, t){
+      const total = polyLen(pts);
+      let d = t * total;
+      for (let i=1; i<pts.length; i++){
+        const a = pts[i-1];
+        const b = pts[i];
+        const seg = Math.hypot(b.x-a.x, b.y-a.y);
+        if (d <= seg){
+          const u = (seg <= 1e-6) ? 0 : d/seg;
+          return { x: lerp(a.x,b.x,u), y: lerp(a.y,b.y,u) };
+        }
+        d -= seg;
+      }
+      return { x: pts[pts.length-1].x, y: pts[pts.length-1].y };
+    }
+
     function addPacket(fromKey, toKey, label, color){
       const A = state.layout.nodes[fromKey];
       const B = state.layout.nodes[toKey];
-      if (!A || !B) return;
-      const x0 = A.x + A.w;
-      const y0 = A.y + A.h*0.5;
-      const x1 = B.x;
-      const y1 = B.y + B.h*0.5;
-      state.sim.packets.push({ x0, y0, x1, y1, t: 0, label, color });
+      const bus = state.layout.bus;
+      if (!A || !B || !bus) return;
+
+      const pA = (fromKey === 'dram') ? getPort(A,'left') : getPort(A,'right');
+      const pB = (toKey === 'dram') ? getPort(B,'left') : getPort(B,'right');
+
+      const midY = bus.y;
+      const pts = [
+        {x:pA.x, y:pA.y},
+        {x:pA.x + (fromKey==='dram'?-10:10), y:pA.y},
+        {x:pA.x + (fromKey==='dram'?-10:10), y:midY},
+        {x:pB.x + (toKey==='dram'?-10:10), y:midY},
+        {x:pB.x + (toKey==='dram'?-10:10), y:pB.y},
+        {x:pB.x, y:pB.y},
+      ];
+      state.sim.packets.push({ pts, t: 0, label, color });
     }
 
     function enqueue(step){
@@ -368,6 +435,7 @@
       state.sim.dramSig = { cmd: 'IDLE', row: null, col: null, flashT: 0 };
       state.sim.lastAddr = null;
       state.sim.lastOp = null;
+      initCache();
       pushEvent('CPU', 'CPU', 'ready');
     }
 
@@ -375,6 +443,49 @@
       const row = Math.floor(addr / 8);
       const col = addr % 8;
       return { row, col };
+    }
+
+    function cacheIndexForLine(lineAddr){
+      return lineAddr % state.cache.lineCount;
+    }
+
+    function cacheTagForLine(lineAddr){
+      return Math.floor(lineAddr / state.cache.lineCount);
+    }
+
+    function cacheLookup(addr){
+      const lineAddr = Math.floor(addr / state.cache.lineSize);
+      const index = cacheIndexForLine(lineAddr);
+      const tag = cacheTagForLine(lineAddr);
+      const byteIndex = addr % state.cache.lineSize;
+      const line = state.cache.lines[index];
+      const hit = !!line.valid && line.tag === tag;
+      return { hit, index, tag, lineAddr, byteIndex, line };
+    }
+
+    function cacheWriteBackIfDirty(index){
+      const line = state.cache.lines[index];
+      if (!line.valid || !line.dirty) return;
+      const baseLineAddr = (line.tag * state.cache.lineCount + index);
+      const baseAddr = baseLineAddr * state.cache.lineSize;
+      for (let i=0; i<state.cache.lineSize; i++){
+        const a = baseAddr + i;
+        if (a >= 0 && a < state.mem.length) state.mem[a] = line.data[i];
+      }
+      line.dirty = false;
+      pushEvent('MC', 'IMC', `WB line idx=${index} -> DRAM (write-back dirty line)`);
+      addPacket('cpu', 'dram', 'WB', COLORS.warn);
+    }
+
+    function cacheFillFromMem(index, tag, baseAddr){
+      const line = state.cache.lines[index];
+      line.valid = true;
+      line.tag = tag;
+      line.dirty = false;
+      for (let i=0; i<state.cache.lineSize; i++){
+        const a = baseAddr + i;
+        line.data[i] = (a >= 0 && a < state.mem.length) ? state.mem[a] : 0;
+      }
     }
 
     function setDramSig(cmd, row=null, col=null){
@@ -393,19 +504,75 @@
 
       if (op === 'load'){
         pushEvent('CPU', 'CPU', `LD r0, [${hexAddr}]`);
-        addPacket('cpu', 'mc', 'LD', COLORS.cpu);
       } else {
         pushEvent('CPU', 'CPU', `ST [${hexAddr}], r0   ; r0=${value}`);
-        addPacket('cpu', 'mc', 'ST', COLORS.cpu);
       }
 
+      enqueue({
+        device: 'CPU',
+        text: 'L1 lookup',
+        run: () => {
+          const q = cacheLookup(addr);
+          state.cache.last.lineIndex = q.index;
+          state.cache.last.byteIndex = q.byteIndex;
+          state.cache.last.op = op;
+          state.cache.last.flashT = 0.6;
+          pushEvent('CPU', 'CPU', `L1 ${q.hit ? 'HIT' : 'MISS'}  line=${q.index} byte=${q.byteIndex}`);
+          return true;
+        }
+      });
+
+      const q0 = cacheLookup(addr);
+      if (q0.hit){
+        if (op === 'load'){
+          enqueue({
+            device: 'CPU',
+            text: 'return from L1',
+            run: () => {
+              const q = cacheLookup(addr);
+              const v = q.line.data[q.byteIndex];
+              pushEvent('CPU', 'CPU', `LOAD result (L1) = ${v} (0x${v.toString(16).padStart(2,'0')})`);
+              return true;
+            }
+          });
+        } else {
+          enqueue({
+            device: 'CPU',
+            text: 'store into L1',
+            run: () => {
+              const q = cacheLookup(addr);
+              q.line.data[q.byteIndex] = value;
+              q.line.dirty = true;
+              pushEvent('CPU', 'CPU', `STORE -> L1 (dirty)  [${hexAddr}] <= ${value}`);
+              return true;
+            }
+          });
+        }
+        return;
+      }
+
+      // MISS: IMC fetches cache line from DRAM (and may write-back dirty victim)
+      const lineAddr = Math.floor(addr / state.cache.lineSize);
+      const baseAddr = lineAddr * state.cache.lineSize;
+      const index = cacheIndexForLine(lineAddr);
+      const tag = cacheTagForLine(lineAddr);
       const { row, col } = addrToRowCol(addr);
 
       enqueue({
         device: 'MC',
-        text: `decode addr=${hexAddr} -> row=${row} col=${col}`,
+        text: 'IMC schedule miss handling',
         run: () => {
-          pushEvent('MC', 'MC', `decode addr=${hexAddr} -> row=${row} col=${col}`);
+          pushEvent('MC', 'IMC', `MISS -> fetch line base=${'0x'+baseAddr.toString(16).toUpperCase().padStart(2,'0')} into L1 idx=${index}`);
+          addPacket('cpu', 'dram', 'REQ', COLORS.warn);
+          return true;
+        }
+      });
+
+      enqueue({
+        device: 'MC',
+        text: 'write-back if needed',
+        run: () => {
+          cacheWriteBackIfDirty(index);
           return true;
         }
       });
@@ -414,8 +581,8 @@
         device: 'MC',
         text: `issue ACT row=${row}`,
         run: () => {
-          pushEvent('MC', 'MC', `ACT row=${row} (RAS)`);
-          addPacket('mc', 'dram', `ACT r${row}`, COLORS.warn);
+          pushEvent('MC', 'IMC', `ACT row=${row} (RAS)`);
+          addPacket('cpu', 'dram', `ACT r${row}`, COLORS.warn);
           return true;
         }
       });
@@ -430,94 +597,48 @@
         }
       });
 
-      if (op === 'store'){
-        enqueue({
-          device: 'DRAM',
-          text: `WR col=${col}`,
-          run: () => {
-            state.mem[addr] = value;
-            state.sim.lastAddr = addr;
-            state.sim.lastOp = 'store';
-            pushEvent('DRAM', 'DRAM', `WR col=${col} (CAS)  [${hexAddr}] <= ${value}`);
-            setDramSig('WR', row, col);
-            addPacket('dram', 'mc', 'WR-ACK', COLORS.ok);
-            return true;
-          }
-        });
+      enqueue({
+        device: 'DRAM',
+        text: `RD col=${col} (burst line)`,
+        run: () => {
+          pushEvent('DRAM', 'DRAM', `RD col=${col} (CAS)  burst -> fill L1 line`);
+          setDramSig('RD', row, col);
+          cacheFillFromMem(index, tag, baseAddr);
+          addPacket('dram', 'cpu', 'DATA', COLORS.ok);
+          return true;
+        }
+      });
 
-        enqueue({
-          device: 'MC',
-          text: 'issue PRE',
-          run: () => {
-            pushEvent('MC', 'MC', 'PRE (close row)');
-            addPacket('mc', 'dram', 'PRE', COLORS.warn);
-            return true;
-          }
-        });
+      enqueue({
+        device: 'DRAM',
+        text: 'PRE',
+        run: () => {
+          pushEvent('DRAM', 'DRAM', 'PRE (precharge)');
+          setDramSig('PRE', null, null);
+          return true;
+        }
+      });
 
+      if (op === 'load'){
         enqueue({
-          device: 'DRAM',
-          text: 'PRE',
+          device: 'CPU',
+          text: 'return after fill',
           run: () => {
-            pushEvent('DRAM', 'DRAM', 'PRE (precharge)');
-            setDramSig('PRE', null, null);
-            return true;
-          }
-        });
-
-        enqueue({
-          device: 'MC',
-          text: 'complete store',
-          run: () => {
-            pushEvent('MC', 'MC', 'store complete');
-            addPacket('mc', 'cpu', 'DONE', COLORS.ok);
-            pushEvent('CPU', 'CPU', 'STORE complete');
+            const q = cacheLookup(addr);
+            const v = q.line.data[q.byteIndex];
+            pushEvent('CPU', 'CPU', `LOAD result (after fill) = ${v} (0x${v.toString(16).padStart(2,'0')})`);
             return true;
           }
         });
       } else {
         enqueue({
-          device: 'DRAM',
-          text: `RD col=${col}`,
+          device: 'CPU',
+          text: 'store after fill',
           run: () => {
-            const v = state.mem[addr];
-            state.sim.lastAddr = addr;
-            state.sim.lastOp = 'load';
-            pushEvent('DRAM', 'DRAM', `RD col=${col} (CAS)  [${hexAddr}] -> ${v}`);
-            setDramSig('RD', row, col);
-            addPacket('dram', 'mc', `D=${v.toString(16).toUpperCase().padStart(2,'0')}`, COLORS.ok);
-            return true;
-          }
-        });
-
-        enqueue({
-          device: 'MC',
-          text: 'issue PRE',
-          run: () => {
-            pushEvent('MC', 'MC', 'PRE (close row)');
-            addPacket('mc', 'dram', 'PRE', COLORS.warn);
-            return true;
-          }
-        });
-
-        enqueue({
-          device: 'DRAM',
-          text: 'PRE',
-          run: () => {
-            pushEvent('DRAM', 'DRAM', 'PRE (precharge)');
-            setDramSig('PRE', null, null);
-            return true;
-          }
-        });
-
-        enqueue({
-          device: 'MC',
-          text: 'return data',
-          run: () => {
-            const v = state.mem[addr];
-            pushEvent('MC', 'MC', `return data ${v}`);
-            addPacket('mc', 'cpu', `DATA=${v}`, COLORS.ok);
-            pushEvent('CPU', 'CPU', `LOAD result = ${v} (0x${v.toString(16).padStart(2,'0')})`);
+            const q = cacheLookup(addr);
+            q.line.data[q.byteIndex] = value;
+            q.line.dirty = true;
+            pushEvent('CPU', 'CPU', `STORE -> L1 (dirty)  [${hexAddr}] <= ${value}`);
             return true;
           }
         });
@@ -579,6 +700,104 @@
       if (n.key === 'dram'){
         drawDramInside(n);
       }
+
+      if (n.key === 'cpu'){
+        drawCpuInside(n);
+      }
+
+      ctx.restore();
+    }
+
+    function drawCpuInside(n){
+      const pad = 10;
+      const headerH = 22;
+      const x0 = n.x + pad;
+      const y0 = n.y + headerH + 10;
+      const w = n.w - pad*2;
+      const h = n.h - headerH - 20;
+
+      // Cache area
+      const cacheH = Math.max(86, h * 0.62);
+      const imcH = h - cacheH - 10;
+
+      // L1 cache label
+      ctx.save();
+      ctx.fillStyle = 'rgba(233,233,243,.88)';
+      ctx.font = '800 11px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('L1 cache (4 lines × 8 bytes)', x0, y0);
+
+      const lines = state.cache.lines;
+      const cols = state.cache.lineSize;
+      const rows = state.cache.lineCount;
+      const gridY = y0 + 18;
+      const gridH = cacheH - 24;
+      const cellW = w / cols;
+      const cellH = gridH / rows;
+
+      // draw cells
+      for (let r=0; r<rows; r++){
+        for (let c=0; c<cols; c++){
+          const x = x0 + c*cellW;
+          const y = gridY + r*cellH;
+          const line = lines[r];
+
+          ctx.fillStyle = 'rgba(255,255,255,.03)';
+          roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+          ctx.fill();
+
+          const isLastLine = (state.cache.last.lineIndex === r);
+          const isLastByte = isLastLine && (state.cache.last.byteIndex === c);
+          if (state.cache.last.flashT > 0 && isLastLine){
+            const a = clamp(state.cache.last.flashT / 0.6, 0, 1);
+            ctx.fillStyle = `rgba(124,209,255,${0.04 + a*0.10})`;
+            roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+            ctx.fill();
+          }
+          if (isLastByte){
+            ctx.fillStyle = (state.cache.last.op === 'store') ? 'rgba(122,255,143,.16)' : 'rgba(255,207,91,.14)';
+            roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+            ctx.fill();
+          }
+
+          ctx.strokeStyle = 'rgba(255,255,255,.10)';
+          roundRect(ctx, x+1, y+1, cellW-2, cellH-2, 6);
+          ctx.stroke();
+
+          const v = line.data[c];
+          const txt = v.toString(16).toUpperCase().padStart(2,'0');
+          ctx.fillStyle = 'rgba(233,233,243,.92)';
+          ctx.font = '800 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(txt, x + cellW*0.5, y + cellH*0.58);
+        }
+
+        // line meta (tag/valid/dirty)
+        const line = lines[r];
+        const metaX = x0;
+        const metaY = gridY + r*cellH - 12;
+        ctx.fillStyle = 'rgba(233,233,243,.70)';
+        ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`L${r} ${line.valid ? ('tag=' + line.tag) : 'empty'}${line.dirty ? ' dirty' : ''}`, metaX, metaY);
+      }
+
+      // IMC block inside CPU
+      const imcY = gridY + gridH + 12;
+      const imc = { x: x0, y: imcY, w: w, h: Math.max(36, imcH) };
+      ctx.fillStyle = 'rgba(255,255,255,.03)';
+      ctx.strokeStyle = 'rgba(255,207,91,.18)';
+      roundRect(ctx, imc.x, imc.y, imc.w, imc.h, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,207,91,.92)';
+      ctx.font = '900 11px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('IMC (Integrated Memory Controller)', imc.x + 10, imc.y + imc.h*0.5);
 
       ctx.restore();
     }
@@ -761,12 +980,11 @@
       const speed = CONFIG.packetSpeed;
       const alive = [];
       for (const p of state.sim.packets){
-        const dx = p.x1 - p.x0;
-        const dy = p.y1 - p.y0;
-        const dist = Math.max(1e-3, Math.hypot(dx,dy));
+        const dist = polyLen(p.pts);
         p.t = clamp(p.t + (speed * dt) / dist, 0, 1);
-        const x = lerp(p.x0, p.x1, p.t);
-        const y = lerp(p.y0, p.y1, p.t);
+        const pos = pointOnPoly(p.pts, p.t);
+        const x = pos.x;
+        const y = pos.y;
 
         ctx.save();
         ctx.fillStyle = p.color || COLORS.accent;
@@ -785,6 +1003,31 @@
         if (p.t < 1) alive.push(p);
       }
       state.sim.packets = alive;
+    }
+
+    function drawBoard(){
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.08)';
+      // Fill the visible viewport even when the scene is translated
+      ctx.fillRect(-state.scene.ox, -state.scene.oy, state.w, state.h);
+      const bus = state.layout.bus;
+      if (bus){
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(124,209,255,.12)';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(bus.x0, bus.y);
+        ctx.lineTo(bus.x1, bus.y);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,207,91,.10)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bus.x0, bus.y);
+        ctx.lineTo(bus.x1, bus.y);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
 
@@ -872,12 +1115,15 @@
     function draw(dt){
       ctx.clearRect(0,0,state.w,state.h);
 
-      const { cpu, mc, dram } = state.layout.nodes;
-      drawArrow(cpu, mc);
-      drawArrow(mc, dram);
+      ctx.save();
+      ctx.translate(state.scene.ox, state.scene.oy);
+
+      drawBoard();
+
+      const { cpu, dram } = state.layout.nodes;
+      drawArrow(cpu, dram);
 
       drawNode(cpu, COLORS.cpu);
-      drawNode(mc, COLORS.mc);
       drawNode(dram, COLORS.dram);
 
       // current operation preview under CPU
@@ -898,6 +1144,8 @@
 
       drawPackets(dt);
       drawMenu();
+
+      ctx.restore();
     }
 
     function canvasPos(e){
@@ -906,10 +1154,13 @@
     }
 
     function onClick(px, py){
+      const world = toWorld(px, py);
+      const wx = world.x;
+      const wy = world.y;
       // menu interactions have priority
       if (state.ui.menuOpen && state.layout.menuHits){
         for (const h of state.layout.menuHits){
-          if (hitRect(px, py, h)){
+          if (hitRect(wx, wy, h)){
             if (h.key === 'menu_close') state.ui.menuOpen = false;
             else if (h.key === 'menu_queue'){
               queueCpuScenario();
@@ -926,27 +1177,27 @@
         }
         // click outside menu closes
         const M = state.layout.menu;
-        if (!hitRect(px, py, M)) state.ui.menuOpen = false;
+        if (!hitRect(wx, wy, M)) state.ui.menuOpen = false;
         return;
       }
 
       const { cpu } = state.layout.nodes;
       const btns = state.layout.buttons;
 
-      if (hitRect(px, py, cpu)){
+      if (hitRect(wx, wy, cpu)){
         state.ui.menuOpen = true;
         return;
       }
-      if (hitRect(px, py, btns.reset)){
+      if (hitRect(wx, wy, btns.reset)){
         state.mem = new Uint8Array(CONFIG.memBytes);
         clearSim();
         return;
       }
-      if (hitRect(px, py, btns.step)){
+      if (hitRect(wx, wy, btns.step)){
         doStep();
         return;
       }
-      if (hitRect(px, py, btns.play)){
+      if (hitRect(wx, wy, btns.play)){
         state.sim.running = !state.sim.running;
         return;
       }
@@ -964,9 +1215,72 @@
       canvas.addEventListener('mousedown', (e) => {
         state.pointer.down = true;
         const p = canvasPos(e);
+        state.scene.click.x = p.x;
+        state.scene.click.y = p.y;
+        state.scene.click.moved = false;
+
+        const world = toWorld(p.x, p.y);
+        const wx = world.x;
+        const wy = world.y;
+
+        // if menu open, don't start drag on background
+        if (state.ui.menuOpen) return;
+
+        // drag node if hit
+        const nodes = state.layout.nodes;
+        for (const key of ['cpu','dram']){
+          const n = nodes[key];
+          if (hitRect(wx, wy, n)){
+            state.scene.drag = { kind: 'node', key, dx: wx - n.x, dy: wy - n.y };
+            return;
+          }
+        }
+
+        // otherwise pan scene
+        state.scene.drag = { kind: 'pan', sx: p.x, sy: p.y, ox: state.scene.ox, oy: state.scene.oy };
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        const p = canvasPos(e);
+        state.pointer.x = p.x;
+        state.pointer.y = p.y;
+        if (!state.pointer.down || !state.scene.drag) return;
+
+        const dx = p.x - state.scene.click.x;
+        const dy = p.y - state.scene.click.y;
+        if (!state.scene.click.moved && (Math.abs(dx) + Math.abs(dy) > 4)) state.scene.click.moved = true;
+
+        if (state.scene.drag.kind === 'pan'){
+          state.scene.ox = state.scene.drag.ox + (p.x - state.scene.drag.sx);
+          state.scene.oy = state.scene.drag.oy + (p.y - state.scene.drag.sy);
+          return;
+        }
+
+        if (state.scene.drag.kind === 'node'){
+          const world = toWorld(p.x, p.y);
+          const wx = world.x;
+          const wy = world.y;
+          const key = state.scene.drag.key;
+          if (!state.scene.nodes) state.scene.nodes = {};
+          if (!state.scene.nodes[key]) state.scene.nodes[key] = {x:0,y:0};
+          state.scene.nodes[key].x = wx - state.scene.drag.dx;
+          state.scene.nodes[key].y = wy - state.scene.drag.dy;
+          // recompute dependent layout pieces (buttons/menu/bus)
+          layout();
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (!state.pointer.down) return;
+        state.pointer.down = false;
+        const wasDrag = !!state.scene.drag;
+        state.scene.drag = null;
+        if (!wasDrag) return;
+        if (state.scene.click.moved) return;
+        // treat as click
+        const p = canvasPos(e);
         onClick(p.x, p.y);
       });
-      window.addEventListener('mouseup', () => { state.pointer.down = false; });
 
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Space'){
@@ -980,6 +1294,11 @@
         if (e.code === 'Escape'){
           state.ui.menuOpen = false;
         }
+        if (e.code === 'KeyC'){
+          // Center scene
+          state.scene.ox = 0;
+          state.scene.oy = 0;
+        }
       });
     }
 
@@ -990,6 +1309,10 @@
 
       if (state.sim.dramSig && state.sim.dramSig.flashT > 0){
         state.sim.dramSig.flashT = Math.max(0, state.sim.dramSig.flashT - dt);
+      }
+
+      if (state.cache && state.cache.last && state.cache.last.flashT > 0){
+        state.cache.last.flashT = Math.max(0, state.cache.last.flashT - dt);
       }
 
       if (state.sim.running){

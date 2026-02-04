@@ -23,6 +23,10 @@ git clone https://github.com/Undermove/open-source-resurrection-machine.git
 open open-source-resurrection-machine/index.html
 ```
 
+## Team Health Check (Spotify model) → CSV
+
+- Open `healthcheck.html` (linked from the main page) to fill a Squad/Team Health Check and export results to CSV.
+
 ## Star and follow
 
 - Star the repo: https://github.com/Undermove/open-source-resurrection-machine
