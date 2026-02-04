@@ -238,6 +238,7 @@
 
     .indicatorFixed{
       width: 300px;
+      height: 360px;
       min-height: 360px;
       max-height: 360px;
     }
@@ -246,6 +247,11 @@
       height: 360px;
       box-sizing: border-box;
       overflow: hidden;
+      padding: 0;
+    }
+
+    .indicatorFixed .glassPad.indicatorCard{
+      height: 100%;
     }
 
     .indicatorFixed .indicatorCard{
@@ -264,6 +270,10 @@
       justify-content:center;
       height: 100%;
       align-self: stretch;
+      border-radius: 0;
+      border-top-left-radius: var(--radius);
+      border-bottom-left-radius: var(--radius);
+      box-shadow: none;
     }
 
     .indicatorText{
@@ -276,8 +286,20 @@
       align-items: flex-start;
       text-align: left;
       gap: 8px;
+      justify-content: center;
       overflow: auto;
-      padding-right: 6px;
+      padding: 12px 28px 12px 12px;
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .indicatorText .indTitle,
+    .indicatorText .indMeta{
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      hyphens: auto;
     }
 
     .indicatorText::-webkit-scrollbar{ width: 8px; }
@@ -415,6 +437,7 @@
       gap: 8px;
       align-items: center;
       flex-wrap: wrap;
+      justify-content: center;
     }
     .statusDots input{ position:absolute; opacity:0; pointer-events:none; }
     .dotLbl{
@@ -467,6 +490,9 @@
     select:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
 
     .trendHidden{
+      display:none;
+    }
+    .noteHidden{
       display:none;
     }
     .trendHint{
@@ -587,7 +613,13 @@
       <section class="panel" aria-label="Метаданные">
         <div class="hd">
           <h2>Сессия</h2>
-          <div class="status" id="autosaveStatus" aria-live="polite"></div>
+          <div class="status">
+            <div id="autosaveStatus" aria-live="polite"></div>
+            <div class="btnrow">
+              <button id="btnExport" type="button">Скачать CSV</button>
+              <button id="btnReset" type="button">Сбросить</button>
+            </div>
+          </div>
         </div>
         <div class="bd">
           <div class="metaGrid">
@@ -655,18 +687,11 @@
         <div class="hd">
           <div class="toolbar">
             <div class="left">
-              <h2 style="margin:0;">Матрица (индикаторы × колонки)</h2>
-            </div>
-            <div class="btnrow">
-              <button id="btnExport" type="button">Скачать CSV</button>
-              <button id="btnReset" type="button">Сбросить</button>
+              <h2 style="margin:0;">Squad Health Checklist</h2>
             </div>
           </div>
         </div>
         <div class="bd">
-          <div class="toolbar" style="margin-bottom: 12px;">
-            <div class="hint">Колонка = один участник. Каждый участник выставляет свои оценки по каждому индикатору.</div>
-          </div>
           <div class="matrixWrap" role="region" aria-label="Матрица Team Health Check" tabindex="0">
             <table class="matrix" id="matrix">
               <thead id="matrixHead"></thead>
@@ -865,14 +890,21 @@
       function updateTrendUI(indicatorId, columnId){
         const status = document.querySelector(`input[name="${indicatorId}__${columnId}__status"]:checked`);
         const trendWrap = document.querySelector(`[data-trend-wrap="${indicatorId}__${columnId}"]`);
-        const hint = document.querySelector(`[data-trend-hint="${indicatorId}__${columnId}"]`);
         const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
 
         const hasStatus = !!status;
 
         if (trendEl) trendEl.disabled = !hasStatus;
         if (trendWrap) trendWrap.classList.toggle('trendHidden', !hasStatus);
-        if (hint) hint.classList.toggle('trendHidden', hasStatus);
+
+        updateNoteUI(indicatorId, columnId);
+      }
+
+      function updateNoteUI(indicatorId, columnId){
+        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
+        const noteWrap = document.querySelector(`[data-note-wrap="${indicatorId}__${columnId}"]`);
+        const hasTrend = !!(trendEl && trendEl.value);
+        if (noteWrap) noteWrap.classList.toggle('noteHidden', !hasTrend);
       }
 
       function getParticipantMeta(participantId){
@@ -1077,8 +1109,6 @@
                       </div>
                     </div>
 
-                    <div class="trendHint" data-trend-hint="${ind.id}__${col.id}">Сначала выбери цвет</div>
-
                     <div class="trendHidden" data-trend-wrap="${ind.id}__${col.id}">
                       <label class="sr" for="${tName}__sel">Тренд</label>
                       <select id="${tName}__sel" name="${tName}" aria-label="${ind.title}: тренд" disabled>
@@ -1089,13 +1119,15 @@
                       </select>
                     </div>
 
-                    <details>
-                      <summary>Заметка</summary>
-                      <div class="noteBody">
-                        <label class="sr" for="${nName}">Заметка</label>
-                        <textarea id="${nName}" name="${nName}"></textarea>
-                      </div>
-                    </details>
+                    <div class="noteHidden" data-note-wrap="${ind.id}__${col.id}">
+                      <details>
+                        <summary>Заметка</summary>
+                        <div class="noteBody">
+                          <label class="sr" for="${nName}">Заметка</label>
+                          <textarea id="${nName}" name="${nName}"></textarea>
+                        </div>
+                      </details>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1111,6 +1143,7 @@
         for (const ind of indicators){
           for (const col of state.columns){
             updateTrendUI(ind.id, col.id);
+            updateNoteUI(ind.id, col.id);
           }
         }
       }
@@ -1206,6 +1239,15 @@
               const indicatorId = parts[0];
               const columnId = parts[1];
               updateTrendUI(indicatorId, columnId);
+            }
+          }
+          if (t instanceof HTMLSelectElement){
+            const name = t.getAttribute('name') || '';
+            const parts = name.split('__');
+            if (parts.length === 3 && parts[2] === 'trend'){
+              const indicatorId = parts[0];
+              const columnId = parts[1];
+              updateNoteUI(indicatorId, columnId);
             }
           }
         });
