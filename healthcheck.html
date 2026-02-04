@@ -183,10 +183,9 @@
       box-shadow: none;
     }
     table.matrix{
-      width: 100%;
-      min-width: 860px;
+      width: max-content;
       border-collapse: separate;
-      border-spacing: 10px;
+      border-spacing: 6px;
       table-layout: fixed;
     }
     table.matrix th, table.matrix td{
@@ -300,7 +299,12 @@
 
     .cellFixed .cell{
       height: 100%;
-      align-content: start;
+      align-content: center;
+      justify-items: center;
+    }
+
+    .cellFixed .cell > *{
+      width: 100%;
     }
     .indicatorTitleV{
       writing-mode: vertical-rl;
@@ -309,10 +313,13 @@
       letter-spacing: .4px;
       font-size: 12px;
       color: color-mix(in srgb, var(--text) 90%, transparent);
-      padding: 8px 6px;
+      padding: 0;
       border-radius: 12px;
       background: color-mix(in srgb, var(--accent) 10%, var(--glass2));
       box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .indTitle{ font-weight: 900; font-size: 13px; margin: 0; line-height: 1.25; }
     .indMeta{ color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 0; }
@@ -402,8 +409,7 @@
     table.matrix tbody td:last-child{ width: 84px; min-width: 84px; max-width: 84px; }
 
     /* Let table be content-width, not stretched */
-    #matrix{ width: max-content; }
-    #matrixHead, #matrixBody{ width: max-content; }
+    #matrixHead, #matrixBody{ width: auto; }
     .statusDots{
       display:flex;
       gap: 8px;
