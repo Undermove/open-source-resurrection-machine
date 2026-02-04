@@ -109,6 +109,16 @@
       font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
     }
 
+    body{
+      min-height: 100dvh;
+      display:flex;
+      flex-direction: column;
+    }
+
+    main#main{
+      flex: 1 1 auto;
+    }
+
     @media (prefers-color-scheme: dark){
       :root{
         --bg0:#07070b;
@@ -742,7 +752,7 @@
     <div class="row">
       <div>
         <h1>Team Health Check (Spotify Squad Health Check)</h1>
-        <p>Заполни оценки по 10 индикаторам (зелёный/жёлтый/красный) и тренд (улучшается/стабильно/ухудшается). Затем выгрузи результат в CSV.</p>
+        <p> Вместе с командой заполни оценки по 10 индикаторам (зелёный/жёлтый/красный) и тренд (улучшается/стабильно/ухудшается). Затем выгрузи результат в CSV.</p>
       </div>
       <nav aria-label="Навигация">
         <a href="index.html">На главную</a>
@@ -844,22 +854,15 @@
           </div>
         </div>
       </section>
-
-      <section class="panel" aria-label="Формат CSV">
-        <div class="hd">
-          <h2>Что попадёт в CSV</h2>
-        </div>
-        <div class="bd">
-          <p style="margin:0; color: var(--muted); font-size: 12px; line-height: 1.6;">Каждая строка CSV — это один индикатор одного участника. Поля: <span style="color: rgba(233,233,243,.9);">participant_id, participant_name, team, date, facilitator, indicator, status, trend, note, overall_notes</span>.</p>
-          <p style="margin:10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6;">Модель взята из статьи Spotify Engineering: <a href="https://engineering.atspotify.com/2014/09/squad-health-check-model" target="_blank" rel="noopener noreferrer">Squad Health Check model</a>.</p>
-        </div>
-      </section>
     </div>
   </main>
 
   <footer>
     <div class="wrap">
-      <div>Подсказка: обычно Health Check проводят как воркшоп и пытаются прийти к консенсусу. Здесь форма — для фиксации результата и выгрузки.</div>
+      <div>
+        Модель сделана на основе Spotify Engineering:
+        <a href="https://engineering.atspotify.com/2014/09/squad-health-check-model" target="_blank" rel="noopener noreferrer">Squad Health Check model</a>.
+      </div>
     </div>
   </footer>
 
