@@ -719,13 +719,15 @@
         0 0 30px rgba(34, 211, 238, .16);
       overflow: hidden;
       white-space: nowrap;
-      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+      text-shadow:
+        0 2px 10px rgba(0,0,0,.55),
+        0 1px 0 rgba(0,0,0,.45);
     }
     .tourBtn:hover{
       box-shadow:
-        0 18px 40px rgba(124, 58, 237, .28),
-        0 0 0 1px rgba(255,255,255,.20) inset,
-        0 0 36px rgba(34, 211, 238, .20);
+        0 16px 36px rgba(124, 58, 237, .24),
+        0 0 0 1px rgba(255,255,255,.18) inset,
+        0 0 30px rgba(34, 211, 238, .14);
     }
     .tourBtn:active{ transform: translateY(1px); }
     .tourBtn:focus-visible{ outline: 2px dashed color-mix(in srgb, #a855f7 65%, #22d3ee); outline-offset: 2px; }
@@ -739,9 +741,10 @@
         radial-gradient(circle at 80% 40%, rgba(236, 72, 153, .28) 0%, transparent 52%),
         radial-gradient(circle at 45% 120%, rgba(167, 139, 250, .35) 0%, transparent 60%);
       filter: blur(18px);
-      opacity: .75;
+      opacity: .62;
       pointer-events:none;
     }
+    .tourBtn:hover::before{ opacity: .56; }
     .tourBtn > *{
       position: relative;
       z-index: 1;
@@ -767,7 +770,7 @@
     .tourDim{
       position:absolute;
       inset: 0;
-      background: rgba(2, 6, 23, .60);
+      background: transparent;
       pointer-events: none;
     }
 
@@ -1902,7 +1905,7 @@
           if (!tourSpot || !tourTip){
             return;
           }
-          const pad = 10;
+          const pad = (step && Number.isFinite(step.pad)) ? step.pad : 10;
           const rect = safeRect(target);
           const vw = window.innerWidth;
           const vh = window.innerHeight;
@@ -1976,7 +1979,7 @@
 
             positionForStep(step, target);
 
-            if (target && typeof target.scrollIntoView === 'function'){
+            if (!step.noAutoScroll && target && typeof target.scrollIntoView === 'function'){
               try{
                 target.scrollIntoView({ block: 'center', inline: 'center', behavior: prefersReducedMotion ? 'auto' : 'smooth' });
               }catch(_){ }
@@ -2117,19 +2120,25 @@
           body: 'Нажми плюс, чтобы добавить участника (колонку).',
           target: () => matrixHeadEl ? matrixHeadEl.querySelector('button[data-action="add-column"]') : null,
           onEnter: () => setView('matrix', { scroll: false }),
+          pad: 6,
+          noAutoScroll: true,
           advanceOnClick: true
         },
         {
           title: 'Имя участника',
           body: 'Введи имя участника в заголовке его колонки.',
           target: () => matrixHeadEl ? matrixHeadEl.querySelector('input[name^="p__"][type="text"]') : null,
-          onEnter: () => setView('matrix', { scroll: false })
+          onEnter: () => setView('matrix', { scroll: false }),
+          pad: 6,
+          noAutoScroll: true
         },
         {
           title: 'Заполни ячейку',
           body: 'В ячейке выбери статус (цвет) и тренд. По желанию добавь заметку.',
           target: () => getFirstMatrixCellParts().cell,
-          onEnter: () => setView('matrix', { scroll: false })
+          onEnter: () => setView('matrix', { scroll: false }),
+          pad: 8,
+          noAutoScroll: true
         },
         {
           title: 'Экспорт CSV',
