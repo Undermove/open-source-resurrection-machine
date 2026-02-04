@@ -99,8 +99,29 @@
     #multiTable thead th,
     #multiTable tbody th,
     #multiTable tbody td{ vertical-align: middle; }
+    #multiTable thead th{ height: 44px; }
     #multiTable tbody tr{ height: 44px; }
     #multiTable .glassPad{ padding: 6px 10px; }
+
+    #multiTable tbody th .glassPad,
+    #multiTable tbody td .glassPad{
+      height: 44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    #multiTable tbody th .glassPad{
+      justify-content:flex-start;
+    }
+
+    #multiTable tbody th .glassPad strong{
+      display:block;
+      width:100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     html, body{
       margin:0;
       min-height:100%;
@@ -732,13 +753,15 @@
 
     footer{
       padding: 14px clamp(14px, 4vw, 28px) 24px;
-      color: rgba(233,233,243,.68);
+      color: color-mix(in srgb, var(--text) 88%, transparent);
       font-size: 12px;
       line-height: 1.5;
-      border-top: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.10);
+      border-top: 1px solid var(--stroke2);
+      background: color-mix(in srgb, var(--panel) 78%, transparent);
     }
     footer .wrap{ max-width: 1100px; margin: 0 auto; }
+    footer a{ color: var(--accent); text-decoration: underline; }
+    footer a:hover{ text-decoration-thickness: 2px; }
 
     @media (prefers-reduced-motion: reduce){
       *{ scroll-behavior: auto; }
@@ -752,7 +775,6 @@
     <div class="row">
       <div>
         <h1>Team Health Check (Spotify Squad Health Check)</h1>
-        <p> Вместе с командой заполни оценки по 10 индикаторам (зелёный/жёлтый/красный) и тренд (улучшается/стабильно/ухудшается). Затем выгрузи результат в CSV.</p>
       </div>
       <nav aria-label="Навигация">
         <a href="index.html">На главную</a>
@@ -794,10 +816,49 @@
             </div>
             <div class="span3">
               <details class="notesDetails">
-                <summary>Общие заметки (для экспорта)</summary>
+                <summary>Справка</summary>
                 <div class="noteBody">
-                  <label class="sr" for="globalNotes">Общие заметки (для экспорта)</label>
-                  <textarea id="globalNotes" name="globalNotes"></textarea>
+                  <div style="color: var(--muted); font-size: 12px; line-height: 1.6;">
+                    <p style="margin:0 0 10px;">
+                      Используй страницу как фасилитационную форму: вы вместе с командой выбираете статус и тренд по каждому критерию, а затем выгружаете результат в CSV.
+                    </p>
+                    <ol style="margin:0; padding-left: 18px; display:flex; flex-direction: column; gap: 8px;">
+                      <li>
+                        В блоке <strong>Сессия</strong> заполни:
+                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Команда</span>,
+                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Дата</span>,
+                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Фасилитатор</span>.
+                      </li>
+                      <li>
+                        Добавь всех участников: нажми <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">плюс</span> справа в заголовке таблицы.
+                        В каждой колонке впиши имя участника.
+                      </li>
+                      <li>
+                        По каждому критерию для каждого участника:
+                        сначала выбери цвет статуса (зелёный/жёлтый/красный),
+                        затем выбери тренд (улучшается/стабильно/ухудшается).
+                        Заметка в ячейке появляется после выбора тренда.
+                      </li>
+                      <li>
+                        Когда все заполнено, нажми <strong>Скачать CSV</strong>.
+                        CSV содержит по строке на «критерий × участник».
+                      </li>
+                      <li>
+                        Чтобы собрать общую картину по нескольким командам/запускам, перейди во вкладку <strong>Сводка по файлам</strong>.
+                        Перетащи туда несколько CSV (можно сразу пачкой).
+                      </li>
+                      <li>
+                        В сводке:
+                        строки — критерии, колонки — команды;
+                        в ячейке показывается «худший» статус и тренд по команде.
+                        Наведи курсор на ячейку, чтобы увидеть, кто как голосовал (если CSV содержит участников).
+                      </li>
+                      <li>
+                        Если нужно, нажми <strong>Скачать CSV (сводка)</strong> для экспорта агрегированной таблицы.
+                        Кнопка <strong>Очистить</strong> сбрасывает загруженные файлы и сводку.
+                      </li>
+                    </ol>
+                  </div>
                 </div>
               </details>
             </div>
@@ -946,11 +1007,14 @@
 
       const $ = (id) => document.getElementById(id);
 
+      const prefersReducedMotion = (() => {
+        try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
+      })();
+
       const autosaveStatus = $('autosaveStatus');
       const teamNameEl = $('teamName');
       const checkDateEl = $('checkDate');
       const facilitatorEl = $('facilitator');
-      const globalNotesEl = $('globalNotes');
       const matrixEl = $('matrix');
       const matrixHeadEl = $('matrixHead');
       const matrixBodyEl = $('matrixBody');
@@ -1003,16 +1067,15 @@
           team: teamNameEl ? teamNameEl.value : '',
           date: checkDateEl ? checkDateEl.value : '',
           facilitator: facilitatorEl ? facilitatorEl.value : '',
-          overallNotes: globalNotesEl ? globalNotesEl.value : ''
+          overallNotes: ''
         };
       }
 
-      function setGlobal(g){
-        const gg = g && typeof g === 'object' ? g : {};
+      function setGlobal(gg){
+        if (!gg || typeof gg !== 'object') return;
         if (teamNameEl) teamNameEl.value = typeof gg.team === 'string' ? gg.team : '';
         if (checkDateEl) checkDateEl.value = typeof gg.date === 'string' ? gg.date : todayISO();
         if (facilitatorEl) facilitatorEl.value = typeof gg.facilitator === 'string' ? gg.facilitator : '';
-        if (globalNotesEl) globalNotesEl.value = typeof gg.overallNotes === 'string' ? gg.overallNotes : '';
       }
 
       function getCellState(indicatorId, columnId){
@@ -1592,8 +1655,11 @@
         const shouldScroll = !opts || opts.scroll !== false;
         if (!shouldScroll) return;
 
-        const el = (which === 'matrix') ? matrixPanel : multiPanel;
-        if (el) el.scrollIntoView({ block: 'start' });
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
       }
 
       function bindTabs(){
@@ -1830,7 +1896,7 @@
         const hr = document.createElement('tr');
         const h0 = document.createElement('th');
         h0.scope = 'col';
-        h0.innerHTML = `<div class="glassCard"><div class="glassPad smPad"><strong>Критерий</strong></div></div>`;
+        h0.innerHTML = '';
         hr.appendChild(h0);
         for (const team of teams){
           const date = latest.get(team);
