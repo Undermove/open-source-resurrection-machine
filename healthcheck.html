@@ -211,8 +211,15 @@
       gap: 6px;
       padding: 4px;
       border-radius: 999px;
+      border: 1px solid var(--stroke);
       background: color-mix(in srgb, var(--glass2) 74%, transparent);
       box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+    }
+    .langToggle:not(:hover):not(:focus-within) .langBtn{
+      display:none;
+    }
+    .langToggle:not(:hover):not(:focus-within) .langBtn[aria-pressed="true"]{
+      display:inline-flex;
     }
     .langBtn{
       border-radius: 999px;
@@ -967,8 +974,8 @@
       </div>
       <div class="headRight">
         <div class="langToggle" role="group" aria-label="Language">
-          <button id="langRu" class="langBtn" type="button" aria-pressed="true">🇷🇺 RU</button>
           <button id="langEn" class="langBtn" type="button" aria-pressed="false">🇬🇧 EN</button>
+          <button id="langRu" class="langBtn" type="button" aria-pressed="true">🇷🇺 RU</button>
         </div>
       </div>
     </div>
@@ -1122,6 +1129,8 @@
           sessionTitle: 'Сессия',
           exportCsv: 'Скачать CSV',
           reset: 'Сбросить',
+          resetConfirm: 'Сбросить форму и локально сохранённое состояние?',
+          resetDone: 'Сброшено',
           teamLabel: 'Команда',
           dateLabel: 'Дата',
           facilitatorLabel: 'Фасилитатор / Автор',
@@ -1199,6 +1208,8 @@
           sessionTitle: 'Session',
           exportCsv: 'Download CSV',
           reset: 'Reset',
+          resetConfirm: 'Reset the form and locally saved state?',
+          resetDone: 'Reset',
           teamLabel: 'Team',
           dateLabel: 'Date',
           facilitatorLabel: 'Facilitator / Author',
@@ -1271,10 +1282,15 @@
 
       function getLang(){
         try{
+          const url = new URL(window.location.href);
+          const fromUrl = url.searchParams.get('lang');
+          if (fromUrl === 'en' || fromUrl === 'ru') return fromUrl;
+        }catch(_){ }
+        try{
           const saved = localStorage.getItem(LANG_KEY);
           if (saved === 'en' || saved === 'ru') return saved;
         }catch(_){ }
-        return 'ru';
+        return 'en';
       }
 
       let lang = getLang();
@@ -1293,6 +1309,13 @@
       function setLang(next){
         lang = next === 'en' ? 'en' : 'ru';
         try{ localStorage.setItem(LANG_KEY, lang); }catch(_){ }
+
+        try{
+          const url = new URL(window.location.href);
+          url.searchParams.set('lang', lang);
+          window.history.replaceState({}, '', url);
+        }catch(_){ }
+
         applyLanguage();
         render();
         if (langRuBtn) langRuBtn.setAttribute('aria-pressed', lang === 'ru' ? 'true' : 'false');
@@ -1951,12 +1974,12 @@
       }
 
       function resetAll(){
-        const ok = window.confirm('Сбросить форму и локально сохранённое состояние?');
+        const ok = window.confirm(t('resetConfirm'));
         if (!ok) return;
         try{ localStorage.removeItem(STORAGE_KEY); }catch(_){ }
         try{ localStorage.removeItem(LEGACY_STORAGE_KEY); }catch(_){ }
         applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
-        setAutosaveText('Сброшено');
+        setAutosaveText(t('resetDone'));
       }
 
       function bindAutosave(){
