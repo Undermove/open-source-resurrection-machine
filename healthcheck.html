@@ -197,6 +197,40 @@
       max-width: 1100px;
       margin: 0 auto;
     }
+
+    .headRight{
+      display:flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .langToggle{
+      display:inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--glass2) 74%, transparent);
+      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+    }
+    .langBtn{
+      border-radius: 999px;
+      padding: 8px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .langBtn[aria-pressed="true"]{
+      background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+      box-shadow: 0 10px 18px rgba(2, 6, 23, .10);
+    }
+    .langBtn:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
     header h1{
       margin:0;
       font-size: clamp(18px, 2.4vw, 24px);
@@ -909,34 +943,43 @@
       background: color-mix(in srgb, var(--panel) 78%, transparent);
     }
     footer .wrap{ max-width: 1100px; margin: 0 auto; }
+    footer .row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     footer a{ color: var(--accent); text-decoration: underline; }
     footer a:hover{ text-decoration-thickness: 2px; }
 
-    @media (prefers-reduced-motion: reduce){
       *{ scroll-behavior: auto; }
     }
   </style>
 </head>
 <body>
-  <a class="skip" href="#main">Перейти к содержимому</a>
+  <a class="skip" id="skipLink" href="#main">Skip to content</a>
 
   <header>
     <div class="row">
       <div>
         <h1>Team Health Check (Spotify Squad Health Check)</h1>
       </div>
-      <nav aria-label="Навигация">
-        <a href="index.html">На главную</a>
-      </nav>
+      <div class="headRight">
+        <div class="langToggle" role="group" aria-label="Language">
+          <button id="langRu" class="langBtn" type="button" aria-pressed="true">🇷🇺 RU</button>
+          <button id="langEn" class="langBtn" type="button" aria-pressed="false">🇬🇧 EN</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <main id="main">
     <div class="wrap">
-      <div class="tabbar" role="tablist" aria-label="Разделы">
+      <div class="tabbar" role="tablist" aria-label="Sections">
         <div class="tabsLeft">
-          <button class="tabbtn" id="tabMatrix" type="button" role="tab" aria-selected="true" aria-controls="matrixPanel">Чек-лист</button>
-          <button class="tabbtn" id="tabMulti" type="button" role="tab" aria-selected="false" aria-controls="multiPanel">Сводка по файлам</button>
+          <button class="tabbtn" id="tabMatrix" type="button" role="tab" aria-selected="true" aria-controls="matrixPanel">Checklist</button>
+          <button class="tabbtn" id="tabMulti" type="button" role="tab" aria-selected="false" aria-controls="multiPanel">Multi-file summary</button>
         </div>
         <button class="tourBtn" id="btnTour" type="button">
           <span class="i" aria-hidden="true">
@@ -946,7 +989,7 @@
               <path d="M12 2a7 7 0 0 0-4 12.75c.58.44 1 1.13 1 1.85V17h6v-.4c0-.72.42-1.41 1-1.85A7 7 0 0 0 12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
           </span>
-          Как пользоваться?
+          How to use?
         </button>
       </div>
 
@@ -959,101 +1002,53 @@
           <div class="tourFooter">
             <div class="tourSteps" id="tourSteps" aria-live="polite"></div>
             <div class="tourBtns">
-              <button class="tourMiniBtn" id="tourPrev" type="button">Назад</button>
-              <button class="tourMiniBtn" id="tourNext" type="button">Далее</button>
-              <button class="tourMiniBtn" id="tourDone" type="button">Готово</button>
+              <button class="tourMiniBtn" id="tourPrev" type="button">Back</button>
+              <button class="tourMiniBtn" id="tourNext" type="button">Next</button>
+              <button class="tourMiniBtn" id="tourDone" type="button">Done</button>
             </div>
           </div>
         </div>
       </div>
 
-      <section class="panel" aria-label="Метаданные" id="sessionPanel">
+      <section class="panel" aria-label="Metadata" id="sessionPanel">
         <div class="hd">
-          <h2>Сессия</h2>
+          <h2>Session</h2>
           <div class="status">
             <div id="autosaveStatus" aria-live="polite"></div>
             <div class="btnrow">
-              <button id="btnExport" type="button">Скачать CSV</button>
-              <button id="btnReset" type="button">Сбросить</button>
+              <button id="btnExport" type="button">Download CSV</button>
+              <button id="btnReset" type="button">Reset</button>
             </div>
           </div>
         </div>
         <div class="bd">
           <div class="metaGrid">
             <div>
-              <label for="teamName">Команда / Squad</label>
+              <label for="teamName">Team</label>
               <input id="teamName" name="teamName" type="text" autocomplete="organization" />
             </div>
             <div>
-              <label for="checkDate">Дата</label>
+              <label for="checkDate">Date</label>
               <input id="checkDate" name="checkDate" type="date" />
             </div>
             <div>
-              <label for="facilitator">Фасилитатор / Автор</label>
+              <label for="facilitator">Facilitator / Author</label>
               <input id="facilitator" name="facilitator" type="text" autocomplete="name" />
-            </div>
-            <div class="span3">
-              <details class="notesDetails">
-                <summary>Справка</summary>
-                <div class="noteBody">
-                  <div style="color: var(--muted); font-size: 12px; line-height: 1.6;">
-                    <p style="margin:0 0 10px;">
-                      Используй страницу как фасилитационную форму: вы вместе с командой выбираете статус и тренд по каждому критерию, а затем выгружаете результат в CSV.
-                    </p>
-                    <ol style="margin:0; padding-left: 18px; display:flex; flex-direction: column; gap: 8px;">
-                      <li>
-                        В блоке <strong>Сессия</strong> заполни:
-                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Команда</span>,
-                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Дата</span>,
-                        <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">Фасилитатор</span>.
-                      </li>
-                      <li>
-                        Добавь всех участников: нажми <span style="color: color-mix(in srgb, var(--text) 78%, transparent);">плюс</span> справа в заголовке таблицы.
-                        В каждой колонке впиши имя участника.
-                      </li>
-                      <li>
-                        По каждому критерию для каждого участника:
-                        сначала выбери цвет статуса (зелёный/жёлтый/красный),
-                        затем выбери тренд (улучшается/стабильно/ухудшается).
-                        Заметка в ячейке появляется после выбора тренда.
-                      </li>
-                      <li>
-                        Когда все заполнено, нажми <strong>Скачать CSV</strong>.
-                        CSV содержит по строке на «критерий × участник».
-                      </li>
-                      <li>
-                        Чтобы собрать общую картину по нескольким командам/запускам, перейди во вкладку <strong>Сводка по файлам</strong>.
-                        Перетащи туда несколько CSV (можно сразу пачкой).
-                      </li>
-                      <li>
-                        В сводке:
-                        строки — критерии, колонки — команды;
-                        в ячейке показывается «худший» статус и тренд по команде.
-                        Наведи курсор на ячейку, чтобы увидеть, кто как голосовал (если CSV содержит участников).
-                      </li>
-                      <li>
-                        Если нужно, нажми <strong>Скачать CSV (сводка)</strong> для экспорта агрегированной таблицы.
-                        Кнопка <strong>Очистить</strong> сбрасывает загруженные файлы и сводку.
-                      </li>
-                    </ol>
-                  </div>
-                </div>
-              </details>
             </div>
           </div>
 
         </div>
       </section>
 
-      <section class="panel" aria-label="Сводка по нескольким командам" id="multiPanel" style="display:none;">
+      <section class="panel" aria-label="Multi-file summary" id="multiPanel" style="display:none;">
         <div class="hd">
           <div class="toolbar">
             <div class="left">
-              <h2 class="sr">Сводка по нескольким командам</h2>
+              <h2 class="sr">Multi-file summary</h2>
             </div>
             <div class="btnrow" id="multiActions" style="display:none;">
-              <button id="btnClearMulti" type="button">Очистить</button>
-              <button id="btnExportMulti" type="button">Скачать CSV (сводка)</button>
+              <button id="btnClearMulti" type="button">Clear</button>
+              <button id="btnExportMulti" type="button">Download CSV (summary)</button>
             </div>
           </div>
         </div>
@@ -1062,12 +1057,12 @@
 
           <label id="multiDrop" class="dropzone" for="multiFiles">
             <div>
-              <strong>Перетащи CSV-файлы сюда</strong>
-              <div class="muted">или нажми, чтобы выбрать несколько файлов хелсчеков команд</div>
+              <strong>Drop CSV files here</strong>
+              <div class="muted">or click to select multiple team healthcheck CSV files</div>
             </div>
           </label>
 
-          <div id="multiTableWrap" class="matrixWrap multiWrapHidden" role="region" aria-label="Сводная таблица по файлам" tabindex="0">
+          <div id="multiTableWrap" class="matrixWrap multiWrapHidden" role="region" aria-label="Multi-file summary table" tabindex="0">
             <table class="matrix" id="multiTable">
               <thead id="multiHead"></thead>
               <tbody id="multiBody"></tbody>
@@ -1076,7 +1071,7 @@
         </div>
       </section>
 
-      <section class="panel" aria-label="Матрица Health Check" id="matrixPanel">
+      <section class="panel" aria-label="Health Check matrix" id="matrixPanel">
         <div class="hd">
           <div class="toolbar">
             <div class="left">
@@ -1085,7 +1080,7 @@
           </div>
         </div>
         <div class="bd">
-          <div class="matrixWrap" role="region" aria-label="Матрица Team Health Check" tabindex="0">
+          <div class="matrixWrap" role="region" aria-label="Team Health Check matrix" tabindex="0">
             <table class="matrix" id="matrix">
               <thead id="matrixHead"></thead>
               <tbody id="matrixBody"></tbody>
@@ -1098,17 +1093,216 @@
 
   <footer>
     <div class="wrap">
-      <div>
-        Модель сделана на основе Spotify Engineering:
-        <a href="https://engineering.atspotify.com/2014/09/squad-health-check-model" target="_blank" rel="noopener noreferrer">Squad Health Check model</a>.
+      <div class="row">
+        <div id="footerLeft">
+          Based on Spotify Engineering:
+          <a id="spotifyLink" href="https://engineering.atspotify.com/2014/09/squad-health-check-model" target="_blank" rel="noopener noreferrer">Squad Health Check model</a>.
+          <div id="telegramCredit" style="margin-top:6px;"></div>
+        </div>
+        <div>
+          <a id="otherProjectsLink" href="index.html">View other projects</a>
+        </div>
       </div>
     </div>
   </footer>
 
   <script>
     (() => {
+      const LANG_KEY = 'teamHealthCheck_lang_v1';
       const STORAGE_KEY = 'teamHealthCheck_matrix_v1';
       const LEGACY_STORAGE_KEY = 'teamHealthCheck_v1';
+
+      const I18N = {
+        ru: {
+          langLabel: 'Язык',
+          tabsChecklist: 'Чек-лист',
+          tabsSummary: 'Сводка по файлам',
+          tourBtn: 'Как пользоваться?',
+          pageTitle: 'Team Health Check — экспорт CSV',
+          sessionTitle: 'Сессия',
+          exportCsv: 'Скачать CSV',
+          reset: 'Сбросить',
+          teamLabel: 'Команда',
+          dateLabel: 'Дата',
+          facilitatorLabel: 'Фасилитатор / Автор',
+          summaryPanelAria: 'Сводка по нескольким командам',
+          clear: 'Очистить',
+          exportSummary: 'Скачать CSV (сводка)',
+          dropTitle: 'Перетащи CSV-файлы сюда',
+          dropHint: 'или нажми, чтобы выбрать несколько файлов хелсчеков команд',
+          summaryTableAria: 'Сводная таблица по файлам',
+          checklistPanelAria: 'Матрица Health Check',
+          checklistRegionAria: 'Матрица Team Health Check',
+          checklistTitle: 'Squad Health Checklist',
+          participant: 'Участник',
+          participantName: 'Имя',
+          participantNameLabel: 'Имя участника',
+          removeParticipant: 'Удалить участника',
+          addParticipant: 'Добавить участника',
+          statusAria: 'статус',
+          trendAria: 'тренд',
+          trendNone: '—',
+          trendUp: '↗ Улучшается',
+          trendStable: '→ Стабильно',
+          trendDown: '↘ Ухудшается',
+          note: 'Заметка',
+          green: 'Зелёный',
+          yellow: 'Жёлтый',
+          red: 'Красный',
+          greenPrefix: 'Зеленый',
+          redPrefix: 'Красный',
+          autosaveSaving: 'Сохранение...',
+          autosaveSavedAt: (t) => `Сохранено локально в ${t}`,
+          autosaveFailed: 'Не удалось сохранить в localStorage',
+          loaded: 'Загружено из localStorage',
+          exportMissing: (n) => `Не заполнено состояние (зел/жёлт/красн) для ${n} индикаторов.\n\nПродолжить экспорт?`,
+          deleteColConfirm: 'Удалить колонку? Данные в ней будут потеряны.',
+          cantDeleteLast: 'Нельзя удалить последнюю колонку.',
+          otherProjects: 'Посмотреть другие проекты',
+          footerLeft: 'Модель сделана на основе Spotify Engineering:',
+          telegramCreditHtml: 'Сделано для канала <a href="https://t.me/dimasshortposts" target="_blank" rel="noopener noreferrer">@dimasshortposts</a>',
+          tour: {
+            prev: 'Назад',
+            next: 'Далее',
+            done: 'Готово',
+            step: (i, n) => `Шаг ${i} из ${n}`,
+            steps: {
+              tabsTitle: 'Вкладки',
+              tabsBody: 'Здесь переключайся между чек-листом и сводкой по нескольким CSV.',
+              teamTitle: 'Команда',
+              teamBody: 'Введи название команды. Оно попадёт в CSV и в сводку.',
+              dateTitle: 'Дата',
+              dateBody: 'Выбери дату сессии. Удобно сравнивать несколько прогонов по датам.',
+              facTitle: 'Фасилитатор',
+              facBody: 'Укажи автора/фасилитатора (по желанию).',
+              participantsTitle: 'Участники',
+              participantsBody: 'Нажми плюс, чтобы добавить участника (колонку).',
+              nameTitle: 'Имя участника',
+              nameBody: 'Введи имя участника в заголовке его колонки.',
+              cellTitle: 'Заполни ячейку',
+              cellBody: 'В ячейке выбери статус (цвет) и тренд. По желанию добавь заметку.',
+              exportTitle: 'Экспорт CSV',
+              exportBody: 'Когда заполните всё, скачай CSV. Он содержит строки «критерий × участник».',
+              summaryTitle: 'Сводка по файлам',
+              summaryBody: 'Перейдём в сводку, чтобы сравнить несколько CSV между командами/датами.',
+              dropTitle: 'Загрузка CSV',
+              dropBody: 'Перетащи сюда несколько заполненных CSV команд (можно пачкой) или нажми и выбери файлы.'
+            }
+          }
+        },
+        en: {
+          langLabel: 'Language',
+          tabsChecklist: 'Checklist',
+          tabsSummary: 'Multi-file summary',
+          tourBtn: 'How to use?',
+          pageTitle: 'Team Health Check — CSV export',
+          sessionTitle: 'Session',
+          exportCsv: 'Download CSV',
+          reset: 'Reset',
+          teamLabel: 'Team',
+          dateLabel: 'Date',
+          facilitatorLabel: 'Facilitator / Author',
+          summaryPanelAria: 'Multi-team summary',
+          clear: 'Clear',
+          exportSummary: 'Download CSV (summary)',
+          dropTitle: 'Drop CSV files here',
+          dropHint: 'or click to select multiple team healthcheck CSV files',
+          summaryTableAria: 'Multi-file summary table',
+          checklistPanelAria: 'Health Check matrix',
+          checklistRegionAria: 'Team Health Check matrix',
+          checklistTitle: 'Squad Health Checklist',
+          participant: 'Participant',
+          participantName: 'Name',
+          participantNameLabel: 'Participant name',
+          removeParticipant: 'Remove participant',
+          addParticipant: 'Add participant',
+          statusAria: 'status',
+          trendAria: 'trend',
+          trendNone: '—',
+          trendUp: '↗ Improving',
+          trendStable: '→ Stable',
+          trendDown: '↘ Worsening',
+          note: 'Note',
+          green: 'Green',
+          yellow: 'Yellow',
+          red: 'Red',
+          greenPrefix: 'Green',
+          redPrefix: 'Red',
+          autosaveSaving: 'Saving…',
+          autosaveSavedAt: (t) => `Saved locally at ${t}`,
+          autosaveFailed: 'Failed to save to localStorage',
+          loaded: 'Loaded from localStorage',
+          exportMissing: (n) => `Some cells have no status selected for ${n} criteria.\n\nExport anyway?`,
+          deleteColConfirm: 'Delete this participant column? Data will be lost.',
+          cantDeleteLast: 'You cannot delete the last column.',
+          otherProjects: 'View other projects',
+          footerLeft: 'Based on Spotify Engineering:',
+          telegramCreditHtml: 'Made for the channel <a href="https://t.me/dimasshortposts" target="_blank" rel="noopener noreferrer">@dimasshortposts</a>',
+          tour: {
+            prev: 'Back',
+            next: 'Next',
+            done: 'Done',
+            step: (i, n) => `Step ${i} of ${n}`,
+            steps: {
+              tabsTitle: 'Tabs',
+              tabsBody: 'Switch between the checklist and the multi-file CSV summary here.',
+              teamTitle: 'Team',
+              teamBody: 'Enter the team name. It will be included in CSV and the summary.',
+              dateTitle: 'Date',
+              dateBody: 'Choose the session date to compare multiple runs over time.',
+              facTitle: 'Facilitator',
+              facBody: 'Optionally enter the facilitator/author.',
+              participantsTitle: 'Participants',
+              participantsBody: 'Click plus to add a participant (a column).',
+              nameTitle: 'Participant name',
+              nameBody: 'Enter the participant name in the column header.',
+              cellTitle: 'Fill a cell',
+              cellBody: 'In a cell choose status (color) and trend. Optionally add a note.',
+              exportTitle: 'Export CSV',
+              exportBody: 'When everything is filled, download CSV. It contains “criterion × participant” rows.',
+              summaryTitle: 'Multi-file summary',
+              summaryBody: 'Switch to summary to compare multiple CSVs across teams/dates.',
+              dropTitle: 'Upload CSV',
+              dropBody: 'Drop multiple completed team CSV files here (batch is ok) or click to select files.'
+            }
+          }
+        }
+      };
+
+      function getLang(){
+        try{
+          const saved = localStorage.getItem(LANG_KEY);
+          if (saved === 'en' || saved === 'ru') return saved;
+        }catch(_){ }
+        return 'ru';
+      }
+
+      let lang = getLang();
+
+      function t(key){
+        const dict = I18N[lang] || I18N.ru;
+        const parts = String(key).split('.');
+        let cur = dict;
+        for (const p of parts){
+          if (!cur || typeof cur !== 'object') return '';
+          cur = cur[p];
+        }
+        return cur;
+      }
+
+      function setLang(next){
+        lang = next === 'en' ? 'en' : 'ru';
+        try{ localStorage.setItem(LANG_KEY, lang); }catch(_){ }
+        applyLanguage();
+        render();
+        if (langRuBtn) langRuBtn.setAttribute('aria-pressed', lang === 'ru' ? 'true' : 'false');
+        if (langEnBtn) langEnBtn.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
+      }
+
+      function indTitle(ind){ return lang === 'en' ? (ind.titleEn || ind.title) : ind.title; }
+      function indShort(ind){ return lang === 'en' ? (ind.shortEn || ind.short || indTitle(ind)) : (ind.short || indTitle(ind)); }
+      function indAwesome(ind){ return lang === 'en' ? (ind.awesomeEn || ind.awesome) : ind.awesome; }
+      function indCrappy(ind){ return lang === 'en' ? (ind.crappyEn || ind.crappy) : ind.crappy; }
 
       const indicators = [
         {
@@ -1116,72 +1310,133 @@
           title: 'Ценность',
           short: 'Ценность',
           awesome: 'Мы делаем именно то, что приносит пользу нашим клиентам и бизнесу.',
-          crappy: 'Мы делаем работу, которая не несет никакой ценности или смысла.'
+          crappy: 'Мы делаем работу, которая не несет никакой ценности или смысла.',
+          titleEn: 'Value',
+          shortEn: 'Value',
+          awesomeEn: 'We build what brings value to our customers and the business.',
+          crappyEn: 'We do work that brings no value or meaning.'
         },
         {
           id: 'easy_to_release',
           title: 'Простота релиза',
           short: 'Релиз',
           awesome: 'Релизы простые, частые и безболезненные, полностью автоматизированные.',
-          crappy: 'Релизы — это ручной, болезненный процесс, который часто сопровождается проблемами.'
+          crappy: 'Релизы — это ручной, болезненный процесс, который часто сопровождается проблемами.',
+          titleEn: 'Easy to Release',
+          shortEn: 'Release',
+          awesomeEn: 'Releases are simple, frequent, painless and fully automated.',
+          crappyEn: 'Releases are manual, painful and often come with problems.'
         },
         {
           id: 'fun',
           title: 'Веселье',
           short: 'Веселье',
           awesome: 'Мы с удовольствием приходим на работу и отлично проводим время.',
-          crappy: 'Ужасная скука.'
+          crappy: 'Ужасная скука.',
+          titleEn: 'Fun',
+          shortEn: 'Fun',
+          awesomeEn: 'We enjoy coming to work and have a great time.',
+          crappyEn: 'Terribly boring.'
         },
         {
           id: 'tech_quality',
           title: 'Состояние кода',
           short: 'Код',
           awesome: 'Мы гордимся качеством нашего кода. Он чистый, понятный и легко тестируемый.',
-          crappy: 'Код — это полная катастрофа, технический долг зашкаливает.'
+          crappy: 'Код — это полная катастрофа, технический долг зашкаливает.',
+          titleEn: 'Health of Codebase',
+          shortEn: 'Code',
+          awesomeEn: 'We are proud of our code quality. It is clean, clear and easy to test.',
+          crappyEn: 'The codebase is a mess and technical debt is out of control.'
         },
         {
           id: 'learning',
           title: 'Обучение',
           short: 'Обучение',
           awesome: 'Мы постоянно учимся новому и интересному.',
-          crappy: 'У нас нет времени или возможности учиться чему-то новому.'
+          crappy: 'У нас нет времени или возможности учиться чему-то новому.',
+          titleEn: 'Learning',
+          shortEn: 'Learning',
+          awesomeEn: 'We keep learning new and interesting things.',
+          crappyEn: 'We have no time or opportunity to learn.'
         },
         {
           id: 'speed',
           title: 'Скорость',
           short: 'Скорость',
           awesome: 'Мы доставляем ценность быстро и вовремя.',
-          crappy: 'Нам всегда не хватает времени. Процессы медленные и затянутые.'
+          crappy: 'Нам всегда не хватает времени. Процессы медленные и затянутые.',
+          titleEn: 'Speed',
+          shortEn: 'Speed',
+          awesomeEn: 'We deliver value quickly and on time.',
+          crappyEn: 'We are always short on time. Processes are slow and dragged out.'
         },
         {
           id: 'suitable_process',
           title: 'Подходящий процесс',
           short: 'Процесс',
           awesome: 'Процесс работы нам отлично подходит и помогает.',
-          crappy: 'Процесс мешает работе или вообще отсутствует.'
+          crappy: 'Процесс мешает работе или вообще отсутствует.',
+          titleEn: 'Suitable Process',
+          shortEn: 'Process',
+          awesomeEn: 'Our process fits us well and helps us.',
+          crappyEn: 'The process gets in the way or does not exist.'
         },
         {
           id: 'support',
           title: 'Поддержка',
           short: 'Поддержка',
           awesome: 'Мы всегда получаем отличную поддержку, когда она нам необходима.',
-          crappy: 'Мы чувствуем себя брошенными на произвол судьбы.'
+          crappy: 'Мы чувствуем себя брошенными на произвол судьбы.',
+          titleEn: 'Support',
+          shortEn: 'Support',
+          awesomeEn: 'We get great support whenever we need it.',
+          crappyEn: 'We feel left on our own.'
         },
         {
           id: 'pawns_or_players',
           title: 'Командная работа',
           short: 'Команда',
           awesome: 'Мы работаем как сплоченная команда и всегда помогаем друг другу.',
-          crappy: 'Мы работаем как группа отдельных людей, а не как единое целое.'
+          crappy: 'Мы работаем как группа отдельных людей, а не как единое целое.',
+          titleEn: 'Teamwork',
+          shortEn: 'Team',
+          awesomeEn: 'We work as a cohesive team and help each other.',
+          crappyEn: 'We act as separate individuals, not as one team.'
         },
         {
           id: 'mission',
           title: 'Миссия',
           short: 'Миссия',
           awesome: 'Мы четко понимаем, зачем мы здесь и куда движемся.',
-          crappy: 'У нас нет ясного понимания целей и общего видения будущего'
+          crappy: 'У нас нет ясного понимания целей и общего видения будущего',
+          titleEn: 'Mission',
+          shortEn: 'Mission',
+          awesomeEn: 'We clearly understand why we are here and where we are going.',
+          crappyEn: 'We lack clear goals and a shared vision of the future.'
         }
       ];
+
+      const indicatorNameToId = (() => {
+        const m = new Map();
+        for (const ind of indicators){
+          const all = [
+            ind.title,
+            ind.short,
+            ind.titleEn,
+            ind.shortEn
+          ].filter(Boolean);
+          for (const v of all){
+            m.set(String(v).trim().toLowerCase(), ind.id);
+          }
+        }
+        return m;
+      })();
+
+      function normalizeIndicatorToId(v){
+        const key = String(v || '').trim().toLowerCase();
+        return indicatorNameToId.get(key) || null;
+      }
 
       const $ = (id) => document.getElementById(id);
 
@@ -1201,6 +1456,8 @@
 
       const tabMatrix = $('tabMatrix');
       const tabMulti = $('tabMulti');
+      const langRuBtn = $('langRu');
+      const langEnBtn = $('langEn');
       const sessionPanel = $('sessionPanel');
       const matrixPanel = $('matrixPanel');
       const multiPanel = $('multiPanel');
@@ -1264,68 +1521,6 @@
         if (teamNameEl) teamNameEl.value = typeof gg.team === 'string' ? gg.team : '';
         if (checkDateEl) checkDateEl.value = typeof gg.date === 'string' ? gg.date : todayISO();
         if (facilitatorEl) facilitatorEl.value = typeof gg.facilitator === 'string' ? gg.facilitator : '';
-      }
-
-      function getCellState(indicatorId, columnId){
-        const status = document.querySelector(`input[name="${indicatorId}__${columnId}__status"]:checked`);
-        const trend = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
-        const note = document.querySelector(`textarea[name="${indicatorId}__${columnId}__note"]`);
-        return {
-          status: status ? status.value : '',
-          trend: trend ? trend.value : '',
-          note: note ? note.value : ''
-        };
-      }
-
-      function setCellState(indicatorId, columnId, s){
-        const statusValue = s && typeof s.status === 'string' ? s.status : '';
-        const trendValue = s && typeof s.trend === 'string' ? s.trend : '';
-        const noteValue = s && typeof s.note === 'string' ? s.note : '';
-
-        if (statusValue){
-          const el = document.querySelector(`input[name="${indicatorId}__${columnId}__status"][value="${statusValue}"]`);
-          if (el) el.checked = true;
-        }
-        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
-        if (trendEl) trendEl.value = trendValue;
-        const noteEl = document.querySelector(`textarea[name="${indicatorId}__${columnId}__note"]`);
-        if (noteEl) noteEl.value = noteValue;
-
-        updateTrendUI(indicatorId, columnId);
-      }
-
-      function updateTrendUI(indicatorId, columnId){
-        const status = document.querySelector(`input[name="${indicatorId}__${columnId}__status"]:checked`);
-        const trendWrap = document.querySelector(`[data-trend-wrap="${indicatorId}__${columnId}"]`);
-        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
-
-        const hasStatus = !!status;
-
-        if (trendEl) trendEl.disabled = !hasStatus;
-        if (trendWrap) trendWrap.classList.toggle('trendHidden', !hasStatus);
-
-        updateNoteUI(indicatorId, columnId);
-      }
-
-      function updateNoteUI(indicatorId, columnId){
-        const trendEl = document.querySelector(`select[name="${indicatorId}__${columnId}__trend"]`);
-        const noteWrap = document.querySelector(`[data-note-wrap="${indicatorId}__${columnId}"]`);
-        const hasTrend = !!(trendEl && trendEl.value);
-        if (noteWrap) noteWrap.classList.toggle('noteHidden', !hasTrend);
-      }
-
-      function getParticipantMeta(participantId){
-        const nameEl = document.querySelector(`input[name="p__${participantId}__name"]`);
-        return {
-          id: participantId,
-          name: nameEl ? nameEl.value : ''
-        };
-      }
-
-      function setParticipantMeta(participantId, meta){
-        const m = meta && typeof meta === 'object' ? meta : {};
-        const nameEl = document.querySelector(`input[name="p__${participantId}__name"]`);
-        if (nameEl) nameEl.value = typeof m.name === 'string' ? m.name : '';
       }
 
       let state = {
@@ -1405,15 +1600,157 @@
 
       function scheduleAutosave(){
         if (autosaveTimer) window.clearTimeout(autosaveTimer);
-        setAutosaveText('Сохранение...');
+        setAutosaveText(t('autosaveSaving'));
         autosaveTimer = window.setTimeout(() => {
           try{
             localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize()));
-            setAutosaveText(`Сохранено локально в ${new Date().toLocaleTimeString()}`);
+            const msg = t('autosaveSavedAt');
+            setAutosaveText(typeof msg === 'function' ? msg(new Date().toLocaleTimeString()) : '');
           }catch(_){
-            setAutosaveText('Не удалось сохранить в localStorage');
+            setAutosaveText(t('autosaveFailed'));
           }
         }, 250);
+      }
+
+      function applyLanguage(){
+        try{ document.documentElement.lang = lang; }catch(_){ }
+        try{ document.title = t('pageTitle'); }catch(_){ }
+
+        const skipLink = $('skipLink');
+        if (skipLink) skipLink.textContent = t('skip');
+
+        const tabbar = document.querySelector('.tabbar[role="tablist"]');
+        if (tabbar) tabbar.setAttribute('aria-label', t('sectionsAria'));
+        if (sessionPanel) sessionPanel.setAttribute('aria-label', t('metaAria'));
+
+        if (tabMatrix) tabMatrix.textContent = t('tabsChecklist');
+        if (tabMulti) tabMulti.textContent = t('tabsSummary');
+        if (btnTour) btnTour.lastChild.nodeValue = ` ${t('tourBtn')}`;
+
+        const sessionH2 = document.querySelector('#sessionPanel .hd h2');
+        if (sessionH2) sessionH2.textContent = t('sessionTitle');
+        if (btnExport) btnExport.textContent = t('exportCsv');
+        if (btnReset) btnReset.textContent = t('reset');
+
+        const teamLbl = document.querySelector('label[for="teamName"]');
+        if (teamLbl) teamLbl.textContent = t('teamLabel');
+        const dateLbl = document.querySelector('label[for="checkDate"]');
+        if (dateLbl) dateLbl.textContent = t('dateLabel');
+        const facLbl = document.querySelector('label[for="facilitator"]');
+        if (facLbl) facLbl.textContent = t('facilitatorLabel');
+
+        if (multiPanel) multiPanel.setAttribute('aria-label', t('summaryPanelAria'));
+        if (btnClearMulti) btnClearMulti.textContent = t('clear');
+        if (btnExportMulti) btnExportMulti.textContent = t('exportSummary');
+        const dropStrong = multiDrop ? multiDrop.querySelector('strong') : null;
+        if (dropStrong) dropStrong.textContent = t('dropTitle');
+        const dropMuted = multiDrop ? multiDrop.querySelector('.muted') : null;
+        if (dropMuted) dropMuted.textContent = t('dropHint');
+        if (multiTableWrap) multiTableWrap.setAttribute('aria-label', t('summaryTableAria'));
+
+        if (matrixPanel) matrixPanel.setAttribute('aria-label', t('checklistPanelAria'));
+        const matrixHd = document.querySelector('#matrixPanel .hd h2');
+        if (matrixHd) matrixHd.textContent = t('checklistTitle');
+        const matrixRegion = document.querySelector('#matrixPanel .matrixWrap');
+        if (matrixRegion) matrixRegion.setAttribute('aria-label', t('checklistRegionAria'));
+
+        const footerLeft = $('footerLeft');
+        if (footerLeft) footerLeft.firstChild.nodeValue = `${t('footerLeft')} `;
+        const telegramCredit = $('telegramCredit');
+        if (telegramCredit) telegramCredit.innerHTML = t('telegramCreditHtml');
+        const otherProjectsLink = $('otherProjectsLink');
+        if (otherProjectsLink) otherProjectsLink.textContent = t('otherProjects');
+
+        if (tourPrev) tourPrev.textContent = t('tour.prev');
+        if (tourNext) tourNext.textContent = t('tour.next');
+        if (tourDone) tourDone.textContent = t('tour.done');
+      }
+
+      function getParticipantMeta(columnId){
+        const input = document.getElementById(`p__${columnId}__name`);
+        return {
+          id: columnId,
+          name: input && input instanceof HTMLInputElement ? input.value : ''
+        };
+      }
+
+      function setParticipantMeta(columnId, meta){
+        const input = document.getElementById(`p__${columnId}__name`);
+        if (!input || !(input instanceof HTMLInputElement)) return;
+        input.value = meta && typeof meta.name === 'string' ? meta.name : '';
+      }
+
+      function getCellState(indicatorId, columnId){
+        const sName = `${indicatorId}__${columnId}__status`;
+        const tName = `${indicatorId}__${columnId}__trend`;
+        const nName = `${indicatorId}__${columnId}__note`;
+
+        const statusInput = document.querySelector(`input[type="radio"][name="${CSS.escape(sName)}"]:checked`);
+        const status = statusInput && statusInput instanceof HTMLInputElement ? statusInput.value : '';
+
+        const trendSel = document.getElementById(`${tName}__sel`);
+        const trend = trendSel && trendSel instanceof HTMLSelectElement ? trendSel.value : '';
+
+        const noteEl = document.getElementById(nName);
+        const note = noteEl && noteEl instanceof HTMLTextAreaElement ? noteEl.value : '';
+
+        return { status, trend, note };
+      }
+
+      function setCellState(indicatorId, columnId, next){
+        const sName = `${indicatorId}__${columnId}__status`;
+        const tName = `${indicatorId}__${columnId}__trend`;
+        const nName = `${indicatorId}__${columnId}__note`;
+
+        const status = next && typeof next.status === 'string' ? next.status : '';
+        const trend = next && typeof next.trend === 'string' ? next.trend : '';
+        const note = next && typeof next.note === 'string' ? next.note : '';
+
+        for (const radio of document.querySelectorAll(`input[type="radio"][name="${CSS.escape(sName)}"]`)){
+          if (radio instanceof HTMLInputElement) radio.checked = radio.value === status;
+        }
+
+        const trendSel = document.getElementById(`${tName}__sel`);
+        if (trendSel && trendSel instanceof HTMLSelectElement) trendSel.value = trend;
+
+        const noteEl = document.getElementById(nName);
+        if (noteEl && noteEl instanceof HTMLTextAreaElement) noteEl.value = note;
+
+        updateTrendUI(indicatorId, columnId);
+        updateNoteUI(indicatorId, columnId);
+      }
+
+      function updateTrendUI(indicatorId, columnId){
+        const wrapKey = `${indicatorId}__${columnId}`;
+        const wrap = document.querySelector(`[data-trend-wrap="${CSS.escape(wrapKey)}"]`);
+        const sel = document.getElementById(`${indicatorId}__${columnId}__trend__sel`);
+        const cell = getCellState(indicatorId, columnId);
+        const hasStatus = !!cell.status;
+
+        if (wrap && wrap instanceof HTMLElement){
+          wrap.classList.toggle('trendHidden', !hasStatus);
+        }
+        if (sel && sel instanceof HTMLSelectElement){
+          sel.disabled = !hasStatus;
+          if (!hasStatus) sel.value = '';
+        }
+
+        if (!hasStatus) updateNoteUI(indicatorId, columnId);
+      }
+
+      function updateNoteUI(indicatorId, columnId){
+        const wrapKey = `${indicatorId}__${columnId}`;
+        const wrap = document.querySelector(`[data-note-wrap="${CSS.escape(wrapKey)}"]`);
+        const cell = getCellState(indicatorId, columnId);
+        const show = !!cell.status && !!cell.trend;
+
+        if (wrap && wrap instanceof HTMLElement){
+          wrap.classList.toggle('noteHidden', !show);
+          if (!show){
+            const details = wrap.querySelector('details');
+            if (details) details.removeAttribute('open');
+          }
+        }
       }
 
       function render(){
@@ -1438,15 +1775,15 @@
               <div class="glassPad">
                 <div class="colHead">
                   <div class="colRow">
-                    <div class="colTitle">Участник</div>
+                    <div class="colTitle">${t('participant')}</div>
                     <div class="colActions">
-                      <button type="button" class="iconBtn" data-action="remove-column" data-col="${col.id}" aria-label="Удалить участника" title="Удалить участника">🗑️</button>
+                      <button type="button" class="iconBtn" data-action="remove-column" data-col="${col.id}" aria-label="${t('removeParticipant')}" title="${t('removeParticipant')}">🗑️</button>
                     </div>
                   </div>
                   <div class="colFields">
                     <div>
-                      <label class="sr" for="p__${col.id}__name">Имя участника</label>
-                      <input id="p__${col.id}__name" name="p__${col.id}__name" type="text" autocomplete="name" placeholder="Имя" />
+                      <label class="sr" for="p__${col.id}__name">${t('participantNameLabel')}</label>
+                      <input id="p__${col.id}__name" name="p__${col.id}__name" type="text" autocomplete="name" placeholder="${t('participantName')}" />
                     </div>
                   </div>
                 </div>
@@ -1463,7 +1800,7 @@
           thAdd.innerHTML = `
             <div class="glassCard participantCard">
               <div class="glassPad" style="display:flex; align-items:center; justify-content:center; min-height: 74px;">
-                <button type="button" class="plusBtn" data-action="add-column" aria-label="Добавить участника">+</button>
+                <button type="button" class="plusBtn" data-action="add-column" aria-label="${t('addParticipant')}">+</button>
               </div>
             </div>
           `;
@@ -1480,11 +1817,11 @@
           th.innerHTML = `
             <div class="glassCard indicatorFixed">
               <div class="glassPad indicatorCard">
-                <div class="indicatorTitleV" aria-hidden="true">${ind.short || ind.title}</div>
+                <div class="indicatorTitleV" aria-hidden="true">${indShort(ind)}</div>
                 <div class="indicatorText">
-                  <div class="indTitle">${ind.title}</div>
-                  <div class="indMeta"><span class="k">Зеленый:</span> ${ind.awesome}</div>
-                  <div class="indMeta"><span class="k">Красный:</span> ${ind.crappy}</div>
+                  <div class="indTitle">${indTitle(ind)}</div>
+                  <div class="indMeta"><span class="k">${t('greenPrefix')}:</span> ${indAwesome(ind)}</div>
+                  <div class="indMeta"><span class="k">${t('redPrefix')}:</span> ${indCrappy(ind)}</div>
                 </div>
               </div>
             </div>
@@ -1503,34 +1840,34 @@
                 <div class="glassPad">
                   <div class="cell">
                     <div>
-                      <div class="sr">Status</div>
-                      <div class="statusDots" role="radiogroup" aria-label="${ind.title}: статус">
+                      <div class="sr">${t('statusAria')}</div>
+                      <div class="statusDots" role="radiogroup" aria-label="${indTitle(ind)}: ${t('statusAria')}">
                         <input id="${sName}__green" type="radio" name="${sName}" value="green" />
-                        <label class="dotLbl" for="${sName}__green" aria-label="Green"><span class="dot ok" aria-hidden="true"></span></label>
+                        <label class="dotLbl" for="${sName}__green" aria-label="${t('green')}"><span class="dot ok" aria-hidden="true"></span></label>
 
                         <input id="${sName}__yellow" type="radio" name="${sName}" value="yellow" />
-                        <label class="dotLbl" for="${sName}__yellow" aria-label="Yellow"><span class="dot warn" aria-hidden="true"></span></label>
+                        <label class="dotLbl" for="${sName}__yellow" aria-label="${t('yellow')}"><span class="dot warn" aria-hidden="true"></span></label>
 
                         <input id="${sName}__red" type="radio" name="${sName}" value="red" />
-                        <label class="dotLbl" for="${sName}__red" aria-label="Red"><span class="dot bad" aria-hidden="true"></span></label>
+                        <label class="dotLbl" for="${sName}__red" aria-label="${t('red')}"><span class="dot bad" aria-hidden="true"></span></label>
                       </div>
                     </div>
 
                     <div class="trendHidden" data-trend-wrap="${ind.id}__${col.id}">
-                      <label class="sr" for="${tName}__sel">Тренд</label>
-                      <select id="${tName}__sel" name="${tName}" aria-label="${ind.title}: тренд" disabled>
-                        <option value="">—</option>
-                        <option value="up">↗ Улучшается</option>
-                        <option value="stable">→ Стабильно</option>
-                        <option value="down">↘ Ухудшается</option>
+                      <label class="sr" for="${tName}__sel">${t('trendAria')}</label>
+                      <select id="${tName}__sel" name="${tName}" aria-label="${indTitle(ind)}: ${t('trendAria')}" disabled>
+                        <option value="">${t('trendNone')}</option>
+                        <option value="up">${t('trendUp')}</option>
+                        <option value="stable">${t('trendStable')}</option>
+                        <option value="down">${t('trendDown')}</option>
                       </select>
                     </div>
 
                     <div class="noteHidden" data-note-wrap="${ind.id}__${col.id}">
                       <details>
-                        <summary>Заметка</summary>
+                        <summary>${t('note')}</summary>
                         <div class="noteBody">
-                          <label class="sr" for="${nName}">Заметка</label>
+                          <label class="sr" for="${nName}">${t('note')}</label>
                           <textarea id="${nName}" name="${nName}"></textarea>
                         </div>
                       </details>
@@ -1561,7 +1898,7 @@
           for (const col of state.columns){
             const s = getCellState(ind.id, col.id);
             const p = getParticipantMeta(col.id);
-            if (!s.status) invalid.push(`${ind.title} / ${p && p.name ? p.name : 'Участник'}`);
+            if (!s.status) invalid.push(`${indTitle(ind)} / ${p && p.name ? p.name : t('participant')}`);
           }
         }
         return invalid;
@@ -1572,8 +1909,9 @@
         const missing = validateForExport();
 
         if (missing.length){
-          const msg = `Не заполнено состояние (зел/жёлт/красн) для ${missing.length} индикаторов.\n\nПродолжить экспорт?`;
-          if (!window.confirm(msg)) return;
+          const msg = t('exportMissing');
+          const msgText = typeof msg === 'function' ? msg(missing.length) : '';
+          if (!window.confirm(msgText)) return;
         }
 
         const header = ['participant_id','participant_name','team','date','facilitator','indicator','status','trend','note','overall_notes'];
@@ -1589,7 +1927,7 @@
               global.team || '',
               global.date || '',
               global.facilitator || '',
-              ind.title,
+              indTitle(ind),
               s.status,
               s.trend,
               s.note,
@@ -1681,10 +2019,10 @@
       function removeColumn(columnId){
         state = serialize();
         if (state.columns.length <= 1){
-          window.alert('Нельзя удалить последнюю колонку.');
+          window.alert(t('cantDeleteLast'));
           return;
         }
-        const ok = window.confirm('Удалить колонку? Данные в ней будут потеряны.');
+        const ok = window.confirm(t('deleteColConfirm'));
         if (!ok) return;
         state.columns = state.columns.filter((c) => c.id !== columnId);
         for (const ind of indicators){
@@ -1736,7 +2074,7 @@
           const legacy = JSON.parse(legacyRaw);
           const meta = legacy && legacy.meta && typeof legacy.meta === 'object' ? legacy.meta : {};
           const col = blankColumn();
-          col.name = 'Участник';
+          col.name = t('participant');
 
           const data = {};
           for (const ind of indicators){
@@ -1809,7 +2147,7 @@
         try{
           const saved = JSON.parse(savedRaw);
           applyState(saved);
-          setAutosaveText('Загружено из localStorage');
+          setAutosaveText(t('loaded'));
         }catch(_){
           applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
           setAutosaveText('');
@@ -1817,6 +2155,11 @@
       } else {
         applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
       }
+
+      applyLanguage();
+      if (langRuBtn) langRuBtn.addEventListener('click', () => setLang('ru'));
+      if (langEnBtn) langEnBtn.addEventListener('click', () => setLang('en'));
+      setLang(lang);
 
       bindAutosave();
       bindMatrixActions();
@@ -1969,9 +2312,12 @@
             const target = (typeof step.target === 'function') ? step.target() : null;
             currentTarget = target;
 
-            if (tourTitle) tourTitle.textContent = step.title;
-            if (tourBody) tourBody.textContent = step.body;
-            if (tourSteps) tourSteps.textContent = `Шаг ${idx + 1} из ${steps.length}`;
+            const stepTitle = typeof step.title === 'function' ? step.title() : step.title;
+            const stepBody = typeof step.body === 'function' ? step.body() : step.body;
+            if (tourTitle) tourTitle.textContent = stepTitle;
+            if (tourBody) tourBody.textContent = stepBody;
+            const stepTpl = t('tour.step');
+            if (tourSteps) tourSteps.textContent = typeof stepTpl === 'function' ? stepTpl(idx + 1, steps.length) : '';
 
             if (tourPrev) tourPrev.disabled = idx === 0;
             if (tourNext) tourNext.style.display = (idx >= steps.length - 1) ? 'none' : '';
@@ -2092,32 +2438,32 @@
 
       const steps = [
         {
-          title: 'Вкладки',
-          body: 'Здесь переключайся между чек-листом и сводкой по нескольким CSV.',
+          title: () => t('tour.steps.tabsTitle'),
+          body: () => t('tour.steps.tabsBody'),
           target: () => tabMatrix || tabMulti,
           onEnter: () => setView('matrix', { scroll: false })
         },
         {
-          title: 'Команда',
-          body: 'Введи название команды. Оно попадёт в CSV и в сводку.',
+          title: () => t('tour.steps.teamTitle'),
+          body: () => t('tour.steps.teamBody'),
           target: () => teamNameEl,
           onEnter: () => setView('matrix', { scroll: false })
         },
         {
-          title: 'Дата',
-          body: 'Выбери дату сессии. Удобно сравнивать несколько прогонов по датам.',
+          title: () => t('tour.steps.dateTitle'),
+          body: () => t('tour.steps.dateBody'),
           target: () => checkDateEl,
           onEnter: () => setView('matrix', { scroll: false })
         },
         {
-          title: 'Фасилитатор',
-          body: 'Укажи автора/фасилитатора (по желанию).',
+          title: () => t('tour.steps.facTitle'),
+          body: () => t('tour.steps.facBody'),
           target: () => facilitatorEl,
           onEnter: () => setView('matrix', { scroll: false })
         },
         {
-          title: 'Участники',
-          body: 'Нажми плюс, чтобы добавить участника (колонку).',
+          title: () => t('tour.steps.participantsTitle'),
+          body: () => t('tour.steps.participantsBody'),
           target: () => matrixHeadEl ? matrixHeadEl.querySelector('button[data-action="add-column"]') : null,
           onEnter: () => setView('matrix', { scroll: false }),
           pad: 6,
@@ -2125,36 +2471,36 @@
           advanceOnClick: true
         },
         {
-          title: 'Имя участника',
-          body: 'Введи имя участника в заголовке его колонки.',
+          title: () => t('tour.steps.nameTitle'),
+          body: () => t('tour.steps.nameBody'),
           target: () => matrixHeadEl ? matrixHeadEl.querySelector('input[name^="p__"][type="text"]') : null,
           onEnter: () => setView('matrix', { scroll: false }),
           pad: 6,
           noAutoScroll: true
         },
         {
-          title: 'Заполни ячейку',
-          body: 'В ячейке выбери статус (цвет) и тренд. По желанию добавь заметку.',
+          title: () => t('tour.steps.cellTitle'),
+          body: () => t('tour.steps.cellBody'),
           target: () => getFirstMatrixCellParts().cell,
           onEnter: () => setView('matrix', { scroll: false }),
           pad: 8,
           noAutoScroll: true
         },
         {
-          title: 'Экспорт CSV',
-          body: 'Когда заполните всё, скачай CSV. Он содержит строки «критерий × участник».',
+          title: () => t('tour.steps.exportTitle'),
+          body: () => t('tour.steps.exportBody'),
           target: () => btnExport,
           onEnter: () => setView('matrix', { scroll: false })
         },
         {
-          title: 'Сводка по файлам',
-          body: 'Перейдём в сводку, чтобы сравнить несколько CSV между командами/датами.',
+          title: () => t('tour.steps.summaryTitle'),
+          body: () => t('tour.steps.summaryBody'),
           target: () => tabMulti,
           onEnter: () => setView('multi', { scroll: false })
         },
         {
-          title: 'Загрузка CSV',
-          body: 'Перетащи сюда несколько заполненных CSV команд (можно пачкой) или нажми и выбери файлы.',
+          title: () => t('tour.steps.dropTitle'),
+          body: () => t('tour.steps.dropBody'),
           target: () => multiDrop,
           onEnter: () => setView('multi', { scroll: false })
         }
@@ -2241,13 +2587,14 @@
         for (const o of objects){
           const team = (o.team || '').trim() || '—';
           const date = (o.date || '').trim() || '—';
-          const indicator = (o.indicator || '').trim() || '—';
-          const status = (o.status || '').trim();
+          const indicator = (o.indicator || '').trim();
+          const indicatorId = normalizeIndicatorToId(indicator) || indicator;
+          const status = (o.status || '').trim().toLowerCase();
           const trend = (o.trend || '').trim();
           const participantName = (o.participant_name || '').trim();
           const participantId = (o.participant_id || '').trim();
           const note = (o.note || '').trim();
-          const prev = getMultiBucket(team, date, indicator);
+          const prev = getMultiBucket(team, date, indicatorId);
           if (status === 'green') prev.green++;
           if (status === 'yellow') prev.yellow++;
           if (status === 'red') prev.red++;
@@ -2270,7 +2617,8 @@
           const team = (o.team || '').trim() || '—';
           const date = (o.date || '').trim() || '—';
           const indicator = (o.indicator || '').trim() || '—';
-          const prev = getMultiBucket(team, date, indicator);
+          const indicatorId = normalizeIndicatorToId(indicator) || indicator;
+          const prev = getMultiBucket(team, date, indicatorId);
 
           const green = Number(o.green || 0) || 0;
           const yellow = Number(o.yellow || 0) || 0;
@@ -2293,19 +2641,19 @@
         const entries = Object.entries(trendCounts);
         entries.sort((a, b) => b[1] - a[1]);
         const top = entries[0];
-        if (!top || top[1] === 0) return '—';
-        if (top[0] === 'up') return '↗ Улучшается';
-        if (top[0] === 'stable') return '→ Стабильно';
-        if (top[0] === 'down') return '↘ Ухудшается';
-        return '—';
+        if (!top || top[1] === 0) return t('trendNone');
+        if (top[0] === 'up') return t('trendUp');
+        if (top[0] === 'stable') return t('trendStable');
+        if (top[0] === 'down') return t('trendDown');
+        return t('trendNone');
       }
 
       function worstTrendLabel(trendCounts){
-        if (!trendCounts || typeof trendCounts !== 'object') return '—';
-        if ((trendCounts.down || 0) > 0) return '↘ Ухудшается';
-        if ((trendCounts.stable || 0) > 0) return '→ Стабильно';
-        if ((trendCounts.up || 0) > 0) return '↗ Улучшается';
-        return '—';
+        if (!trendCounts || typeof trendCounts !== 'object') return t('trendNone');
+        if ((trendCounts.down || 0) > 0) return t('trendDown');
+        if ((trendCounts.stable || 0) > 0) return t('trendStable');
+        if ((trendCounts.up || 0) > 0) return t('trendUp');
+        return t('trendNone');
       }
 
       function pickMajorityStatus(bucket){
@@ -2335,11 +2683,41 @@
         return '—';
       }
 
+      function labelStatusEn(s){
+        if (s === 'green') return 'Green';
+        if (s === 'yellow') return 'Yellow';
+        if (s === 'red') return 'Red';
+        return '—';
+      }
+
       function labelTrendRu(t){
         if (t === 'up') return '↗ Улучшается';
         if (t === 'stable') return '→ Стабильно';
         if (t === 'down') return '↘ Ухудшается';
+        if (typeof t === 'string' && t.includes('↗')) return '↗ Улучшается';
+        if (typeof t === 'string' && t.includes('→')) return '→ Стабильно';
+        if (typeof t === 'string' && t.includes('↘')) return '↘ Ухудшается';
         return '—';
+      }
+
+      function labelTrendEn(t){
+        if (t === 'up') return '↗ Improving';
+        if (t === 'stable') return '→ Stable';
+        if (t === 'down') return '↘ Worsening';
+        if (typeof t === 'string' && t.includes('↗')) return '↗ Improving';
+        if (typeof t === 'string' && t.includes('→')) return '→ Stable';
+        if (typeof t === 'string' && t.includes('↘')) return '↘ Worsening';
+        return '—';
+      }
+
+      function trendLabelToCode(v){
+        if (!v) return '';
+        if (v === 'up' || v === 'stable' || v === 'down') return v;
+        const s = String(v);
+        if (s.includes('↗')) return 'up';
+        if (s.includes('→')) return 'stable';
+        if (s.includes('↘')) return 'down';
+        return '';
       }
 
       function escapeAttr(s){
@@ -2404,34 +2782,41 @@
           const tr = document.createElement('tr');
           const th = document.createElement('th');
           th.scope = 'row';
-          const shortLabel = ind.short || ind.title;
-          const indTip = `${ind.title}\n\nЗеленый: ${ind.awesome}\nКрасный: ${ind.crappy}`;
+          const shortLabel = indShort(ind);
+          const indTip = `${indTitle(ind)}\n\n${t('greenPrefix')}: ${indAwesome(ind)}\n${t('redPrefix')}: ${indCrappy(ind)}`;
           th.innerHTML = `<div class="glassCard"><div class="glassPad smPadTight" title="${escapeAttr(indTip)}"><strong>${escapeAttr(shortLabel)}</strong></div></div>`;
           tr.appendChild(th);
 
           for (const team of teams){
             const date = latest.get(team);
-            const b = getBucket(team, date, ind.title);
+            const b = getBucket(team, date, ind.id);
             const status = worstStatus(b);
             const trendLabel = b ? worstTrendLabel(b.trendCounts) : '—';
+            const trendCode = trendLabelToCode(trendLabel);
 
             const cls = status === 'green' ? 'ok' : status === 'yellow' ? 'warn' : status === 'red' ? 'bad' : '';
             const trendChar = trendLabel.includes('↗') ? '↗' : trendLabel.includes('↘') ? '↘' : trendLabel.includes('→') ? '→' : '—';
-            const aria = `${team}${date ? `, ${date}` : ''}: ${ind.title}. Статус: ${labelStatusRu(status)}. Тренд: ${trendLabel || '—'}.`;
+            const labelStatus = lang === 'en' ? labelStatusEn : labelStatusRu;
+            const labelTrend = lang === 'en' ? labelTrendEn : labelTrendRu;
+            const aria = lang === 'en'
+              ? `${team}${date ? `, ${date}` : ''}: ${indTitle(ind)}. Status: ${labelStatus(status)}. Trend: ${labelTrend(trendCode) || '—'}.`
+              : `${team}${date ? `, ${date}` : ''}: ${indTitle(ind)}. Статус: ${labelStatus(status)}. Тренд: ${labelTrend(trendCode) || '—'}.`;
 
             const tip = (() => {
               if (!b) return '';
               const votes = Array.isArray(b.votes) ? b.votes : [];
               if (votes.length){
                 const lines = votes.map((v) => {
-                  const who = (v.participantName || v.participantId || 'Участник').trim();
-                  const st = labelStatusRu(v.status);
-                  const tr = labelTrendRu(v.trend);
+                  const who = (v.participantName || v.participantId || (lang === 'en' ? 'Participant' : 'Участник')).trim();
+                  const st = labelStatus(lang === 'en' ? v.status : v.status);
+                  const tr = labelTrend(lang === 'en' ? v.trend : v.trend);
                   return `${who}: ${st}, ${tr}`;
                 });
                 return lines.join('\n');
               }
-              return `Green: ${b.green || 0}\nYellow: ${b.yellow || 0}\nRed: ${b.red || 0}`;
+              return lang === 'en'
+                ? `Green: ${b.green || 0}\nYellow: ${b.yellow || 0}\nRed: ${b.red || 0}`
+                : `Зелёный: ${b.green || 0}\nЖёлтый: ${b.yellow || 0}\nКрасный: ${b.red || 0}`;
             })();
 
             const td = document.createElement('td');
