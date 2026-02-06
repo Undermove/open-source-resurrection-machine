@@ -4,963 +4,253 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Team Health Check (Spotify model) — CSV export</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet" />
   <style>
-    :root{
-      --bg0:#f6f7fb;
-      --bg1:#ffffff;
-      --panel:#ffffff;
-      --stroke:rgba(15, 23, 42, .10);
-      --stroke2:rgba(15, 23, 42, .08);
-      --text:#0f172a;
-      --muted:rgba(15, 23, 42, .62);
-      --accent:#2563eb;
-      --ok:#16a34a;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --shadow: 0 14px 45px rgba(2, 6, 23, .10);
-      --shadow2: 0 10px 24px rgba(2, 6, 23, .08);
-      --chip: rgba(15, 23, 42, .05);
-      --chip2: rgba(15, 23, 42, .08);
-      --radius: 14px;
-      --glass: rgba(255,255,255,.58);
-      --glass2: rgba(255,255,255,.72);
+    /* ===== RESET ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    .sumCell{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 10px;
-      min-height: 34px;
-    }
-    .sumDot{
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .10);
-      border: 2px solid color-mix(in srgb, var(--glass2) 70%, transparent);
-    }
-    .sumDot.ok{ background: var(--ok); }
-    .sumDot.warn{ background: var(--warn); }
-    .sumDot.bad{ background: var(--bad); }
-    .sumTrend{
-      font-weight: 900;
-      font-size: 14px;
-      letter-spacing: .2px;
+    /* ===== CUSTOM PROPERTIES ===== */
+    :root {
+      --bg: #FAF6F1;
+      --text: #2D2319;
+      --accent: #C4593A;
+      --ok: #5A8A58;
+      --warn: #C9963A;
+      --bad: #BE4D3A;
+      --card: #FFFFFF;
+      --card-shadow: 0 8px 32px rgba(45,35,25,0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --muted: rgba(45,35,25,0.55);
+      --stroke: rgba(45,35,25,0.10);
     }
 
-    .smPad{ padding: 8px 10px; }
-    .smPadTight{ padding: 6px 10px; }
-
-    #multiTable{
-      border-spacing: 4px;
-      table-layout: fixed;
-    }
-    #multiTable tbody tr{ height: auto; }
-
-    .multiWrapHidden{ display:none; }
-
-    .dropzone{
-      border-radius: var(--radius);
-      border: 2px dashed color-mix(in srgb, var(--accent) 28%, var(--stroke));
-      background: color-mix(in srgb, var(--glass) 82%, transparent);
-      box-shadow: 0 14px 30px rgba(2, 6, 23, .10);
-      backdrop-filter: blur(14px);
-      padding: 22px 18px;
-      min-height: 120px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      color: color-mix(in srgb, var(--text) 90%, transparent);
-    }
-    .dropzone strong{ display:block; font-size: 14px; margin-bottom: 6px; }
-    .dropzone .muted{ color: var(--muted); font-size: 12px; line-height: 1.35; }
-    .dropzone.dragover{
-      border-color: color-mix(in srgb, var(--accent) 55%, var(--stroke));
-      box-shadow: 0 18px 40px rgba(2, 6, 23, .14);
+    /* ===== CANVAS GRAIN (inline SVG filter) ===== */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.028;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
     }
 
-    .multiFileInput{
-      position:absolute;
-      width:1px;
-      height:1px;
-      padding:0;
-      margin:-1px;
-      overflow:hidden;
-      clip:rect(0,0,0,0);
-      white-space:nowrap;
-      border:0;
+    /* ===== BASE TYPOGRAPHY & BODY ===== */
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
     }
 
-    /* Multi table: equal column widths and equal row heights */
-    #multiTable th,
-    #multiTable td{ width: 150px; min-width: 150px; max-width: 150px; }
-    #multiTable thead th,
-    #multiTable tbody th,
-    #multiTable tbody td{ vertical-align: middle; }
-    #multiTable thead th{ height: 44px; }
-    #multiTable tbody tr{ height: 44px; }
-    #multiTable .glassPad{ padding: 6px 10px; }
-
-    #multiTable tbody th .glassPad,
-    #multiTable tbody td .glassPad{
-      height: 44px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    #multiTable tbody th .glassPad{
-      justify-content:flex-start;
-    }
-
-    #multiTable tbody th .glassPad strong{
-      display:block;
-      width:100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    html, body{
-      margin:0;
-      min-height:100%;
-      background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 60%);
-      color:var(--text);
-      font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
-    }
-
-    body{
+    body {
       min-height: 100dvh;
-      display:flex;
+      display: flex;
       flex-direction: column;
     }
 
-    main#main{
-      flex: 1 1 auto;
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+      font-weight: 700;
+      line-height: 1.25;
     }
 
-    @media (prefers-color-scheme: dark){
-      :root{
-        --bg0:#07070b;
-        --bg1:#0d0d16;
-        --panel:rgba(0,0,0,.22);
-        --stroke:rgba(255,255,255,.12);
-        --stroke2:rgba(255,255,255,.08);
-        --text:#e9e9f3;
-        --muted:rgba(233,233,243,.72);
-        --accent:#7cd1ff;
-        --ok:#7aff8f;
-        --warn:#ffcf5b;
-        --bad:#ff6b6b;
-        --shadow: 0 14px 45px rgba(0,0,0,.55);
-        --shadow2: 0 10px 24px rgba(0,0,0,.45);
-        --chip: rgba(255,255,255,.06);
-        --chip2: rgba(255,255,255,.10);
-        --glass: rgba(10,10,16,.46);
-        --glass2: rgba(10,10,16,.58);
-      }
+    a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    a:hover {
+      text-decoration-thickness: 2px;
+    }
+    a:focus-visible {
+      outline: 2px dashed var(--accent);
+      outline-offset: 3px;
     }
 
-    a{ color: inherit; text-decoration: underline; }
-    a:focus-visible{ outline:2px dashed var(--accent); outline-offset: 3px; }
+    /* ===== SCREEN READER ONLY ===== */
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
 
-    .skip{
-      position:absolute;
-      top:0;
-      left:0;
+    /* ===== SKIP LINK ===== */
+    .skip {
+      position: absolute;
+      top: 0;
+      left: 0;
       transform: translateY(-120%);
-      padding:10px 12px;
-      background: rgba(0,0,0,.75);
-      border: 1px solid var(--stroke);
-      border-radius: 0 0 10px 0;
-      color: var(--text);
+      padding: 10px 14px;
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 0 0 var(--radius-sm) 0;
+      font-weight: 600;
       z-index: 50;
+      text-decoration: none;
     }
-    .skip:focus{ transform: translateY(0); }
+    .skip:focus {
+      transform: translateY(0);
+    }
 
-    header{
-      padding: 18px clamp(14px, 4vw, 28px);
-      border-bottom: 1px solid var(--stroke2);
-      background: color-mix(in srgb, var(--panel) 86%, transparent);
+    /* ===== HEADER ===== */
+    header {
+      padding: 16px clamp(16px, 4vw, 32px);
+      border-bottom: 1px solid var(--stroke);
+      background: rgba(250,246,241,0.88);
+      backdrop-filter: blur(12px);
       position: sticky;
       top: 0;
-      backdrop-filter: blur(10px);
       z-index: 10;
     }
-    header .row{
-      display:flex;
-      gap: 12px;
-      align-items: baseline;
+    header .row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       max-width: 1100px;
       margin: 0 auto;
     }
-
-    .headRight{
-      display:flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+    header h1 {
+      font-size: clamp(18px, 2.4vw, 26px);
+      font-optical-sizing: auto;
+      letter-spacing: -0.01em;
     }
 
-    .langToggle{
-      display:inline-flex;
-      gap: 6px;
+    /* Mode toggle (center pills) */
+    .modeToggle {
+      display: inline-flex;
+      gap: 0;
       padding: 4px;
       border-radius: 999px;
       border: 1px solid var(--stroke);
-      background: color-mix(in srgb, var(--glass2) 74%, transparent);
-      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+      background: rgba(255,255,255,0.6);
     }
-    .langToggle:not(:hover):not(:focus-within) .langBtn{
-      display:none;
-    }
-    .langToggle:not(:hover):not(:focus-within) .langBtn[aria-pressed="true"]{
-      display:inline-flex;
-    }
-    .langBtn{
+    .modeBtn {
       border-radius: 999px;
-      padding: 8px 10px;
+      padding: 7px 16px;
       border: none;
       background: transparent;
       color: var(--text);
       font: inherit;
-      font-weight: 900;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       line-height: 1;
       white-space: nowrap;
+      transition: background 0.15s, box-shadow 0.15s;
     }
-    .langBtn[aria-pressed="true"]{
-      background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .10);
+    .modeBtn[aria-pressed="true"] {
+      background: var(--card);
+      box-shadow: 0 2px 8px rgba(45,35,25,0.10);
     }
-    .langBtn:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
-    header h1{
-      margin:0;
-      font-size: clamp(18px, 2.4vw, 24px);
-      letter-spacing: .2px;
-    }
-    header p{
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-      max-width: 74ch;
-    }
-
-    main{ padding: 18px clamp(14px, 4vw, 28px) 34px; }
-    .wrap{
-      max-width: 1100px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-
-    .toolbar{
-      display:flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
-    .toolbar .left{
-      display:flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .toolbar .hint{
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.4;
-      max-width: 72ch;
-    }
-
-    .panel{
-      background: var(--panel);
-      border: none;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      overflow:hidden;
-    }
-    .panel .hd{
-      padding: 12px 14px;
-      border-bottom: none;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .panel .hd h2{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: .2px;
-    }
-    .panel .bd{ padding: 14px; }
-
-    label{ display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    input[type="text"], input[type="date"], textarea{
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: 12px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 86%, transparent);
-      color: var(--text);
-      padding: 10px 12px;
-      font: inherit;
-      outline: none;
-      box-shadow: 0 10px 24px rgba(2, 6, 23, .06);
-    }
-    textarea{ min-height: 92px; resize: vertical; }
-    input[type="text"]:focus-visible, input[type="date"]:focus-visible, textarea:focus-visible{
+    .modeBtn:focus-visible {
       outline: 2px dashed var(--accent);
       outline-offset: 2px;
     }
 
-    .matrixWrap{
-      overflow:auto;
-      border-radius: var(--radius);
+    /* Language toggle (right) */
+    .langToggle {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.6);
+    }
+    .langBtn {
+      border-radius: 999px;
+      padding: 7px 10px;
       border: none;
       background: transparent;
-      box-shadow: none;
-    }
-    table.matrix{
-      width: max-content;
-      border-collapse: separate;
-      border-spacing: 6px;
-      table-layout: fixed;
-    }
-    table.matrix th, table.matrix td{
-      border-right: none;
-      border-bottom: none;
-      vertical-align: top;
-      padding: 0;
-      background: transparent;
-    }
-    table.matrix thead th{
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: transparent;
-      backdrop-filter: blur(10px);
-    }
-    table.matrix th:first-child,
-    table.matrix td:first-child{
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      background: transparent;
-      backdrop-filter: blur(10px);
-      width: 300px;
-      min-width: 300px;
-      max-width: 300px;
-    }
-    table.matrix thead th:first-child{
-      z-index: 3;
-    }
-
-    .glassCard{
-      background: color-mix(in srgb, var(--glass) 92%, transparent);
-      border-radius: var(--radius);
-      box-shadow: 0 12px 28px rgba(2, 6, 23, .10);
-      backdrop-filter: blur(14px);
-      overflow:hidden;
-    }
-    .glassCard:hover{
-      box-shadow: 0 16px 36px rgba(2, 6, 23, .14);
-    }
-    .glassPad{ padding: 12px; }
-
-    .indicatorCard{
-      display:grid;
-      grid-template-columns: 54px 1fr;
-      gap: 10px;
-      align-items: start;
-    }
-
-    .indicatorFixed{
-      width: 300px;
-      height: 360px;
-      min-height: 360px;
-      max-height: 360px;
-    }
-
-    .indicatorFixed .glassPad{
-      height: 360px;
-      box-sizing: border-box;
-      overflow: hidden;
-      padding: 0;
-    }
-
-    .indicatorFixed .glassPad.indicatorCard{
-      height: 100%;
-    }
-
-    .indicatorFixed .indicatorCard{
-      height: 100%;
-      align-items: stretch;
-    }
-
-    .indicatorFixed .indicatorCard > div:last-child{
-      min-width: 0;
-      min-height: 0;
-    }
-
-    .indicatorFixed .indicatorTitleV{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      height: 100%;
-      align-self: stretch;
-      border-radius: 0;
-      border-top-left-radius: var(--radius);
-      border-bottom-left-radius: var(--radius);
-      box-shadow: none;
-    }
-
-    .indicatorText{
-      width: 100%;
-      height: 100%;
-      min-width: 0;
-      min-height: 0;
-      display:flex;
-      flex-direction: column;
-      align-items: flex-start;
-      text-align: left;
-      gap: 8px;
-      justify-content: center;
-      overflow: auto;
-      padding: 12px 28px 12px 12px;
-      box-sizing: border-box;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .indicatorText .indTitle,
-    .indicatorText .indMeta{
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      hyphens: auto;
-    }
-
-    .indicatorText::-webkit-scrollbar{ width: 8px; }
-    .indicatorText::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.18); border-radius: 999px; }
-    @media (prefers-color-scheme: dark){
-      .indicatorText::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); }
-    }
-
-    table.matrix tbody tr{ height: 360px; }
-
-    .cellFixed{
-      height: 360px;
-    }
-
-    .cellFixed .glassPad{
-      height: 360px;
-      box-sizing: border-box;
-    }
-
-    .cellFixed .cell{
-      height: 100%;
-      align-content: center;
-      justify-items: center;
-    }
-
-    .cellFixed .cell > *{
-      width: 100%;
-    }
-    .indicatorTitleV{
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      font-weight: 900;
-      letter-spacing: .4px;
-      font-size: 12px;
-      color: color-mix(in srgb, var(--text) 90%, transparent);
-      padding: 0;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--accent) 10%, var(--glass2));
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .indTitle{ font-weight: 900; font-size: 13px; margin: 0; line-height: 1.25; }
-    .indMeta{ color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 0; }
-    .indMeta .k{ font-weight: 800; color: color-mix(in srgb, var(--text) 86%, transparent); }
-
-    .colHead{
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 140px;
-    }
-    .colRow{
-      display:flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .colRow .colTitle{ font-weight: 850; font-size: 13px; }
-    .colRow .colActions{ display:flex; gap: 8px; }
-    .iconBtn{
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
       color: var(--text);
       font: inherit;
-      font-weight: 750;
-      cursor: pointer;
-      line-height: 1;
-      white-space: nowrap;
-    }
-    .iconBtn:hover{ background: rgba(255,255,255,.10); }
-    .iconBtn:active{ transform: translateY(1px); }
-    .iconBtn:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
-
-    .plusBtn{
-      width: 44px;
-      height: 44px;
-      border-radius: 999px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 78%, transparent);
-      color: var(--text);
-      cursor: pointer;
-      font: inherit;
-      font-weight: 900;
-      line-height: 1;
-      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
-    }
-    .plusBtn:hover{ box-shadow: 0 16px 32px rgba(2, 6, 23, .14); }
-    .plusBtn:active{ transform: translateY(1px); }
-    .plusBtn:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
-
-    .colFields{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-
-    .participantCard .glassPad{ padding: 10px; }
-    .colFields input[type="text"],
-    .colFields input[type="date"]{
-      padding: 8px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-    }
-
-    .cell{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-      min-width: 140px;
-    }
-
-    /* Participant columns: keep narrow and don't stretch across the whole viewport */
-    table.matrix thead th:not(:first-child){
-      width: 160px;
-      min-width: 160px;
-      max-width: 160px;
-    }
-    table.matrix thead th:last-child{ /* plus column */
-      width: 84px;
-      min-width: 84px;
-      max-width: 84px;
-    }
-
-    table.matrix tbody td{ width: 160px; min-width: 160px; max-width: 160px; }
-    table.matrix tbody td:last-child{ width: 84px; min-width: 84px; max-width: 84px; }
-
-    /* Let table be content-width, not stretched */
-    #matrixHead, #matrixBody{ width: auto; }
-    .statusDots{
-      display:flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .statusDots input{ position:absolute; opacity:0; pointer-events:none; }
-    .dotLbl{
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 82%, transparent);
-      cursor: pointer;
-      display:inline-flex;
-      align-items: center;
-      justify-content: center;
-      user-select:none;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
-    }
-    .dotLbl:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
-    .dot{
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      display:inline-block;
-    }
-    .dot.ok{ background: var(--ok); }
-    .dot.warn{ background: var(--warn); }
-    .dot.bad{ background: var(--bad); }
-    .statusDots input:checked + .dotLbl{
-      border-color: color-mix(in srgb, var(--accent) 55%, var(--stroke));
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-      background: color-mix(in srgb, var(--accent) 10%, var(--panel));
-    }
-
-    .trendSel{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-    }
-    select{
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: 12px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 82%, transparent);
-      color: var(--text);
-      padding: 8px 10px;
-      font: inherit;
-      font-size: 12px;
-      outline: none;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
-    }
-    select:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
-
-    .trendHidden{
-      display:none;
-    }
-    .noteHidden{
-      display:none;
-    }
-    .trendHint{
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.25;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--glass2) 70%, transparent);
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .06);
-    }
-
-    .cell details{
-      border: none;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--glass2) 72%, transparent);
-      overflow:hidden;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .06);
-    }
-    .cell details summary{
-      cursor: pointer;
-      padding: 10px 12px;
-      font-size: 12px;
-      color: color-mix(in srgb, var(--text) 88%, transparent);
-      user-select: none;
-      background: var(--chip);
-    }
-    .cell details summary:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
-    .cell details .noteBody{ padding: 10px 12px 12px; }
-    .cell details textarea{ min-height: 72px; font-size: 12px; }
-
-    details.notesDetails{
-      border: none;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--glass2) 72%, transparent);
-      overflow:hidden;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .06);
-    }
-    details.notesDetails summary{
-      cursor: pointer;
-      padding: 10px 12px;
-      font-size: 12px;
-      color: color-mix(in srgb, var(--text) 88%, transparent);
-      user-select: none;
-      background: var(--chip);
-    }
-    details.notesDetails summary:focus-visible{ outline:2px dashed var(--accent); outline-offset: 2px; }
-    details.notesDetails .noteBody{ padding: 10px 12px; }
-    details.notesDetails .noteBody textarea{ min-height: 90px; }
-
-    .metaGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    @media (min-width: 860px){
-      .metaGrid{ grid-template-columns: 2fr 1fr 2fr; }
-      .metaGrid .span3{ grid-column: 1 / -1; }
-    }
-
-    .btnrow{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-    }
-
-    .tabbar{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .tabbar .tabsLeft{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .tabbtn{
-      border-radius: 999px;
-      padding: 8px 12px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 70%, transparent);
-      color: var(--text);
-      cursor:pointer;
-      font: inherit;
-      font-weight: 850;
-      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
-    }
-    .tabbtn[aria-selected="true"]{
-      background: color-mix(in srgb, var(--accent) 16%, var(--glass2));
-      box-shadow: 0 16px 32px rgba(2, 6, 23, .14);
-    }
-    .tabbtn:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
-
-    .tourBtn{
-      position: relative;
-      display:inline-flex;
-      align-items:center;
-      gap: 10px;
-      border-radius: 999px;
-      padding: 9px 14px;
-      border: none;
-      cursor: pointer;
-      color: #ffffff;
-      font: inherit;
-      font-weight: 900;
-      letter-spacing: .2px;
-      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 35%, #22d3ee 100%);
-      box-shadow:
-        0 14px 32px rgba(124, 58, 237, .22),
-        0 0 0 1px rgba(255,255,255,.16) inset,
-        0 0 30px rgba(34, 211, 238, .16);
-      overflow: hidden;
-      white-space: nowrap;
-      text-shadow:
-        0 2px 10px rgba(0,0,0,.55),
-        0 1px 0 rgba(0,0,0,.45);
-    }
-    .tourBtn:hover{
-      box-shadow:
-        0 16px 36px rgba(124, 58, 237, .24),
-        0 0 0 1px rgba(255,255,255,.18) inset,
-        0 0 30px rgba(34, 211, 238, .14);
-    }
-    .tourBtn:active{ transform: translateY(1px); }
-    .tourBtn:focus-visible{ outline: 2px dashed color-mix(in srgb, #a855f7 65%, #22d3ee); outline-offset: 2px; }
-    .tourBtn::before{
-      content:"";
-      position:absolute;
-      inset:-40px;
-      z-index: 0;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(34, 211, 238, .35) 0%, transparent 55%),
-        radial-gradient(circle at 80% 40%, rgba(236, 72, 153, .28) 0%, transparent 52%),
-        radial-gradient(circle at 45% 120%, rgba(167, 139, 250, .35) 0%, transparent 60%);
-      filter: blur(18px);
-      opacity: .62;
-      pointer-events:none;
-    }
-    .tourBtn:hover::before{ opacity: .56; }
-    .tourBtn > *{
-      position: relative;
-      z-index: 1;
-    }
-    .tourBtn .i{
-      width: 18px;
-      height: 18px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      flex: 0 0 auto;
-    }
-    .tourBtn svg{ width: 18px; height: 18px; }
-
-    .tourOverlay{
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      display:none;
-    }
-    .tourOverlay[data-open="true"]{ display:block; }
-
-    .tourDim{
-      position:absolute;
-      inset: 0;
-      background: transparent;
-      pointer-events: none;
-    }
-
-    .tourSpot{
-      position: absolute;
-      border-radius: 16px;
-      box-shadow:
-        0 0 0 9999px rgba(2, 6, 23, .62),
-        0 0 0 2px rgba(255,255,255,.28),
-        0 16px 42px rgba(0,0,0,.35);
-      pointer-events: none;
-    }
-
-    .tourTooltip{
-      position: absolute;
-      width: min(420px, calc(100vw - 28px));
-      max-width: 420px;
-      border-radius: var(--radius);
-      background: color-mix(in srgb, var(--panel) 92%, transparent);
-      box-shadow: var(--shadow);
-      border: 1px solid color-mix(in srgb, var(--stroke) 75%, transparent);
-      padding: 12px 12px 10px;
-      pointer-events: auto;
-    }
-    .tourTooltip h3{
-      margin: 0;
       font-size: 13px;
-      letter-spacing: .2px;
-    }
-    .tourTooltip p{
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.55;
-    }
-    .tourTooltip .tourFooter{
-      margin-top: 12px;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .tourTooltip .tourSteps{
-      color: var(--muted);
-      font-size: 12px;
-      user-select: none;
-    }
-    .tourTooltip .tourBtns{
-      display:flex;
-      gap: 8px;
-      align-items:center;
-    }
-    .tourMiniBtn{
-      border-radius: 999px;
-      padding: 8px 10px;
-      border: 1px solid color-mix(in srgb, var(--stroke) 70%, transparent);
-      background: color-mix(in srgb, var(--glass2) 76%, transparent);
-      color: var(--text);
-      font: inherit;
-      font-weight: 850;
-      cursor: pointer;
-      box-shadow: 0 10px 18px rgba(2, 6, 23, .08);
-    }
-    .tourMiniBtn:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
-    .tourMiniBtn[disabled]{ opacity: .5; cursor: not-allowed; }
-
-    @media (prefers-reduced-motion: reduce){
-      .tourBtn{ transition: none; }
-    }
-
-    .fileRow{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    input[type="file"]{
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: 12px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 86%, transparent);
-      color: var(--text);
-      padding: 10px 12px;
-      font: inherit;
-      outline: none;
-      box-shadow: 0 10px 24px rgba(2, 6, 23, .06);
-    }
-    input[type="file"]:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
-
-    button{
-      border-radius: 12px;
-      padding: 10px 12px;
-      border: none;
-      background: color-mix(in srgb, var(--glass2) 78%, transparent);
-      color: var(--text);
-      cursor:pointer;
-      font: inherit;
       font-weight: 700;
-      box-shadow: 0 12px 24px rgba(2, 6, 23, .10);
+      cursor: pointer;
+      line-height: 1;
+      white-space: nowrap;
+      transition: background 0.15s, box-shadow 0.15s;
     }
-    button:hover{ background: rgba(255,255,255,.10); }
-    button:active{ transform: translateY(1px); }
-    button:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 2px; }
+    .langBtn[aria-pressed="true"] {
+      background: var(--card);
+      box-shadow: 0 2px 8px rgba(45,35,25,0.10);
+    }
+    .langBtn:focus-visible {
+      outline: 2px dashed var(--accent);
+      outline-offset: 2px;
+    }
 
-    .status{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-wrap: wrap;
+    /* ===== MAIN ===== */
+    main#main {
+      flex: 1 1 auto;
+      padding: 24px clamp(16px, 4vw, 32px) 40px;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ===== SCREEN VISIBILITY ===== */
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 16px clamp(16px, 4vw, 32px) 24px;
       color: var(--muted);
-      font-size: 12px;
-    }
-
-    .sr{
-      position:absolute;
-      width:1px;
-      height:1px;
-      padding:0;
-      margin:-1px;
-      overflow:hidden;
-      clip: rect(0,0,0,0);
-      white-space:nowrap;
-      border:0;
-    }
-
-    footer{
-      padding: 14px clamp(14px, 4vw, 28px) 24px;
-      color: color-mix(in srgb, var(--text) 88%, transparent);
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.5;
-      border-top: 1px solid var(--stroke2);
-      background: color-mix(in srgb, var(--panel) 78%, transparent);
+      border-top: 1px solid var(--stroke);
     }
-    footer .wrap{ max-width: 1100px; margin: 0 auto; }
-    footer .row{
-      display:flex;
-      align-items:center;
+    footer .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    footer .row {
+      display: flex;
+      gap: 16px;
+      align-items: baseline;
       justify-content: space-between;
-      gap: 12px;
       flex-wrap: wrap;
     }
-    footer a{ color: var(--accent); text-decoration: underline; }
-    footer a:hover{ text-decoration-thickness: 2px; }
+    footer a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+    footer a:hover {
+      text-decoration-thickness: 2px;
+    }
 
-      *{ scroll-behavior: auto; }
+    /* ===== REDUCED MOTION ===== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
@@ -969,132 +259,24 @@
 
   <header>
     <div class="row">
-      <div>
-        <h1>Team Health Check (Spotify Squad Health Check)</h1>
+      <h1 id="appTitle">Team Health Check</h1>
+      <div class="modeToggle" role="group" aria-label="Mode">
+        <button id="modeSession" class="modeBtn" type="button" aria-pressed="true">Run Session</button>
+        <button id="modeCompare" class="modeBtn" type="button" aria-pressed="false">Compare Teams</button>
       </div>
-      <div class="headRight">
-        <div class="langToggle" role="group" aria-label="Language">
-          <button id="langEn" class="langBtn" type="button" aria-pressed="false">🇬🇧 EN</button>
-          <button id="langRu" class="langBtn" type="button" aria-pressed="true">🇷🇺 RU</button>
-        </div>
+      <div class="langToggle" role="group" aria-label="Language">
+        <button id="langEn" class="langBtn" type="button" aria-pressed="false">EN</button>
+        <button id="langRu" class="langBtn" type="button" aria-pressed="true">RU</button>
       </div>
     </div>
   </header>
 
   <main id="main">
     <div class="wrap">
-      <div class="tabbar" role="tablist" aria-label="Sections">
-        <div class="tabsLeft">
-          <button class="tabbtn" id="tabMatrix" type="button" role="tab" aria-selected="true" aria-controls="matrixPanel">Checklist</button>
-          <button class="tabbtn" id="tabMulti" type="button" role="tab" aria-selected="false" aria-controls="multiPanel">Multi-file summary</button>
-        </div>
-        <button class="tourBtn" id="btnTour" type="button">
-          <span class="i" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 21h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M12 2a7 7 0 0 0-4 12.75c.58.44 1 1.13 1 1.85V17h6v-.4c0-.72.42-1.41 1-1.85A7 7 0 0 0 12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          How to use?
-        </button>
-      </div>
-
-      <div class="tourOverlay" id="tourOverlay" data-open="false" aria-hidden="true">
-        <div class="tourDim" aria-hidden="true"></div>
-        <div class="tourSpot" id="tourSpot" aria-hidden="true"></div>
-        <div class="tourTooltip" id="tourTip" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourBody" tabindex="-1">
-          <h3 id="tourTitle"></h3>
-          <p id="tourBody"></p>
-          <div class="tourFooter">
-            <div class="tourSteps" id="tourSteps" aria-live="polite"></div>
-            <div class="tourBtns">
-              <button class="tourMiniBtn" id="tourPrev" type="button">Back</button>
-              <button class="tourMiniBtn" id="tourNext" type="button">Next</button>
-              <button class="tourMiniBtn" id="tourDone" type="button">Done</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <section class="panel" aria-label="Metadata" id="sessionPanel">
-        <div class="hd">
-          <h2>Session</h2>
-          <div class="status">
-            <div id="autosaveStatus" aria-live="polite"></div>
-            <div class="btnrow">
-              <button id="btnExport" type="button">Download CSV</button>
-              <button id="btnReset" type="button">Reset</button>
-            </div>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="metaGrid">
-            <div>
-              <label for="teamName">Team</label>
-              <input id="teamName" name="teamName" type="text" autocomplete="organization" />
-            </div>
-            <div>
-              <label for="checkDate">Date</label>
-              <input id="checkDate" name="checkDate" type="date" />
-            </div>
-            <div>
-              <label for="facilitator">Facilitator / Author</label>
-              <input id="facilitator" name="facilitator" type="text" autocomplete="name" />
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <section class="panel" aria-label="Multi-file summary" id="multiPanel" style="display:none;">
-        <div class="hd">
-          <div class="toolbar">
-            <div class="left">
-              <h2 class="sr">Multi-file summary</h2>
-            </div>
-            <div class="btnrow" id="multiActions" style="display:none;">
-              <button id="btnClearMulti" type="button">Clear</button>
-              <button id="btnExportMulti" type="button">Download CSV (summary)</button>
-            </div>
-          </div>
-        </div>
-        <div class="bd">
-          <input id="multiFiles" class="multiFileInput" type="file" accept=".csv,text/csv" multiple />
-
-          <label id="multiDrop" class="dropzone" for="multiFiles">
-            <div>
-              <strong>Drop CSV files here</strong>
-              <div class="muted">or click to select multiple team healthcheck CSV files</div>
-            </div>
-          </label>
-
-          <div id="multiTableWrap" class="matrixWrap multiWrapHidden" role="region" aria-label="Multi-file summary table" tabindex="0">
-            <table class="matrix" id="multiTable">
-              <thead id="multiHead"></thead>
-              <tbody id="multiBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel" aria-label="Health Check matrix" id="matrixPanel">
-        <div class="hd">
-          <div class="toolbar">
-            <div class="left">
-              <h2 style="margin:0;">Squad Health Checklist</h2>
-            </div>
-          </div>
-        </div>
-        <div class="bd">
-          <div class="matrixWrap" role="region" aria-label="Team Health Check matrix" tabindex="0">
-            <table class="matrix" id="matrix">
-              <thead id="matrixHead"></thead>
-              <tbody id="matrixBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      <div id="setupScreen" class="screen active"></div>
+      <div id="cardScreen" class="screen"></div>
+      <div id="resultsScreen" class="screen"></div>
+      <div id="compareScreen" class="screen"></div>
     </div>
   </main>
 
@@ -1115,10 +297,13 @@
 
   <script>
     (() => {
+      // ===== CONSTANTS =====
       const LANG_KEY = 'teamHealthCheck_lang_v1';
-      const STORAGE_KEY = 'teamHealthCheck_matrix_v1';
+      const STORAGE_KEY = 'teamHealthCheck_v2';
+      const OLD_STORAGE_KEY = 'teamHealthCheck_matrix_v1';
       const LEGACY_STORAGE_KEY = 'teamHealthCheck_v1';
 
+      // ===== I18N DICTIONARY =====
       const I18N = {
         ru: {
           langLabel: 'Язык',
@@ -1170,6 +355,26 @@
           otherProjects: 'Посмотреть другие проекты',
           footerLeft: 'Модель сделана на основе Spotify Engineering:',
           telegramCreditHtml: 'Сделано для канала <a href="https://t.me/dimasshortposts" target="_blank" rel="noopener noreferrer">@dimasshortposts</a>',
+          // New keys for redesign
+          'setup.title': 'Настройка сессии',
+          'setup.startSession': 'Начать сессию',
+          'setup.addParticipant': 'Добавить',
+          'setup.resumePrompt': 'Продолжить предыдущую сессию?',
+          'setup.resumeYes': 'Продолжить',
+          'setup.resumeNo': 'Начать заново',
+          'card.healthy': 'Здорово',
+          'card.unhealthy': 'Плохо',
+          'card.prev': 'Назад',
+          'card.next': 'Далее',
+          'card.finish': 'Завершить',
+          'card.notePlaceholder': 'Добавить заметку...',
+          'results.title': 'Результаты',
+          'results.overallNotes': 'Общие заметки',
+          'results.overallNotesPlaceholder': 'Заметки фасилитатора...',
+          'results.backToReview': 'Вернуться к обзору',
+          'results.exportCsv': 'Скачать CSV',
+          'mode.session': 'Сессия',
+          'mode.compare': 'Сравнение команд',
           tour: {
             prev: 'Назад',
             next: 'Далее',
@@ -1249,6 +454,26 @@
           otherProjects: 'View other projects',
           footerLeft: 'Based on Spotify Engineering:',
           telegramCreditHtml: 'Made for the channel <a href="https://t.me/dimasshortposts" target="_blank" rel="noopener noreferrer">@dimasshortposts</a>',
+          // New keys for redesign
+          'setup.title': 'Session Setup',
+          'setup.startSession': 'Start Session',
+          'setup.addParticipant': 'Add',
+          'setup.resumePrompt': 'Resume previous session?',
+          'setup.resumeYes': 'Resume',
+          'setup.resumeNo': 'Start fresh',
+          'card.healthy': 'Healthy',
+          'card.unhealthy': 'Unhealthy',
+          'card.prev': 'Previous',
+          'card.next': 'Next',
+          'card.finish': 'Finish',
+          'card.notePlaceholder': 'Add a note...',
+          'results.title': 'Results',
+          'results.overallNotes': 'Overall notes',
+          'results.overallNotesPlaceholder': 'Facilitator notes...',
+          'results.backToReview': 'Back to review',
+          'results.exportCsv': 'Export CSV',
+          'mode.session': 'Run Session',
+          'mode.compare': 'Compare Teams',
           tour: {
             prev: 'Back',
             next: 'Next',
@@ -1280,53 +505,75 @@
         }
       };
 
-      function getLang(){
-        try{
+      // ===== LANGUAGE FUNCTIONS =====
+      function getLang() {
+        try {
           const url = new URL(window.location.href);
           const fromUrl = url.searchParams.get('lang');
           if (fromUrl === 'en' || fromUrl === 'ru') return fromUrl;
-        }catch(_){ }
-        try{
+        } catch(_) {}
+        try {
           const saved = localStorage.getItem(LANG_KEY);
           if (saved === 'en' || saved === 'ru') return saved;
-        }catch(_){ }
+        } catch(_) {}
         return 'en';
       }
 
       let lang = getLang();
 
-      function t(key){
+      function t(key) {
         const dict = I18N[lang] || I18N.ru;
+        // Support dot notation for nested keys like 'tour.prev'
+        // First try direct property (for keys like 'setup.title' stored as string keys)
+        if (Object.prototype.hasOwnProperty.call(dict, key)) return dict[key];
+        // Then try dot-path traversal (for nested objects like tour.prev)
         const parts = String(key).split('.');
         let cur = dict;
-        for (const p of parts){
+        for (const p of parts) {
           if (!cur || typeof cur !== 'object') return '';
           cur = cur[p];
         }
         return cur;
       }
 
-      function setLang(next){
+      function setLang(next) {
         lang = next === 'en' ? 'en' : 'ru';
-        try{ localStorage.setItem(LANG_KEY, lang); }catch(_){ }
+        try { localStorage.setItem(LANG_KEY, lang); } catch(_) {}
 
-        try{
+        try {
           const url = new URL(window.location.href);
           url.searchParams.set('lang', lang);
           window.history.replaceState({}, '', url);
-        }catch(_){ }
+        } catch(_) {}
 
-        applyLanguage();
-        render();
+        document.documentElement.lang = lang;
+
+        const langRuBtn = document.getElementById('langRu');
+        const langEnBtn = document.getElementById('langEn');
         if (langRuBtn) langRuBtn.setAttribute('aria-pressed', lang === 'ru' ? 'true' : 'false');
         if (langEnBtn) langEnBtn.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
+
+        // Update mode toggle labels
+        const modeSession = document.getElementById('modeSession');
+        const modeCompare = document.getElementById('modeCompare');
+        if (modeSession) modeSession.textContent = t('mode.session');
+        if (modeCompare) modeCompare.textContent = t('mode.compare');
+
+        // Update footer
+        const footerLeft = document.getElementById('footerLeft');
+        if (footerLeft) footerLeft.firstChild.nodeValue = `${t('footerLeft')} `;
+        const telegramCredit = document.getElementById('telegramCredit');
+        if (telegramCredit) telegramCredit.innerHTML = t('telegramCreditHtml');
+        const otherProjectsLink = document.getElementById('otherProjectsLink');
+        if (otherProjectsLink) otherProjectsLink.textContent = t('otherProjects');
       }
 
-      function indTitle(ind){ return lang === 'en' ? (ind.titleEn || ind.title) : ind.title; }
-      function indShort(ind){ return lang === 'en' ? (ind.shortEn || ind.short || indTitle(ind)) : (ind.short || indTitle(ind)); }
-      function indAwesome(ind){ return lang === 'en' ? (ind.awesomeEn || ind.awesome) : ind.awesome; }
-      function indCrappy(ind){ return lang === 'en' ? (ind.crappyEn || ind.crappy) : ind.crappy; }
+      function indTitle(ind) { return lang === 'en' ? (ind.titleEn || ind.title) : ind.title; }
+      function indShort(ind) { return lang === 'en' ? (ind.shortEn || ind.short || indTitle(ind)) : (ind.short || indTitle(ind)); }
+      function indAwesome(ind) { return lang === 'en' ? (ind.awesomeEn || ind.awesome) : ind.awesome; }
+      function indCrappy(ind) { return lang === 'en' ? (ind.crappyEn || ind.crappy) : ind.crappy; }
 
+      // ===== INDICATORS =====
       const indicators = [
         {
           id: 'value',
@@ -1440,111 +687,124 @@
         }
       ];
 
+      // ===== INDICATOR NAME LOOKUP =====
       const indicatorNameToId = (() => {
         const m = new Map();
-        for (const ind of indicators){
+        for (const ind of indicators) {
           const all = [
             ind.title,
             ind.short,
             ind.titleEn,
             ind.shortEn
           ].filter(Boolean);
-          for (const v of all){
+          for (const v of all) {
             m.set(String(v).trim().toLowerCase(), ind.id);
           }
         }
         return m;
       })();
 
-      function normalizeIndicatorToId(v){
+      function normalizeIndicatorToId(v) {
         const key = String(v || '').trim().toLowerCase();
         return indicatorNameToId.get(key) || null;
       }
 
-      const $ = (id) => document.getElementById(id);
-
-      const prefersReducedMotion = (() => {
-        try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
-      })();
-
-      const autosaveStatus = $('autosaveStatus');
-      const teamNameEl = $('teamName');
-      const checkDateEl = $('checkDate');
-      const facilitatorEl = $('facilitator');
-      const matrixEl = $('matrix');
-      const matrixHeadEl = $('matrixHead');
-      const matrixBodyEl = $('matrixBody');
-      const btnExport = $('btnExport');
-      const btnReset = $('btnReset');
-
-      const tabMatrix = $('tabMatrix');
-      const tabMulti = $('tabMulti');
-      const langRuBtn = $('langRu');
-      const langEnBtn = $('langEn');
-      const sessionPanel = $('sessionPanel');
-      const matrixPanel = $('matrixPanel');
-      const multiPanel = $('multiPanel');
-      const multiFiles = $('multiFiles');
-      const multiDrop = $('multiDrop');
-      const multiActions = $('multiActions');
-      const multiTableWrap = $('multiTableWrap');
-      const multiHeadEl = $('multiHead');
-      const multiBodyEl = $('multiBody');
-      const btnClearMulti = $('btnClearMulti');
-      const btnExportMulti = $('btnExportMulti');
-      const btnTour = $('btnTour');
-      const tourOverlay = $('tourOverlay');
-      const tourSpot = $('tourSpot');
-      const tourTip = $('tourTip');
-      const tourTitle = $('tourTitle');
-      const tourBody = $('tourBody');
-      const tourSteps = $('tourSteps');
-      const tourPrev = $('tourPrev');
-      const tourNext = $('tourNext');
-      const tourDone = $('tourDone');
-
-      function pad2(n){
-        const s = String(n);
-        return s.length >= 2 ? s : `0${s}`;
-      }
-
-      function todayISO(){
-        const d = new Date();
-        return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-      }
-
-      function uid(){
+      // ===== UTILITY FUNCTIONS =====
+      function uid() {
         const rnd = Math.random().toString(16).slice(2);
         return `c_${Date.now().toString(16)}_${rnd}`;
       }
 
-      function escapeCsvCell(v){
+      function escapeCsvCell(v) {
         const s = v == null ? '' : String(v);
         if (/[",\n\r]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
         return s;
       }
 
-      function buildFilename(meta){
+      function buildFilename(meta) {
         const date = meta.date || todayISO();
         const team = (meta.team || 'team').trim().replaceAll(/\s+/g, '_').replaceAll(/[^a-zA-Z0-9_\-а-яА-Я]/g, '');
         return `team-health-check_${team || 'team'}_${date}.csv`;
       }
 
-      function getGlobal(){
-        return {
-          team: teamNameEl ? teamNameEl.value : '',
-          date: checkDateEl ? checkDateEl.value : '',
-          facilitator: facilitatorEl ? facilitatorEl.value : '',
-          overallNotes: ''
-        };
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
       }
 
-      function setGlobal(gg){
-        if (!gg || typeof gg !== 'object') return;
-        if (teamNameEl) teamNameEl.value = typeof gg.team === 'string' ? gg.team : '';
-        if (checkDateEl) checkDateEl.value = typeof gg.date === 'string' ? gg.date : todayISO();
-        if (facilitatorEl) facilitatorEl.value = typeof gg.facilitator === 'string' ? gg.facilitator : '';
+      function pad2(n) {
+        const s = String(n);
+        return s.length >= 2 ? s : `0${s}`;
       }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (inQ) {
+            if (ch === '"') {
+              const next = text[i+1];
+              if (next === '"') {
+                cur += '"';
+                i++;
+              } else {
+                inQ = false;
+              }
+            } else {
+              cur += ch;
+            }
+            continue;
+          }
+
+          if (ch === '"') {
+            inQ = true;
+            continue;
+          }
+          if (ch === ',') {
+            row.push(cur);
+            cur = '';
+            continue;
+          }
+          if (ch === '\n') {
+            row.push(cur);
+            cur = '';
+            if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
+            row = [];
+            continue;
+          }
+          if (ch === '\r') continue;
+          cur += ch;
+        }
+        row.push(cur);
+        if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
+        return rows;
+      }
+
+      function normalizeHeader(h) {
+        return String(h || '').trim().toLowerCase();
+      }
+
+      function rowsToObjects(rows) {
+        if (!rows || rows.length < 2) return [];
+        const header = rows[0].map(normalizeHeader);
+        const out = [];
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          const o = {};
+          for (let j = 0; j < header.length; j++) {
+            o[header[j]] = (r[j] == null) ? '' : String(r[j]);
+          }
+          out.push(o);
+        }
+        return out;
+      }
+
+      // ===== STATE =====
+      let currentScreen = 'setup';
+      let currentCardIndex = 0;
 
       let state = {
         global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' },
@@ -1552,7 +812,7 @@
         data: {}
       };
 
-      function blankColumn(){
+      function blankColumn() {
         const id = uid();
         return {
           id,
@@ -1560,39 +820,34 @@
         };
       }
 
-      function ensureStateShape(){
+      function ensureStateShape() {
         if (!state || typeof state !== 'object') state = { global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [], data: {} };
         if (!state.global || typeof state.global !== 'object') state.global = { team: '', date: todayISO(), facilitator: '', overallNotes: '' };
         if (!Array.isArray(state.columns)) state.columns = [];
         if (!state.data || typeof state.data !== 'object') state.data = {};
 
-        if (!state.columns.length){
+        if (!state.columns.length) {
           state.columns = [blankColumn()];
         }
-        for (const ind of indicators){
+        for (const ind of indicators) {
           if (!state.data[ind.id] || typeof state.data[ind.id] !== 'object') state.data[ind.id] = {};
-          for (const col of state.columns){
-            if (!state.data[ind.id][col.id] || typeof state.data[ind.id][col.id] !== 'object'){
+          for (const col of state.columns) {
+            if (!state.data[ind.id][col.id] || typeof state.data[ind.id][col.id] !== 'object') {
               state.data[ind.id][col.id] = { status: '', trend: '', note: '' };
             }
           }
         }
       }
 
-      function serialize(){
-        const global = getGlobal();
-        const columns = state.columns.map((c) => getParticipantMeta(c.id));
-        const data = {};
-        for (const ind of indicators){
-          data[ind.id] = {};
-          for (const col of state.columns){
-            data[ind.id][col.id] = getCellState(ind.id, col.id);
-          }
-        }
-        return { global, columns, data };
+      function serialize() {
+        return {
+          global: state.global,
+          columns: state.columns,
+          data: state.data
+        };
       }
 
-      function applyState(saved){
+      function applyState(saved) {
         const s = saved && typeof saved === 'object' ? saved : null;
         state = {
           global: (s && s.global && typeof s.global === 'object') ? s.global : { team: '', date: todayISO(), facilitator: '', overallNotes: '' },
@@ -1600,338 +855,37 @@
           data: (s && s.data && typeof s.data === 'object') ? s.data : {}
         };
         ensureStateShape();
-        render();
-        setGlobal(state.global);
-        for (const col of state.columns){
-          setParticipantMeta(col.id, col);
-        }
-        for (const ind of indicators){
-          const perInd = state.data[ind.id] && typeof state.data[ind.id] === 'object' ? state.data[ind.id] : {};
-          for (const col of state.columns){
-            if (perInd && Object.prototype.hasOwnProperty.call(perInd, col.id)){
-              setCellState(ind.id, col.id, perInd[col.id]);
-            }
-          }
-        }
       }
 
+      // ===== AUTOSAVE =====
       let autosaveTimer = null;
-      function setAutosaveText(t){
-        if (!autosaveStatus) return;
-        autosaveStatus.textContent = t;
-      }
 
-      function scheduleAutosave(){
+      function scheduleAutosave() {
         if (autosaveTimer) window.clearTimeout(autosaveTimer);
-        setAutosaveText(t('autosaveSaving'));
         autosaveTimer = window.setTimeout(() => {
-          try{
+          try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize()));
-            const msg = t('autosaveSavedAt');
-            setAutosaveText(typeof msg === 'function' ? msg(new Date().toLocaleTimeString()) : '');
-          }catch(_){
-            setAutosaveText(t('autosaveFailed'));
-          }
+          } catch(_) {}
         }, 250);
       }
 
-      function applyLanguage(){
-        try{ document.documentElement.lang = lang; }catch(_){ }
-        try{ document.title = t('pageTitle'); }catch(_){ }
-
-        const skipLink = $('skipLink');
-        if (skipLink) skipLink.textContent = t('skip');
-
-        const tabbar = document.querySelector('.tabbar[role="tablist"]');
-        if (tabbar) tabbar.setAttribute('aria-label', t('sectionsAria'));
-        if (sessionPanel) sessionPanel.setAttribute('aria-label', t('metaAria'));
-
-        if (tabMatrix) tabMatrix.textContent = t('tabsChecklist');
-        if (tabMulti) tabMulti.textContent = t('tabsSummary');
-        if (btnTour) btnTour.lastChild.nodeValue = ` ${t('tourBtn')}`;
-
-        const sessionH2 = document.querySelector('#sessionPanel .hd h2');
-        if (sessionH2) sessionH2.textContent = t('sessionTitle');
-        if (btnExport) btnExport.textContent = t('exportCsv');
-        if (btnReset) btnReset.textContent = t('reset');
-
-        const teamLbl = document.querySelector('label[for="teamName"]');
-        if (teamLbl) teamLbl.textContent = t('teamLabel');
-        const dateLbl = document.querySelector('label[for="checkDate"]');
-        if (dateLbl) dateLbl.textContent = t('dateLabel');
-        const facLbl = document.querySelector('label[for="facilitator"]');
-        if (facLbl) facLbl.textContent = t('facilitatorLabel');
-
-        if (multiPanel) multiPanel.setAttribute('aria-label', t('summaryPanelAria'));
-        if (btnClearMulti) btnClearMulti.textContent = t('clear');
-        if (btnExportMulti) btnExportMulti.textContent = t('exportSummary');
-        const dropStrong = multiDrop ? multiDrop.querySelector('strong') : null;
-        if (dropStrong) dropStrong.textContent = t('dropTitle');
-        const dropMuted = multiDrop ? multiDrop.querySelector('.muted') : null;
-        if (dropMuted) dropMuted.textContent = t('dropHint');
-        if (multiTableWrap) multiTableWrap.setAttribute('aria-label', t('summaryTableAria'));
-
-        if (matrixPanel) matrixPanel.setAttribute('aria-label', t('checklistPanelAria'));
-        const matrixHd = document.querySelector('#matrixPanel .hd h2');
-        if (matrixHd) matrixHd.textContent = t('checklistTitle');
-        const matrixRegion = document.querySelector('#matrixPanel .matrixWrap');
-        if (matrixRegion) matrixRegion.setAttribute('aria-label', t('checklistRegionAria'));
-
-        const footerLeft = $('footerLeft');
-        if (footerLeft) footerLeft.firstChild.nodeValue = `${t('footerLeft')} `;
-        const telegramCredit = $('telegramCredit');
-        if (telegramCredit) telegramCredit.innerHTML = t('telegramCreditHtml');
-        const otherProjectsLink = $('otherProjectsLink');
-        if (otherProjectsLink) otherProjectsLink.textContent = t('otherProjects');
-
-        if (tourPrev) tourPrev.textContent = t('tour.prev');
-        if (tourNext) tourNext.textContent = t('tour.next');
-        if (tourDone) tourDone.textContent = t('tour.done');
-      }
-
-      function getParticipantMeta(columnId){
-        const input = document.getElementById(`p__${columnId}__name`);
-        return {
-          id: columnId,
-          name: input && input instanceof HTMLInputElement ? input.value : ''
-        };
-      }
-
-      function setParticipantMeta(columnId, meta){
-        const input = document.getElementById(`p__${columnId}__name`);
-        if (!input || !(input instanceof HTMLInputElement)) return;
-        input.value = meta && typeof meta.name === 'string' ? meta.name : '';
-      }
-
-      function getCellState(indicatorId, columnId){
-        const sName = `${indicatorId}__${columnId}__status`;
-        const tName = `${indicatorId}__${columnId}__trend`;
-        const nName = `${indicatorId}__${columnId}__note`;
-
-        const statusInput = document.querySelector(`input[type="radio"][name="${CSS.escape(sName)}"]:checked`);
-        const status = statusInput && statusInput instanceof HTMLInputElement ? statusInput.value : '';
-
-        const trendSel = document.getElementById(`${tName}__sel`);
-        const trend = trendSel && trendSel instanceof HTMLSelectElement ? trendSel.value : '';
-
-        const noteEl = document.getElementById(nName);
-        const note = noteEl && noteEl instanceof HTMLTextAreaElement ? noteEl.value : '';
-
-        return { status, trend, note };
-      }
-
-      function setCellState(indicatorId, columnId, next){
-        const sName = `${indicatorId}__${columnId}__status`;
-        const tName = `${indicatorId}__${columnId}__trend`;
-        const nName = `${indicatorId}__${columnId}__note`;
-
-        const status = next && typeof next.status === 'string' ? next.status : '';
-        const trend = next && typeof next.trend === 'string' ? next.trend : '';
-        const note = next && typeof next.note === 'string' ? next.note : '';
-
-        for (const radio of document.querySelectorAll(`input[type="radio"][name="${CSS.escape(sName)}"]`)){
-          if (radio instanceof HTMLInputElement) radio.checked = radio.value === status;
-        }
-
-        const trendSel = document.getElementById(`${tName}__sel`);
-        if (trendSel && trendSel instanceof HTMLSelectElement) trendSel.value = trend;
-
-        const noteEl = document.getElementById(nName);
-        if (noteEl && noteEl instanceof HTMLTextAreaElement) noteEl.value = note;
-
-        updateTrendUI(indicatorId, columnId);
-        updateNoteUI(indicatorId, columnId);
-      }
-
-      function updateTrendUI(indicatorId, columnId){
-        const wrapKey = `${indicatorId}__${columnId}`;
-        const wrap = document.querySelector(`[data-trend-wrap="${CSS.escape(wrapKey)}"]`);
-        const sel = document.getElementById(`${indicatorId}__${columnId}__trend__sel`);
-        const cell = getCellState(indicatorId, columnId);
-        const hasStatus = !!cell.status;
-
-        if (wrap && wrap instanceof HTMLElement){
-          wrap.classList.toggle('trendHidden', !hasStatus);
-        }
-        if (sel && sel instanceof HTMLSelectElement){
-          sel.disabled = !hasStatus;
-          if (!hasStatus) sel.value = '';
-        }
-
-        if (!hasStatus) updateNoteUI(indicatorId, columnId);
-      }
-
-      function updateNoteUI(indicatorId, columnId){
-        const wrapKey = `${indicatorId}__${columnId}`;
-        const wrap = document.querySelector(`[data-note-wrap="${CSS.escape(wrapKey)}"]`);
-        const cell = getCellState(indicatorId, columnId);
-        const show = !!cell.status && !!cell.trend;
-
-        if (wrap && wrap instanceof HTMLElement){
-          wrap.classList.toggle('noteHidden', !show);
-          if (!show){
-            const details = wrap.querySelector('details');
-            if (details) details.removeAttribute('open');
-          }
-        }
-      }
-
-      function render(){
-        if (!matrixHeadEl || !matrixBodyEl) return;
-
-        matrixHeadEl.innerHTML = '';
-        matrixBodyEl.innerHTML = '';
-
-        const tr = document.createElement('tr');
-
-        const th0 = document.createElement('th');
-        th0.scope = 'col';
-        th0.innerHTML = '';
-        tr.appendChild(th0);
-
-        for (const col of state.columns){
-          const th = document.createElement('th');
-          th.scope = 'col';
-
-          th.innerHTML = `
-            <div class="glassCard participantCard">
-              <div class="glassPad">
-                <div class="colHead">
-                  <div class="colRow">
-                    <div class="colTitle">${t('participant')}</div>
-                    <div class="colActions">
-                      <button type="button" class="iconBtn" data-action="remove-column" data-col="${col.id}" aria-label="${t('removeParticipant')}" title="${t('removeParticipant')}">🗑️</button>
-                    </div>
-                  </div>
-                  <div class="colFields">
-                    <div>
-                      <label class="sr" for="p__${col.id}__name">${t('participantNameLabel')}</label>
-                      <input id="p__${col.id}__name" name="p__${col.id}__name" type="text" autocomplete="name" placeholder="${t('participantName')}" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-
-          tr.appendChild(th);
-        }
-
-        {
-          const thAdd = document.createElement('th');
-          thAdd.scope = 'col';
-          thAdd.innerHTML = `
-            <div class="glassCard participantCard">
-              <div class="glassPad" style="display:flex; align-items:center; justify-content:center; min-height: 74px;">
-                <button type="button" class="plusBtn" data-action="add-column" aria-label="${t('addParticipant')}">+</button>
-              </div>
-            </div>
-          `;
-          tr.appendChild(thAdd);
-        }
-
-        matrixHeadEl.appendChild(tr);
-
-        for (const ind of indicators){
-          const row = document.createElement('tr');
-
-          const th = document.createElement('th');
-          th.scope = 'row';
-          th.innerHTML = `
-            <div class="glassCard indicatorFixed">
-              <div class="glassPad indicatorCard">
-                <div class="indicatorTitleV" aria-hidden="true">${indShort(ind)}</div>
-                <div class="indicatorText">
-                  <div class="indTitle">${indTitle(ind)}</div>
-                  <div class="indMeta"><span class="k">${t('greenPrefix')}:</span> ${indAwesome(ind)}</div>
-                  <div class="indMeta"><span class="k">${t('redPrefix')}:</span> ${indCrappy(ind)}</div>
-                </div>
-              </div>
-            </div>
-          `;
-          row.appendChild(th);
-
-          for (const col of state.columns){
-            const td = document.createElement('td');
-
-            const sName = `${ind.id}__${col.id}__status`;
-            const tName = `${ind.id}__${col.id}__trend`;
-            const nName = `${ind.id}__${col.id}__note`;
-
-            td.innerHTML = `
-              <div class="glassCard cellFixed">
-                <div class="glassPad">
-                  <div class="cell">
-                    <div>
-                      <div class="sr">${t('statusAria')}</div>
-                      <div class="statusDots" role="radiogroup" aria-label="${indTitle(ind)}: ${t('statusAria')}">
-                        <input id="${sName}__green" type="radio" name="${sName}" value="green" />
-                        <label class="dotLbl" for="${sName}__green" aria-label="${t('green')}"><span class="dot ok" aria-hidden="true"></span></label>
-
-                        <input id="${sName}__yellow" type="radio" name="${sName}" value="yellow" />
-                        <label class="dotLbl" for="${sName}__yellow" aria-label="${t('yellow')}"><span class="dot warn" aria-hidden="true"></span></label>
-
-                        <input id="${sName}__red" type="radio" name="${sName}" value="red" />
-                        <label class="dotLbl" for="${sName}__red" aria-label="${t('red')}"><span class="dot bad" aria-hidden="true"></span></label>
-                      </div>
-                    </div>
-
-                    <div class="trendHidden" data-trend-wrap="${ind.id}__${col.id}">
-                      <label class="sr" for="${tName}__sel">${t('trendAria')}</label>
-                      <select id="${tName}__sel" name="${tName}" aria-label="${indTitle(ind)}: ${t('trendAria')}" disabled>
-                        <option value="">${t('trendNone')}</option>
-                        <option value="up">${t('trendUp')}</option>
-                        <option value="stable">${t('trendStable')}</option>
-                        <option value="down">${t('trendDown')}</option>
-                      </select>
-                    </div>
-
-                    <div class="noteHidden" data-note-wrap="${ind.id}__${col.id}">
-                      <details>
-                        <summary>${t('note')}</summary>
-                        <div class="noteBody">
-                          <label class="sr" for="${nName}">${t('note')}</label>
-                          <textarea id="${nName}" name="${nName}"></textarea>
-                        </div>
-                      </details>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-
-            row.appendChild(td);
-          }
-
-          matrixBodyEl.appendChild(row);
-        }
-
-        // Apply gate logic after DOM is in place
-        for (const ind of indicators){
-          for (const col of state.columns){
-            updateTrendUI(ind.id, col.id);
-            updateNoteUI(ind.id, col.id);
-          }
-        }
-      }
-
-      function validateForExport(){
+      // ===== CSV EXPORT =====
+      function validateForExport() {
         const invalid = [];
-        for (const ind of indicators){
-          for (const col of state.columns){
-            const s = getCellState(ind.id, col.id);
-            const p = getParticipantMeta(col.id);
-            if (!s.status) invalid.push(`${indTitle(ind)} / ${p && p.name ? p.name : t('participant')}`);
+        for (const ind of indicators) {
+          for (const col of state.columns) {
+            const cellData = (state.data[ind.id] && state.data[ind.id][col.id]) ? state.data[ind.id][col.id] : {};
+            if (!cellData.status) invalid.push(`${indTitle(ind)} / ${col.name || t('participant')}`);
           }
         }
         return invalid;
       }
 
-      function exportCsv(){
-        const global = getGlobal();
+      function exportCsv() {
+        const global = state.global;
         const missing = validateForExport();
 
-        if (missing.length){
+        if (missing.length) {
           const msg = t('exportMissing');
           const msgText = typeof msg === 'function' ? msg(missing.length) : '';
           if (!window.confirm(msgText)) return;
@@ -1940,20 +894,19 @@
         const header = ['participant_id','participant_name','team','date','facilitator','indicator','status','trend','note','overall_notes'];
         const rows = [header];
 
-        for (const ind of indicators){
-          for (const col of state.columns){
-            const p = getParticipantMeta(col.id);
-            const s = getCellState(ind.id, col.id);
+        for (const ind of indicators) {
+          for (const col of state.columns) {
+            const cellData = (state.data[ind.id] && state.data[ind.id][col.id]) ? state.data[ind.id][col.id] : {};
             rows.push([
               col.id,
-              (p && p.name) ? p.name : '',
+              col.name || '',
               global.team || '',
               global.date || '',
               global.facilitator || '',
               indTitle(ind),
-              s.status,
-              s.trend,
-              s.note,
+              cellData.status || '',
+              cellData.trend || '',
+              cellData.note || '',
               global.overallNotes || ''
             ]);
           }
@@ -1973,134 +926,24 @@
         window.setTimeout(() => URL.revokeObjectURL(url), 0);
       }
 
-      function resetAll(){
-        const ok = window.confirm(t('resetConfirm'));
-        if (!ok) return;
-        try{ localStorage.removeItem(STORAGE_KEY); }catch(_){ }
-        try{ localStorage.removeItem(LEGACY_STORAGE_KEY); }catch(_){ }
-        applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
-        setAutosaveText(t('resetDone'));
-      }
-
-      function bindAutosave(){
-        const root = document.body;
-        if (!root) return;
-        root.addEventListener('input', (e) => {
-          const t = e.target;
-          if (!t) return;
-          if (t.matches('input, textarea, select')) scheduleAutosave();
-        });
-        root.addEventListener('change', (e) => {
-          const t = e.target;
-          if (!t) return;
-          if (t.matches('input[type="radio"], input[type="date"], input[type="text"], select')) scheduleAutosave();
-        });
-
-        if (!matrixEl) return;
-        matrixEl.addEventListener('change', (e) => {
-          const t = e.target;
-          if (!t) return;
-          if (t instanceof HTMLInputElement && t.type === 'radio'){
-            const name = t.getAttribute('name') || '';
-            const parts = name.split('__');
-            if (parts.length === 3 && parts[2] === 'status'){
-              const indicatorId = parts[0];
-              const columnId = parts[1];
-              updateTrendUI(indicatorId, columnId);
-            }
-          }
-          if (t instanceof HTMLSelectElement){
-            const name = t.getAttribute('name') || '';
-            const parts = name.split('__');
-            if (parts.length === 3 && parts[2] === 'trend'){
-              const indicatorId = parts[0];
-              const columnId = parts[1];
-              updateNoteUI(indicatorId, columnId);
-            }
-          }
-        });
-      }
-
-      function addColumn(){
-        state = serialize();
-        const col = blankColumn();
-        state.columns.push(col);
-        ensureStateShape();
-        render();
-        setGlobal(state.global);
-        for (const c of state.columns){
-          setParticipantMeta(c.id, c);
-        }
-        for (const ind of indicators){
-          for (const c of state.columns){
-            setCellState(ind.id, c.id, (state.data[ind.id] && state.data[ind.id][c.id]) ? state.data[ind.id][c.id] : { status: '', trend: '', note: '' });
-          }
-        }
-        scheduleAutosave();
-      }
-
-      function removeColumn(columnId){
-        state = serialize();
-        if (state.columns.length <= 1){
-          window.alert(t('cantDeleteLast'));
-          return;
-        }
-        const ok = window.confirm(t('deleteColConfirm'));
-        if (!ok) return;
-        state.columns = state.columns.filter((c) => c.id !== columnId);
-        for (const ind of indicators){
-          if (state.data[ind.id] && typeof state.data[ind.id] === 'object'){
-            delete state.data[ind.id][columnId];
-          }
-        }
-        ensureStateShape();
-        render();
-        setGlobal(state.global);
-        for (const c of state.columns){
-          setParticipantMeta(c.id, c);
-        }
-        for (const ind of indicators){
-          for (const c of state.columns){
-            setCellState(ind.id, c.id, (state.data[ind.id] && state.data[ind.id][c.id]) ? state.data[ind.id][c.id] : { status: '', trend: '', note: '' });
-          }
-        }
-        scheduleAutosave();
-      }
-
-      function bindMatrixActions(){
-        if (!matrixEl) return;
-        matrixEl.addEventListener('click', (e) => {
-          const t = e.target;
-          if (!t || !(t instanceof HTMLElement)) return;
-          const action = t.getAttribute('data-action');
-          if (action === 'add-column'){
-            addColumn();
-            return;
-          }
-          if (action === 'remove-column'){
-            const col = t.getAttribute('data-col');
-            if (col) removeColumn(col);
-          }
-        });
-      }
-
-      function migrateLegacyIfNeeded(){
+      // ===== MIGRATIONS =====
+      function migrateLegacyIfNeeded() {
         let hasNew = false;
-        try{ hasNew = !!localStorage.getItem(STORAGE_KEY); }catch(_){ hasNew = false; }
+        try { hasNew = !!localStorage.getItem(OLD_STORAGE_KEY); } catch(_) { hasNew = false; }
         if (hasNew) return;
 
         let legacyRaw = null;
-        try{ legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY); }catch(_){ legacyRaw = null; }
+        try { legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY); } catch(_) { legacyRaw = null; }
         if (!legacyRaw) return;
 
-        try{
+        try {
           const legacy = JSON.parse(legacyRaw);
           const meta = legacy && legacy.meta && typeof legacy.meta === 'object' ? legacy.meta : {};
           const col = blankColumn();
           col.name = t('participant');
 
           const data = {};
-          for (const ind of indicators){
+          for (const ind of indicators) {
             const v = legacy && legacy.data && legacy.data[ind.id] ? legacy.data[ind.id] : { status: '', trend: '', note: '' };
             data[ind.id] = { [col.id]: { status: v.status || '', trend: v.trend || '', note: v.note || '' } };
           }
@@ -2115,16 +958,16 @@
             columns: [col],
             data
           };
-          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)); }catch(_){ }
-        }catch(_){ }
+          try { localStorage.setItem(OLD_STORAGE_KEY, JSON.stringify(migrated)); } catch(_) {}
+        } catch(_) {}
       }
 
-      function migrateMatrixToParticipantsIfNeeded(){
+      function migrateMatrixToParticipantsIfNeeded() {
         let raw = null;
-        try{ raw = localStorage.getItem(STORAGE_KEY); }catch(_){ raw = null; }
+        try { raw = localStorage.getItem(OLD_STORAGE_KEY); } catch(_) { raw = null; }
         if (!raw) return;
 
-        try{
+        try {
           const saved = JSON.parse(raw);
           const cols = saved && Array.isArray(saved.columns) ? saved.columns : null;
           const global = saved && saved.global && typeof saved.global === 'object' ? saved.global : null;
@@ -2140,7 +983,7 @@
 
           // Try to recover team/date/facilitator from the first old column
           const first = cols[0];
-          if (first && typeof first === 'object'){
+          if (first && typeof first === 'object') {
             if (!newGlobal.team && typeof first.team === 'string') newGlobal.team = first.team;
             if (typeof first.date === 'string') newGlobal.date = first.date;
             if (!newGlobal.facilitator && typeof first.facilitator === 'string') newGlobal.facilitator = first.facilitator;
@@ -2156,458 +999,40 @@
             columns: newCols,
             data: saved.data && typeof saved.data === 'object' ? saved.data : {}
           };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        }catch(_){ }
+          localStorage.setItem(OLD_STORAGE_KEY, JSON.stringify(migrated));
+        } catch(_) {}
       }
 
-      migrateLegacyIfNeeded();
-      migrateMatrixToParticipantsIfNeeded();
+      // v1 -> v2 migration: copy data from old key to new key if new key doesn't exist
+      function migrateV1toV2IfNeeded() {
+        let hasV2 = false;
+        try { hasV2 = !!localStorage.getItem(STORAGE_KEY); } catch(_) { hasV2 = false; }
+        if (hasV2) return;
 
-      const savedRaw = (() => {
-        try{ return localStorage.getItem(STORAGE_KEY); }catch(_){ return null; }
-      })();
-      if (savedRaw){
-        try{
-          const saved = JSON.parse(savedRaw);
-          applyState(saved);
-          setAutosaveText(t('loaded'));
-        }catch(_){
-          applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
-          setAutosaveText('');
-        }
-      } else {
-        applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
+        let oldRaw = null;
+        try { oldRaw = localStorage.getItem(OLD_STORAGE_KEY); } catch(_) { oldRaw = null; }
+        if (!oldRaw) return;
+
+        try {
+          localStorage.setItem(STORAGE_KEY, oldRaw);
+        } catch(_) {}
       }
 
-      applyLanguage();
-      if (langRuBtn) langRuBtn.addEventListener('click', () => setLang('ru'));
-      if (langEnBtn) langEnBtn.addEventListener('click', () => setLang('en'));
-      setLang(lang);
-
-      bindAutosave();
-      bindMatrixActions();
-
-      if (btnExport) btnExport.addEventListener('click', exportCsv);
-      if (btnReset) btnReset.addEventListener('click', resetAll);
-
-      function setSelectedTab(which){
-        const isMatrix = which === 'matrix';
-        const isMulti = which === 'multi';
-        if (tabMatrix) tabMatrix.setAttribute('aria-selected', isMatrix ? 'true' : 'false');
-        if (tabMulti) tabMulti.setAttribute('aria-selected', isMulti ? 'true' : 'false');
-      }
-
-      function setView(which, opts){
-        setSelectedTab(which);
-
-        if (sessionPanel) sessionPanel.style.display = (which === 'multi') ? 'none' : '';
-        if (matrixPanel) matrixPanel.style.display = (which === 'matrix') ? '' : 'none';
-        if (multiPanel) multiPanel.style.display = (which === 'multi') ? '' : 'none';
-
-        if (which === 'multi') renderMultiSummary();
-
-        const shouldScroll = !opts || opts.scroll !== false;
-        if (!shouldScroll) return;
-
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: prefersReducedMotion ? 'auto' : 'smooth'
-        });
-      }
-
-      function bindTabs(){
-        if (tabMatrix) tabMatrix.addEventListener('click', () => setView('matrix'));
-        if (tabMulti) tabMulti.addEventListener('click', () => setView('multi'));
-      }
-
-      function getFirstMatrixCellParts(){
-        const cell = matrixBodyEl ? matrixBodyEl.querySelector('td') : null;
-        if (!cell) return { cell: null, status: null, trend: null, note: null, noteSummary: null };
-        return {
-          cell,
-          status: cell.querySelector('.statusDots') || null,
-          trend: cell.querySelector('select') || null,
-          note: cell.querySelector('textarea') || null,
-          noteSummary: cell.querySelector('details summary') || null
-        };
-      }
-
-      const tour = (() => {
-        let open = false;
-        let idx = 0;
-        let lastFocus = null;
-        let clickAdvanceCleanup = null;
-        let currentTarget = null;
-
-        function safeRect(el){
-          if (!el || typeof el.getBoundingClientRect !== 'function') return null;
-          const r = el.getBoundingClientRect();
-          if (!r || !Number.isFinite(r.left)) return null;
-          return r;
-        }
-
-        function clamp(n, a, b){
-          return Math.max(a, Math.min(b, n));
-        }
-
-        function setOverlayOpen(v){
-          if (!tourOverlay) return;
-          tourOverlay.dataset.open = v ? 'true' : 'false';
-          tourOverlay.setAttribute('aria-hidden', v ? 'false' : 'true');
-        }
-
-        function clearClickAdvance(){
-          if (typeof clickAdvanceCleanup === 'function') clickAdvanceCleanup();
-          clickAdvanceCleanup = null;
-        }
-
-        function focusTip(){
-          if (!tourTip) return;
-          try{ tourTip.focus({ preventScroll: true }); }catch(_){ tourTip.focus(); }
-        }
-
-        function positionForStep(step, target){
-          if (!tourSpot || !tourTip){
-            return;
-          }
-          const pad = (step && Number.isFinite(step.pad)) ? step.pad : 10;
-          const rect = safeRect(target);
-          const vw = window.innerWidth;
-          const vh = window.innerHeight;
-
-          if (rect){
-            const left = Math.max(8, rect.left - pad);
-            const top = Math.max(8, rect.top - pad);
-            const width = Math.min(vw - left - 8, rect.width + pad * 2);
-            const height = Math.min(vh - top - 8, rect.height + pad * 2);
-
-            tourSpot.style.left = `${left}px`;
-            tourSpot.style.top = `${top}px`;
-            tourSpot.style.width = `${Math.max(28, width)}px`;
-            tourSpot.style.height = `${Math.max(28, height)}px`;
-          } else {
-            tourSpot.style.left = `18px`;
-            tourSpot.style.top = `18px`;
-            tourSpot.style.width = `${vw - 36}px`;
-            tourSpot.style.height = `${Math.min(220, vh - 36)}px`;
-          }
-
-          const tipW = Math.min(420, vw - 28);
-          const tipH = tourTip.getBoundingClientRect().height || 180;
-          const gap = 12;
-
-          if (!rect){
-            tourTip.style.left = '14px';
-            tourTip.style.top = '14px';
-            return;
-          }
-
-          const candidates = [
-            { x: rect.left, y: rect.bottom + gap },
-            { x: rect.left, y: rect.top - tipH - gap },
-            { x: rect.right - tipW, y: rect.bottom + gap },
-            { x: rect.right - tipW, y: rect.top - tipH - gap }
-          ];
-
-          let best = candidates[0];
-          let bestScore = -Infinity;
-          for (const c of candidates){
-            const x = clamp(c.x, 14, vw - tipW - 14);
-            const y = clamp(c.y, 14, vh - tipH - 14);
-            const score = -Math.abs(y - c.y) - Math.abs(x - c.x);
-            if (score > bestScore){ bestScore = score; best = { x, y }; }
-          }
-
-          tourTip.style.left = `${best.x}px`;
-          tourTip.style.top = `${best.y}px`;
-        }
-
-        function renderStep(){
-          if (!open) return;
-          const step = steps[idx];
-          if (!step) return;
-
-          clearClickAdvance();
-          if (typeof step.onEnter === 'function') step.onEnter();
-
-          window.requestAnimationFrame(() => {
-            const target = (typeof step.target === 'function') ? step.target() : null;
-            currentTarget = target;
-
-            const stepTitle = typeof step.title === 'function' ? step.title() : step.title;
-            const stepBody = typeof step.body === 'function' ? step.body() : step.body;
-            if (tourTitle) tourTitle.textContent = stepTitle;
-            if (tourBody) tourBody.textContent = stepBody;
-            const stepTpl = t('tour.step');
-            if (tourSteps) tourSteps.textContent = typeof stepTpl === 'function' ? stepTpl(idx + 1, steps.length) : '';
-
-            if (tourPrev) tourPrev.disabled = idx === 0;
-            if (tourNext) tourNext.style.display = (idx >= steps.length - 1) ? 'none' : '';
-            if (tourDone) tourDone.style.display = (idx >= steps.length - 1) ? '' : 'none';
-
-            positionForStep(step, target);
-
-            if (!step.noAutoScroll && target && typeof target.scrollIntoView === 'function'){
-              try{
-                target.scrollIntoView({ block: 'center', inline: 'center', behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-              }catch(_){ }
-            }
-
-            if (target){
-              window.requestAnimationFrame(() => {
-                window.requestAnimationFrame(() => {
-                  positionForStep(step, target);
-                });
-              });
-            }
-
-            focusTip();
-
-            if (step.advanceOnClick && target){
-              const handler = () => next();
-              target.addEventListener('click', handler, { once: true });
-              clickAdvanceCleanup = () => {
-                try{ target.removeEventListener('click', handler); }catch(_){ }
-              };
-            }
-          });
-        }
-
-        function openTour(){
-          if (open) return;
-          open = true;
-          idx = 0;
-          lastFocus = document.activeElement;
-          setOverlayOpen(true);
-          renderStep();
-        }
-
-        function closeTour(){
-          if (!open) return;
-          open = false;
-          clearClickAdvance();
-          currentTarget = null;
-          setOverlayOpen(false);
-          if (lastFocus && typeof lastFocus.focus === 'function'){
-            try{ lastFocus.focus(); }catch(_){ }
-          } else if (btnTour && typeof btnTour.focus === 'function'){
-            try{ btnTour.focus(); }catch(_){ }
-          }
-        }
-
-        function onOverlayClick(e){
-          if (!open) return;
-          const step = steps[idx];
-          if (!step || !step.advanceOnClick) return;
-          if (!currentTarget) return;
-          if (tourTip && tourTip.contains(e.target)) return;
-
-          const rect = safeRect(currentTarget);
-          if (!rect) return;
-
-          const x = e.clientX;
-          const y = e.clientY;
-          const within = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-          if (!within) return;
-
-          e.preventDefault();
-          e.stopPropagation();
-          try{ currentTarget.click(); }catch(_){ }
-        }
-
-        function next(){
-          if (!open) return;
-          if (idx >= steps.length - 1){ closeTour(); return; }
-          idx++;
-          renderStep();
-        }
-
-        function prev(){
-          if (!open) return;
-          if (idx <= 0) return;
-          idx--;
-          renderStep();
-        }
-
-        function onKeyDown(e){
-          if (!open) return;
-          if (e.key === 'Escape'){
-            e.preventDefault();
-            closeTour();
-            return;
-          }
-          if (e.key === 'ArrowRight'){
-            e.preventDefault();
-            next();
-            return;
-          }
-          if (e.key === 'ArrowLeft'){
-            e.preventDefault();
-            prev();
-          }
-        }
-
-        if (btnTour) btnTour.addEventListener('click', openTour);
-        if (tourNext) tourNext.addEventListener('click', next);
-        if (tourPrev) tourPrev.addEventListener('click', prev);
-        if (tourDone) tourDone.addEventListener('click', closeTour);
-        if (tourOverlay) tourOverlay.addEventListener('click', onOverlayClick);
-        window.addEventListener('keydown', onKeyDown);
-        window.addEventListener('resize', () => { if (open) renderStep(); });
-
-        return { open: openTour, close: closeTour, next, prev };
-      })();
-
-      const steps = [
-        {
-          title: () => t('tour.steps.tabsTitle'),
-          body: () => t('tour.steps.tabsBody'),
-          target: () => tabMatrix || tabMulti,
-          onEnter: () => setView('matrix', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.teamTitle'),
-          body: () => t('tour.steps.teamBody'),
-          target: () => teamNameEl,
-          onEnter: () => setView('matrix', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.dateTitle'),
-          body: () => t('tour.steps.dateBody'),
-          target: () => checkDateEl,
-          onEnter: () => setView('matrix', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.facTitle'),
-          body: () => t('tour.steps.facBody'),
-          target: () => facilitatorEl,
-          onEnter: () => setView('matrix', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.participantsTitle'),
-          body: () => t('tour.steps.participantsBody'),
-          target: () => matrixHeadEl ? matrixHeadEl.querySelector('button[data-action="add-column"]') : null,
-          onEnter: () => setView('matrix', { scroll: false }),
-          pad: 6,
-          noAutoScroll: true,
-          advanceOnClick: true
-        },
-        {
-          title: () => t('tour.steps.nameTitle'),
-          body: () => t('tour.steps.nameBody'),
-          target: () => matrixHeadEl ? matrixHeadEl.querySelector('input[name^="p__"][type="text"]') : null,
-          onEnter: () => setView('matrix', { scroll: false }),
-          pad: 6,
-          noAutoScroll: true
-        },
-        {
-          title: () => t('tour.steps.cellTitle'),
-          body: () => t('tour.steps.cellBody'),
-          target: () => getFirstMatrixCellParts().cell,
-          onEnter: () => setView('matrix', { scroll: false }),
-          pad: 8,
-          noAutoScroll: true
-        },
-        {
-          title: () => t('tour.steps.exportTitle'),
-          body: () => t('tour.steps.exportBody'),
-          target: () => btnExport,
-          onEnter: () => setView('matrix', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.summaryTitle'),
-          body: () => t('tour.steps.summaryBody'),
-          target: () => tabMulti,
-          onEnter: () => setView('multi', { scroll: false })
-        },
-        {
-          title: () => t('tour.steps.dropTitle'),
-          body: () => t('tour.steps.dropBody'),
-          target: () => multiDrop,
-          onEnter: () => setView('multi', { scroll: false })
-        }
-      ];
-
-      function parseCsv(text){
-        const rows = [];
-        let row = [];
-        let cur = '';
-        let inQ = false;
-        for (let i = 0; i < text.length; i++){
-          const ch = text[i];
-          if (inQ){
-            if (ch === '"'){
-              const next = text[i+1];
-              if (next === '"'){
-                cur += '"';
-                i++;
-              } else {
-                inQ = false;
-              }
-            } else {
-              cur += ch;
-            }
-            continue;
-          }
-
-          if (ch === '"'){
-            inQ = true;
-            continue;
-          }
-          if (ch === ','){
-            row.push(cur);
-            cur = '';
-            continue;
-          }
-          if (ch === '\n'){
-            row.push(cur);
-            cur = '';
-            if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
-            row = [];
-            continue;
-          }
-          if (ch === '\r') continue;
-          cur += ch;
-        }
-        row.push(cur);
-        if (row.length > 1 || row.some((v) => v.trim() !== '')) rows.push(row);
-        return rows;
-      }
-
-      function normalizeHeader(h){
-        return String(h || '').trim().toLowerCase();
-      }
-
-      function rowsToObjects(rows){
-        if (!rows || rows.length < 2) return [];
-        const header = rows[0].map(normalizeHeader);
-        const out = [];
-        for (let i = 1; i < rows.length; i++){
-          const r = rows[i];
-          const o = {};
-          for (let j = 0; j < header.length; j++){
-            o[header[j]] = (r[j] == null) ? '' : String(r[j]);
-          }
-          out.push(o);
-        }
-        return out;
-      }
-
+      // ===== MULTI-FILE SUMMARY DATA LAYER =====
       let multiAgg = new Map();
 
-      function getMultiBucket(team, date, indicator){
-        const t = team || '—';
+      function getMultiBucket(team, date, indicator) {
+        const tm = team || '—';
         const d = date || '—';
         const i = indicator || '—';
-        const key = `${t}__${d}__${i}`;
-        const prev = multiAgg.get(key) || { team: t, date: d, indicator: i, green: 0, yellow: 0, red: 0, trendCounts: { up: 0, stable: 0, down: 0 }, responses: 0, votes: [] };
+        const key = `${tm}__${d}__${i}`;
+        const prev = multiAgg.get(key) || { team: tm, date: d, indicator: i, green: 0, yellow: 0, red: 0, trendCounts: { up: 0, stable: 0, down: 0 }, responses: 0, votes: [] };
         multiAgg.set(key, prev);
         return prev;
       }
 
-      function addParticipantExport(objects){
-        for (const o of objects){
+      function addParticipantExport(objects) {
+        for (const o of objects) {
           const team = (o.team || '').trim() || '—';
           const date = (o.date || '').trim() || '—';
           const indicator = (o.indicator || '').trim();
@@ -2623,7 +1048,7 @@
           if (status === 'red') prev.red++;
           if (trend && Object.prototype.hasOwnProperty.call(prev.trendCounts, trend)) prev.trendCounts[trend]++;
           prev.responses++;
-          if (Array.isArray(prev.votes)){
+          if (Array.isArray(prev.votes)) {
             prev.votes.push({
               participantId,
               participantName,
@@ -2635,8 +1060,8 @@
         }
       }
 
-      function addSummaryExport(objects){
-        for (const o of objects){
+      function addSummaryExport(objects) {
+        for (const o of objects) {
           const team = (o.team || '').trim() || '—';
           const date = (o.date || '').trim() || '—';
           const indicator = (o.indicator || '').trim() || '—';
@@ -2660,7 +1085,45 @@
         }
       }
 
-      function dominantTrendLabel(trendCounts){
+      function pickLatestDatePerTeam() {
+        const m = new Map();
+        for (const b of multiAgg.values()) {
+          const team = b.team || '—';
+          const date = b.date || '—';
+          if (m.has(team)) {
+            const prev = m.get(team);
+            if (prev < date) m.set(team, date);
+          } else {
+            m.set(team, date);
+          }
+        }
+        return m;
+      }
+
+      function getBucket(team, date, indicator) {
+        const tm = (team || '—');
+        const d = (date || '—');
+        const i = (indicator || '—');
+        return multiAgg.get(`${tm}__${d}__${i}`) || null;
+      }
+
+      function worstStatus(bucket) {
+        if (!bucket) return '';
+        if ((bucket.red || 0) > 0) return 'red';
+        if ((bucket.yellow || 0) > 0) return 'yellow';
+        if ((bucket.green || 0) > 0) return 'green';
+        return '';
+      }
+
+      function worstTrendLabel(trendCounts) {
+        if (!trendCounts || typeof trendCounts !== 'object') return t('trendNone');
+        if ((trendCounts.down || 0) > 0) return t('trendDown');
+        if ((trendCounts.stable || 0) > 0) return t('trendStable');
+        if ((trendCounts.up || 0) > 0) return t('trendUp');
+        return t('trendNone');
+      }
+
+      function dominantTrendLabel(trendCounts) {
         const entries = Object.entries(trendCounts);
         entries.sort((a, b) => b[1] - a[1]);
         const top = entries[0];
@@ -2671,15 +1134,7 @@
         return t('trendNone');
       }
 
-      function worstTrendLabel(trendCounts){
-        if (!trendCounts || typeof trendCounts !== 'object') return t('trendNone');
-        if ((trendCounts.down || 0) > 0) return t('trendDown');
-        if ((trendCounts.stable || 0) > 0) return t('trendStable');
-        if ((trendCounts.up || 0) > 0) return t('trendUp');
-        return t('trendNone');
-      }
-
-      function pickMajorityStatus(bucket){
+      function pickMajorityStatus(bucket) {
         if (!bucket) return '';
         const g = bucket.green || 0;
         const y = bucket.yellow || 0;
@@ -2691,49 +1146,41 @@
         return 'red';
       }
 
-      function worstStatus(bucket){
-        if (!bucket) return '';
-        if ((bucket.red || 0) > 0) return 'red';
-        if ((bucket.yellow || 0) > 0) return 'yellow';
-        if ((bucket.green || 0) > 0) return 'green';
-        return '';
-      }
-
-      function labelStatusRu(s){
+      function labelStatusRu(s) {
         if (s === 'green') return 'Зелёный';
         if (s === 'yellow') return 'Жёлтый';
         if (s === 'red') return 'Красный';
         return '—';
       }
 
-      function labelStatusEn(s){
+      function labelStatusEn(s) {
         if (s === 'green') return 'Green';
         if (s === 'yellow') return 'Yellow';
         if (s === 'red') return 'Red';
         return '—';
       }
 
-      function labelTrendRu(t){
-        if (t === 'up') return '↗ Улучшается';
-        if (t === 'stable') return '→ Стабильно';
-        if (t === 'down') return '↘ Ухудшается';
-        if (typeof t === 'string' && t.includes('↗')) return '↗ Улучшается';
-        if (typeof t === 'string' && t.includes('→')) return '→ Стабильно';
-        if (typeof t === 'string' && t.includes('↘')) return '↘ Ухудшается';
+      function labelTrendRu(tr) {
+        if (tr === 'up') return '↗ Улучшается';
+        if (tr === 'stable') return '→ Стабильно';
+        if (tr === 'down') return '↘ Ухудшается';
+        if (typeof tr === 'string' && tr.includes('↗')) return '↗ Улучшается';
+        if (typeof tr === 'string' && tr.includes('→')) return '→ Стабильно';
+        if (typeof tr === 'string' && tr.includes('↘')) return '↘ Ухудшается';
         return '—';
       }
 
-      function labelTrendEn(t){
-        if (t === 'up') return '↗ Improving';
-        if (t === 'stable') return '→ Stable';
-        if (t === 'down') return '↘ Worsening';
-        if (typeof t === 'string' && t.includes('↗')) return '↗ Improving';
-        if (typeof t === 'string' && t.includes('→')) return '→ Stable';
-        if (typeof t === 'string' && t.includes('↘')) return '↘ Worsening';
+      function labelTrendEn(tr) {
+        if (tr === 'up') return '↗ Improving';
+        if (tr === 'stable') return '→ Stable';
+        if (tr === 'down') return '↘ Worsening';
+        if (typeof tr === 'string' && tr.includes('↗')) return '↗ Improving';
+        if (typeof tr === 'string' && tr.includes('→')) return '→ Stable';
+        if (typeof tr === 'string' && tr.includes('↘')) return '↘ Worsening';
         return '—';
       }
 
-      function trendLabelToCode(v){
+      function trendLabelToCode(v) {
         if (!v) return '';
         if (v === 'up' || v === 'stable' || v === 'down') return v;
         const s = String(v);
@@ -2743,7 +1190,7 @@
         return '';
       }
 
-      function escapeAttr(s){
+      function escapeAttr(s) {
         return String(s == null ? '' : s)
           .replaceAll('&', '&amp;')
           .replaceAll('"', '&quot;')
@@ -2751,155 +1198,22 @@
           .replaceAll('>', '&gt;');
       }
 
-      function pickLatestDatePerTeam(){
-        const m = new Map();
-        for (const b of multiAgg.values()){
-          const team = b.team || '—';
-          const date = b.date || '—';
-          if (m.has(team)){
-            const prev = m.get(team);
-            if (prev < date) m.set(team, date);
-          } else {
-            m.set(team, date);
-          }
-        }
-        return m;
-      }
-
-      function getBucket(team, date, indicator){
-        const t = (team || '—');
-        const d = (date || '—');
-        const i = (indicator || '—');
-        return multiAgg.get(`${t}__${d}__${i}`) || null;
-      }
-
-      function renderMultiSummary(){
-        if (!multiBodyEl || !multiHeadEl) return;
-        multiHeadEl.innerHTML = '';
-        multiBodyEl.innerHTML = '';
-
-        const latest = pickLatestDatePerTeam();
-        const teams = Array.from(latest.keys()).sort((a, b) => a.localeCompare(b));
-
-        const hasData = !!teams.length;
-        if (multiActions) multiActions.style.display = hasData ? '' : 'none';
-        if (multiTableWrap) multiTableWrap.classList.toggle('multiWrapHidden', !hasData);
-        if (multiDrop) multiDrop.style.display = hasData ? 'none' : '';
-        if (!hasData) return;
-
-        const hr = document.createElement('tr');
-        const h0 = document.createElement('th');
-        h0.scope = 'col';
-        h0.innerHTML = '';
-        hr.appendChild(h0);
-        for (const team of teams){
-          const date = latest.get(team);
-          const th = document.createElement('th');
-          th.scope = 'col';
-          th.innerHTML = `<div class="glassCard"><div class="glassPad smPad"><strong>${team}</strong><div class="indMeta" style="margin-top:4px;">${date || ''}</div></div></div>`;
-          hr.appendChild(th);
-        }
-        multiHeadEl.appendChild(hr);
-
-        for (const ind of indicators){
-          const tr = document.createElement('tr');
-          const th = document.createElement('th');
-          th.scope = 'row';
-          const shortLabel = indShort(ind);
-          const indTip = `${indTitle(ind)}\n\n${t('greenPrefix')}: ${indAwesome(ind)}\n${t('redPrefix')}: ${indCrappy(ind)}`;
-          th.innerHTML = `<div class="glassCard"><div class="glassPad smPadTight" title="${escapeAttr(indTip)}"><strong>${escapeAttr(shortLabel)}</strong></div></div>`;
-          tr.appendChild(th);
-
-          for (const team of teams){
-            const date = latest.get(team);
-            const b = getBucket(team, date, ind.id);
-            const status = worstStatus(b);
-            const trendLabel = b ? worstTrendLabel(b.trendCounts) : '—';
-            const trendCode = trendLabelToCode(trendLabel);
-
-            const cls = status === 'green' ? 'ok' : status === 'yellow' ? 'warn' : status === 'red' ? 'bad' : '';
-            const trendChar = trendLabel.includes('↗') ? '↗' : trendLabel.includes('↘') ? '↘' : trendLabel.includes('→') ? '→' : '—';
-            const labelStatus = lang === 'en' ? labelStatusEn : labelStatusRu;
-            const labelTrend = lang === 'en' ? labelTrendEn : labelTrendRu;
-            const aria = lang === 'en'
-              ? `${team}${date ? `, ${date}` : ''}: ${indTitle(ind)}. Status: ${labelStatus(status)}. Trend: ${labelTrend(trendCode) || '—'}.`
-              : `${team}${date ? `, ${date}` : ''}: ${indTitle(ind)}. Статус: ${labelStatus(status)}. Тренд: ${labelTrend(trendCode) || '—'}.`;
-
-            const tip = (() => {
-              if (!b) return '';
-              const votes = Array.isArray(b.votes) ? b.votes : [];
-              if (votes.length){
-                const lines = votes.map((v) => {
-                  const who = (v.participantName || v.participantId || (lang === 'en' ? 'Participant' : 'Участник')).trim();
-                  const st = labelStatus(lang === 'en' ? v.status : v.status);
-                  const tr = labelTrend(lang === 'en' ? v.trend : v.trend);
-                  return `${who}: ${st}, ${tr}`;
-                });
-                return lines.join('\n');
-              }
-              return lang === 'en'
-                ? `Green: ${b.green || 0}\nYellow: ${b.yellow || 0}\nRed: ${b.red || 0}`
-                : `Зелёный: ${b.green || 0}\nЖёлтый: ${b.yellow || 0}\nКрасный: ${b.red || 0}`;
-            })();
-
-            const td = document.createElement('td');
-            td.innerHTML = `
-              <div class="glassCard">
-                <div class="glassPad">
-                  <div class="sumCell" aria-label="${escapeAttr(aria)}" title="${escapeAttr(tip)}">
-                    <span class="sumDot ${cls}" aria-hidden="true"></span>
-                    <span class="sumTrend" aria-hidden="true">${trendChar}</span>
-                  </div>
-                </div>
-              </div>
-            `;
-            tr.appendChild(td);
-          }
-
-          multiBodyEl.appendChild(tr);
-        }
-      }
-
-      async function handleMultiFiles(files){
-        const list = Array.from(files || []);
-        if (!list.length) return;
-        for (const f of list){
-          const text = await f.text();
-          const rows = parseCsv(text);
-          const objects = rowsToObjects(rows);
-          const header = rows && rows[0] ? rows[0].map(normalizeHeader) : [];
-
-          if (header.includes('participant_id') && header.includes('indicator') && header.includes('status')){
-            addParticipantExport(objects);
-          } else if (header.includes('green') && header.includes('yellow') && header.includes('red') && header.includes('indicator')){
-            addSummaryExport(objects);
-          }
-        }
-        renderMultiSummary();
-      }
-
-      function clearMulti(){
-        multiAgg = new Map();
-        if (multiFiles) multiFiles.value = '';
-        renderMultiSummary();
-      }
-
-      function exportMultiCsv(){
+      function exportMultiCsv() {
         const latest = pickLatestDatePerTeam();
         const teams = Array.from(latest.keys()).sort((a, b) => a.localeCompare(b));
         const header = ['team','date','indicator','status','trend','green','yellow','red','responses'];
         const rows = [header];
 
-        for (const team of teams){
+        for (const team of teams) {
           const date = latest.get(team);
-          for (const ind of indicators){
-            const b = getBucket(team, date, ind.title);
+          for (const ind of indicators) {
+            const b = getBucket(team, date, ind.id);
             const status = worstStatus(b);
             const trend = b ? worstTrendLabel(b.trendCounts) : '';
             rows.push([
               team,
               date || '',
-              ind.title,
+              indTitle(ind),
               status,
               trend,
               String(b ? b.green : 0),
@@ -2923,37 +1237,35 @@
         window.setTimeout(() => URL.revokeObjectURL(url), 0);
       }
 
-      bindTabs();
-      setView('matrix', { scroll: false });
+      // ===== RUN MIGRATIONS =====
+      migrateLegacyIfNeeded();
+      migrateMatrixToParticipantsIfNeeded();
+      migrateV1toV2IfNeeded();
 
-      if (multiFiles) multiFiles.addEventListener('change', (e) => {
-        const t = e.target;
-        if (!t || !(t instanceof HTMLInputElement)) return;
-        if (t.files) handleMultiFiles(t.files);
-      });
-
-      if (multiDrop){
-        const prevent = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        };
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((type) => {
-          multiDrop.addEventListener(type, prevent);
-        });
-
-        multiDrop.addEventListener('dragenter', () => multiDrop.classList.add('dragover'));
-        multiDrop.addEventListener('dragover', () => multiDrop.classList.add('dragover'));
-        multiDrop.addEventListener('dragleave', () => multiDrop.classList.remove('dragover'));
-        multiDrop.addEventListener('drop', (e) => {
-          multiDrop.classList.remove('dragover');
-          const dt = e.dataTransfer;
-          if (!dt || !dt.files) return;
-          handleMultiFiles(dt.files);
-        });
+      // ===== LOAD SAVED STATE =====
+      const savedRaw = (() => {
+        try { return localStorage.getItem(STORAGE_KEY); } catch(_) { return null; }
+      })();
+      if (savedRaw) {
+        try {
+          const saved = JSON.parse(savedRaw);
+          applyState(saved);
+        } catch(_) {
+          applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
+        }
+      } else {
+        applyState({ global: { team: '', date: todayISO(), facilitator: '', overallNotes: '' }, columns: [blankColumn()], data: {} });
       }
-      if (btnClearMulti) btnClearMulti.addEventListener('click', clearMulti);
-      if (btnExportMulti) btnExportMulti.addEventListener('click', exportMultiCsv);
+
+      // ===== INIT LANGUAGE =====
+      setLang(lang);
+
+      // ===== BIND LANGUAGE TOGGLE =====
+      const langRuBtn = document.getElementById('langRu');
+      const langEnBtn = document.getElementById('langEn');
+      if (langRuBtn) langRuBtn.addEventListener('click', () => setLang('ru'));
+      if (langEnBtn) langEnBtn.addEventListener('click', () => setLang('en'));
+
     })();
   </script>
 </body>
