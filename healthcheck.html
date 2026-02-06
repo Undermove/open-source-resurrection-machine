@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -848,8 +848,8 @@
         <button id="modeCompare" class="modeBtn" type="button" aria-pressed="false">Compare Teams</button>
       </div>
       <div class="langToggle" role="group" aria-label="Language">
-        <button id="langEn" class="langBtn" type="button" aria-pressed="false">EN</button>
-        <button id="langRu" class="langBtn" type="button" aria-pressed="true">RU</button>
+        <button id="langEn" class="langBtn" type="button" aria-pressed="true">EN</button>
+        <button id="langRu" class="langBtn" type="button" aria-pressed="false">RU</button>
       </div>
     </div>
   </header>
@@ -983,6 +983,7 @@
           checklistRegionAria: 'Матрица Team Health Check',
           checklistTitle: 'Squad Health Checklist',
           participant: 'Участник',
+          participantsHeading: 'Участники',
           participantName: 'Имя',
           participantNameLabel: 'Имя участника',
           removeParticipant: 'Удалить участника',
@@ -1082,6 +1083,7 @@
           checklistRegionAria: 'Team Health Check matrix',
           checklistTitle: 'Squad Health Checklist',
           participant: 'Participant',
+          participantsHeading: 'Participants',
           participantName: 'Name',
           participantNameLabel: 'Participant name',
           removeParticipant: 'Remove participant',
@@ -1946,7 +1948,6 @@
       }
 
       // Enhance scheduleAutosave with indicator
-      const _origScheduleAutosave = scheduleAutosave;
       scheduleAutosave = function() {
         if (autosaveTimer) window.clearTimeout(autosaveTimer);
         autosaveTimer = window.setTimeout(() => {
@@ -2249,7 +2250,7 @@
         const labelFac = document.getElementById('labelFac');
         if (labelFac) labelFac.textContent = t('facilitatorLabel');
         const participantsTitle = document.getElementById('participantsTitle');
-        if (participantsTitle) participantsTitle.textContent = t('participant') + 's';
+        if (participantsTitle) participantsTitle.textContent = t('participantsHeading');
         if (btnStart) btnStart.textContent = t('setup.startSession');
 
         // Results
