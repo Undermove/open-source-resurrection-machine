@@ -4,164 +4,323 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Open Source Resurrection Machine — Projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg0:#07070b;
-      --bg1:#0d0d16;
-      --text:#e9e9f3;
-      --muted:rgba(233,233,243,.72);
-      --stroke:rgba(255,255,255,.12);
-      --stroke2:rgba(255,255,255,.08);
-      --accent:#7cd1ff;
-      --glass: rgba(10,10,16,.46);
-      --glass2: rgba(10,10,16,.58);
-      --shadow: 0 14px 45px rgba(0,0,0,.55);
-      --radius: 14px;
+    :root {
+      /* Colors */
+      --bg-base: #09090b;
+      --accent: oklch(75% 0.15 250);
+      --accent-glow: oklch(75% 0.15 250 / 15%);
+      --text-main: oklch(95% 0.01 250);
+      --text-muted: oklch(75% 0.01 250);
+      --stroke: oklch(100% 0 0 / 10%);
+      --stroke-strong: oklch(100% 0 0 / 20%);
+      --glass-bg: oklch(10% 0.02 250 / 40%);
+      
+      /* Effects */
+      --shadow-xl: 0 20px 40px -12px oklch(0% 0 0 / 50%);
+      --blur: blur(16px);
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --radius: 1rem;
     }
 
-    html, body{ height: 100%; }
-    body{
-      margin:0;
-      min-height:100%;
-      background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 65%);
-      color: var(--text);
-      font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, Arial, sans-serif;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    a{ color: inherit; text-decoration: underline; }
-    a:focus-visible{ outline: 2px dashed var(--accent); outline-offset: 3px; }
-
-    .skip{
-      position:absolute;
-      top:0;
-      left:0;
-      transform: translateY(-120%);
-      padding:10px 12px;
-      background: rgba(0,0,0,.75);
-      border: 1px solid var(--stroke);
-      border-radius: 0 0 10px 0;
-      color: var(--text);
-      z-index: 50;
-    }
-    .skip:focus{ transform: translateY(0); }
-
-    header{
-      padding: 18px clamp(14px, 4vw, 28px);
-      border-bottom: 1px solid var(--stroke2);
-      background: color-mix(in srgb, var(--glass) 86%, transparent);
-      position: sticky;
-      top: 0;
-      backdrop-filter: blur(10px);
-      z-index: 10;
+    body {
+      min-height: 100vh;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
     }
 
-    .wrap{
-      max-width: 980px;
+    /* Mesh Gradient Background */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background: 
+        radial-gradient(circle at 20% 20%, oklch(30% 0.1 260 / 20%) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, oklch(35% 0.1 280 / 15%) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, oklch(25% 0.05 240 / 10%) 0%, transparent 60%);
+    }
+
+    /* Micro-noise Texture */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.03;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .container {
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 18px clamp(14px, 4vw, 28px);
-      display:flex;
-      flex-direction:column;
-      gap: 14px;
+      padding: clamp(1rem, 5vw, 4rem) 1.5rem;
     }
 
-    .glassCard{
-      background: color-mix(in srgb, var(--glass) 86%, transparent);
+    header {
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: 'Onest', sans-serif;
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(to bottom, var(--text-main), var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-desc {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-auto-rows: minmax(180px, auto);
+      gap: 1.5rem;
+    }
+
+    /* Specific layouts for items if needed */
+    .bento-item:nth-child(1) { grid-column: span 2; }
+    @media (max-width: 768px) {
+      .bento-item:nth-child(1) { grid-column: span 1; }
+    }
+
+    .bento-item {
+      position: relative;
+      background: var(--glass-bg);
       border: 1px solid var(--stroke);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-    }
-    .glassPad{ padding: 14px 16px; }
-
-    h1{
-      font-size: clamp(1.1rem, 2.8vw, 1.5rem);
-      margin: 0;
-      letter-spacing: .2px;
-    }
-
-    p{
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.45;
+      padding: 2rem;
+      backdrop-filter: var(--blur);
+      transition: all 0.4s var(--ease);
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
     }
 
-    ul{
-      margin: 0;
-      padding-left: 20px;
-      display:flex;
-      flex-direction:column;
-      gap: 10px;
+    .bento-item::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), var(--accent-glow) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s var(--ease);
+      z-index: 0;
     }
 
-    .itemTitle{
-      font-weight: 800;
+    .bento-item:hover {
+      border-color: var(--stroke-strong);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: var(--shadow-xl);
     }
 
-    .itemDesc{
-      display:block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.35;
+    .bento-item:hover::before {
+      opacity: 1;
     }
 
-    footer{
-      padding: 18px clamp(14px, 4vw, 28px);
-      border-top: 1px solid var(--stroke2);
-      color: var(--muted);
+    .bento-item:active {
+      transform: translateY(-2px) scale(0.98);
+    }
+
+    .item-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .item-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .item-title {
+      font-family: 'Onest', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .item-desc {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+    }
+
+    .item-footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+
+    .arrow {
+      transition: transform 0.3s var(--ease);
+    }
+
+    .bento-item:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--stroke);
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s var(--ease);
+    }
+
+    .github-link:hover {
+      color: var(--text-main);
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 0;
+      padding: 1rem;
+      background: var(--accent);
+      color: #000;
+      z-index: 100;
+      transition: top 0.3s;
+    }
+
+    .skip-link:focus {
+      top: 0;
     }
   </style>
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
+  <a href="#main" class="skip-link">Skip to content</a>
 
-  <header>
-    <div class="wrap" style="padding:0; gap: 8px;">
+  <div class="container">
+    <header>
       <h1>Open Source Resurrection Machine</h1>
-      <p>Projects in this repository</p>
-    </div>
-  </header>
+      <p class="header-desc">Breathe life into abandoned projects. A collection of tools and experiments for the modern developer.</p>
+    </header>
 
-  <main id="main">
-    <div class="wrap">
-      <section class="glassCard" aria-label="Projects">
-        <div class="glassPad">
-          <nav aria-label="Project list">
-            <ul>
-              <li>
-                <a class="itemTitle" href="resurrection.html">Resurrection machine</a>
-                <span class="itemDesc">Slot machine UI that fetches repos from GitHub search.</span>
-              </li>
-              <li>
-                <a class="itemTitle" href="healthcheck.html">Squad Health Checklist</a>
-                <span class="itemDesc">Health check matrix + CSV export + multi-team summary.</span>
-              </li>
-              <li>
-                <a class="itemTitle" href="lamp.html">Lamp</a>
-                <span class="itemDesc">Interactive lamp page.</span>
-              </li>
-              <li>
-                <a class="itemTitle" href="dram.html">DRAM</a>
-                <span class="itemDesc">DRAM-themed interactive page.</span>
-              </li>
-              <li>
-                <a class="itemTitle" href="game.html">Game</a>
-                <span class="itemDesc">A game page.</span>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </section>
-    </div>
-  </main>
+    <main id="main">
+      <div class="bento-grid">
+        <a href="cat-game.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">New & Featured</span>
+            <h2 class="item-title">Cat Hunter Pro</h2>
+            <p class="item-desc">High-performance digital prey for your feline friend. Features multiple modes including Infinite, Time Trial, and Objective Hunt.</p>
+          </div>
+          <div class="item-footer">Start hunting <span class="arrow">→</span></div>
+        </a>
 
-  <footer>
-    <div class="wrap" style="padding:0;">
-      <p>
-        Source:
-        <a href="https://github.com/Undermove/open-source-resurrection-machine" target="_blank" rel="noopener noreferrer">GitHub</a>
-      </p>
-    </div>
-  </footer>
+        <a href="resurrection.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">Featured</span>
+            <h2 class="item-title">Resurrection Machine</h2>
+            <p class="item-desc">A slot machine interface that pulls data from GitHub API to find projects in need of love.</p>
+          </div>
+          <div class="item-footer">Explore tool <span class="arrow">→</span></div>
+        </a>
+
+        <a href="healthcheck.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">Productivity</span>
+            <h2 class="item-title">Squad Health Checklist</h2>
+            <p class="item-desc">Interactive health check matrix with CSV export and multi-team summary support.</p>
+          </div>
+          <div class="item-footer">Check health <span class="arrow">→</span></div>
+        </a>
+
+        <a href="lamp.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">Experiment</span>
+            <h2 class="item-title">Interactive Lamp</h2>
+            <p class="item-desc">A study in light, shadow, and interaction within the browser environment.</p>
+          </div>
+          <div class="item-footer">View project <span class="arrow">→</span></div>
+        </a>
+
+        <a href="dram.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">Visuals</span>
+            <h2 class="item-title">DRAM Concept</h2>
+            <p class="item-desc">Memory-inspired interactive visuals and thematic design exploration.</p>
+          </div>
+          <div class="item-footer">View project <span class="arrow">→</span></div>
+        </a>
+
+        <a href="game.html" class="bento-item">
+          <div class="item-content">
+            <span class="item-tag">Play</span>
+            <h2 class="item-title">Game Lab</h2>
+            <p class="item-desc">Experimental game mechanics and canvas-based interactions.</p>
+          </div>
+          <div class="item-footer">Play now <span class="arrow">→</span></div>
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <a href="https://github.com/Undermove/open-source-resurrection-machine" class="github-link" target="_blank" rel="noopener noreferrer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub repository
+      </a>
+    </footer>
+  </div>
+
+  <script>
+    // Subtle mouse move effect for cards
+    document.querySelectorAll('.bento-item').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty('--x', `${x}%`);
+        card.style.setProperty('--y', `${y}%`);
+      });
+    });
+  </script>
 </body>
 </html>
