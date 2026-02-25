@@ -379,6 +379,15 @@
         }
 
         function startGame(mode) {
+            // Запрос полноэкранного режима
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            }
+
             slapSound.play().catch(() => {});
             currentMode = mode; gameActive = true;
             overlay.classList.add('hidden'); hud.style.display = 'flex';
