@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Cat Hunter">
+    <link rel="manifest" href="manifest.json">
     <title>Cat Hunter Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
@@ -216,9 +217,33 @@
         }
         
         .restart-btn:hover { transform: scale(1.05); }
+
+        /* Стиль для подсказки iOS */
+        #ios-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #000;
+            padding: 15px 20px;
+            border-radius: 15px;
+            z-index: 200;
+            display: none;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-size: 14px;
+            text-align: center;
+        }
+        #ios-prompt b { color: var(--accent-color); }
+        .ios-icon { height: 24px; vertical-align: middle; margin: 0 5px; }
     </style>
 </head>
 <body>
+    <div id="ios-prompt">
+        Чтобы играть во весь экран, нажми <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23007AFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/%3E%3Cpolyline points='16 6 12 2 8 6'/%3E%3Cline x1='12' y1='2' x2='12' y2='15'/%3E%3C/svg%3E" class="ios-icon"> «Поделиться», <br> а затем <b>«На экран «Домой»</b>
+    </div>
     <div id="overlay">
         <h1>CAT HUNTER PRO</h1>
         <div class="modes-grid">
@@ -272,6 +297,15 @@
         const gameOverEl = document.getElementById('gameOver');
         const finalScoreEl = document.getElementById('finalScore');
         const hud = document.getElementById('hud');
+        const iosPrompt = document.getElementById('ios-prompt');
+
+        // Проверка на iOS и standalone режим
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isIOS && !isStandalone) {
+            iosPrompt.style.display = 'block';
+        }
 
         const flyImg = new Image();
         let processedFlyImg = null;
