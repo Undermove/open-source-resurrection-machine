@@ -31,3 +31,5 @@ open open-source-resurrection-machine/index.html
 
 - Star the repo: https://github.com/Undermove/open-source-resurrection-machine
 - Follow on Telegram: https://t.me/dimasshortposts
+
+🤖
