@@ -1,6 +1,6 @@
-# Open Source Resurrection Machine
+# Open Source Resurrection Machine 🙂
 
-A spooky slot machine that resurfaces once-great, now-dormant open source repositories. Pull the lever, browse the results, and bless the fallen with a star.
+A spooky slot machine that resurfaces once-great, now-dormant open source repositories. Pull the lever, browse the results, and bless the fallen with a star. 🙂
 
 - **Drag the lever** or press it to spin
 - **Language filter** to narrow results
@@ -29,5 +29,5 @@ open open-source-resurrection-machine/index.html
 
 ## Star and follow
 
-- Star the repo: https://github.com/Undermove/open-source-resurrection-machine
+- Star the repo: https://github.com/Undermove/open-source-resurrection-machine 🙂
 - Follow on Telegram: https://t.me/dimasshortposts
