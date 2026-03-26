@@ -1,0 +1,63 @@
+name: Update Arena Scores
+
+on:
+  schedule:
+    # Every day at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Scrape arena.ai leaderboard
+        run: python3 scripts/update-arena-scores.py
+
+      - name: Update embedded fallback in HTML
+        run: |
+          python3 -c "
+          import json, re
+
+          with open('arena-scores.json') as f:
+              data = json.load(f)
+          data.pop('_meta', None)
+          fallback = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+
+          with open('llm-pricing.html') as f:
+              html = f.read()
+
+          html = re.sub(
+              r'const ARENA_FALLBACK=\{.*?\};',
+              f'const ARENA_FALLBACK={fallback};',
+              html,
+              count=1
+          )
+
+          with open('llm-pricing.html', 'w') as f:
+              f.write(html)
+
+          print(f'Updated ARENA_FALLBACK with {len(data)} models')
+          "
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git diff --quiet arena-scores.json llm-pricing.html && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add arena-scores.json llm-pricing.html
+          git commit -m "chore: update arena scores $(date -u +%Y-%m-%d)"
+          git push

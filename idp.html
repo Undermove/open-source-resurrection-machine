@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Individual Development Plan (IDP) — Google Docs Sync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Azeret+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ===== CUSTOM PROPERTIES ===== */
+    :root {
+      --bg: #F5F7FA;
+      --text: #2D3748;
+      --accent: #3182CE;
+      --accent-hover: #2B6CB0;
+      --ok: #48BB78;
+      --warn: #ECC94B;
+      --bad: #F56565;
+      --card: #FFFFFF;
+      --radius-sm: 8px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 100px;
+      --muted: #718096;
+      --stroke: #E2E8F0;
+      --focus-ring: 0 0 0 3px rgba(49, 130, 206, 0.3);
+      --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      /* Typography scale */
+      --text-2xs: 10px;
+      --text-xs: 12px;
+      --text-sm: 14px;
+      --text-md: 16px;
+      --text-base: 16px;
+      --text-lg: 18px;
+      --text-xl: 24px;
+      --text-2xl: 32px;
+      /* Easing */
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ===== BASE TYPOGRAPHY & BODY ===== */
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: var(--text-base);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Onest', sans-serif;
+      font-weight: 700;
+      color: #1A202C;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      width: 100%;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--stroke);
+      padding: 20px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Onest', sans-serif;
+      font-weight: 800;
+      font-size: var(--text-xl);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ===== GOOGLE AUTH BUTTON ===== */
+    .auth-btn {
+      background: #FFFFFF;
+      border: 1px solid var(--stroke);
+      color: #3C4043;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: var(--text-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s var(--ease);
+    }
+
+    .auth-btn:hover {
+      background: #F8F9FA;
+      border-color: #D2D8DD;
+    }
+
+    .auth-btn.signed-in {
+      background: var(--ok);
+      color: white;
+      border-color: var(--ok);
+    }
+
+    /* Language toggle */
+    .langToggle {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.5);
+      margin-right: 12px;
+    }
+    .langBtn {
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Azeret Mono', 'SF Mono', monospace;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      cursor: pointer;
+      line-height: 1;
+      white-space: nowrap;
+      transition: all 0.2s var(--ease);
+      letter-spacing: 0.02em;
+    }
+    .langBtn[aria-pressed="true"] {
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    /* ===== FORM SECTIONS ===== */
+    .section {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .section-title {
+      font-size: var(--text-xl);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--bg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: var(--text-sm);
+      color: #4A5568;
+    }
+
+    input[type="text"], 
+    input[type="date"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: var(--text-md);
+      transition: all 0.2s var(--ease);
+      background: #F8FAFC;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+      background: white;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    /* ===== SYNC CONTROLS ===== */
+    .sync-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: #E2E8F0;
+      padding: 16px;
+      border-radius: var(--radius);
+      align-items: center;
+    }
+
+    .sync-bar input {
+      flex: 1;
+      background: white;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s var(--ease);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: #CBD5E0;
+      color: #2D3748;
+    }
+
+    .btn-secondary:hover {
+      background: #A0AEC0;
+    }
+
+    /* ===== NEXT 1-1 SECTION ===== */
+    .one-on-one {
+      background: #F0FFF4;
+      border-left: 6px solid var(--ok);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      margin-top: auto;
+      padding: 40px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: var(--text-sm);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+      .sync-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <a href="#" class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span data-i18n="logo-text">IDP Tool</span>
+      </a>
+      <div style="display: flex; align-items: center;">
+        <div class="langToggle">
+          <button class="langBtn" id="btn-en" aria-pressed="true">EN</button>
+          <button class="langBtn" id="btn-ru" aria-pressed="false">RU</button>
+        </div>
+        <button id="auth-btn" class="auth-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span data-i18n="sign-in">Sign in with Google</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="sync-bar">
+      <input type="text" id="doc-id" data-i18n-placeholder="doc-id-placeholder" placeholder="Google Doc ID or URL..." />
+      <button id="load-btn" class="btn btn-secondary" data-i18n="load-btn">Load from Doc</button>
+      <button id="save-btn" class="btn btn-primary" data-i18n="save-btn">Save to Doc</button>
+      <button id="create-btn" class="btn btn-secondary" data-i18n="create-btn">Create New Doc</button>
+      <button id="copy-btn" class="btn btn-secondary" title="Copy Doc Link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21H16C17.1046 21 18 20.1046 18 19V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 4V2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 7L22 7M22 7L19 4M22 7L19 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 5H14C15.1046 5 16 5.89543 16 7V13C16 14.1046 15.1046 15 14 15H10C8.89543 15 8 14.1046 8 13V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="idp-form">
+      <!-- General Information -->
+      <section class="section">
+        <h2 class="section-title" data-i18n="section-general">General Information</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="employee-name" data-i18n="label-employee-name">Employee Name</label>
+            <input type="text" id="employee-name" data-i18n-placeholder="placeholder-name" placeholder="Enter name">
+          </div>
+          <div class="form-group">
+            <label for="job-title" data-i18n="label-job-title">Job Title / Level</label>
+            <input type="text" id="job-title" data-i18n-placeholder="placeholder-job" placeholder="e.g. Senior Backend Engineer">
+          </div>
+          <div class="form-group">
+            <label for="review-period" data-i18n="label-review-period">Review Period</label>
+            <input type="text" id="review-period" data-i18n-placeholder="placeholder-period" placeholder="e.g. Q1-Q2 2024">
+          </div>
+          <div class="form-group">
+            <label for="manager-name" data-i18n="label-manager-name">Tech Lead / Manager</label>
+            <input type="text" id="manager-name" data-i18n-placeholder="placeholder-name" placeholder="Enter name">
+          </div>
+        </div>
+      </section>
+
+      <!-- Self Assessment -->
+      <section class="section">
+        <h2 class="section-title" data-i18n="section-self">Self-Assessment</h2>
+        <div class="form-group">
+          <label for="strengths" data-i18n="label-strengths">My Strengths</label>
+          <textarea id="strengths" data-i18n-placeholder="placeholder-strengths" placeholder="What are your key contributions and technical strengths?"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="improvements" data-i18n="label-improvements">Areas for Growth</label>
+          <textarea id="improvements" data-i18n-placeholder="placeholder-improvements" placeholder="Where do you see opportunities for development?"></textarea>
+        </div>
+      </section>
+
+      <!-- Goals -->
+      <section class="section">
+        <h2 class="section-title" data-i18n="section-goals">Career Goals</h2>
+        <div class="form-group">
+          <label for="short-term" data-i18n="label-short-term">Short-Term Goals (3-6 months)</label>
+          <textarea id="short-term" data-i18n-placeholder="placeholder-short-term" placeholder="Specific technical skills or project milestones."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="long-term" data-i18n="label-long-term">Long-Term Goals (1-2 years)</label>
+          <textarea id="long-term" data-i18n-placeholder="placeholder-long-term" placeholder="Career progression, new roles, or major expertise areas."></textarea>
+        </div>
+      </section>
+
+      <!-- Action Plan -->
+      <section class="section">
+        <h2 class="section-title" data-i18n="section-action">Action Plan</h2>
+        <div class="form-group">
+          <label for="action-items" data-i18n="label-action-items">Specific Actions & Resources</label>
+          <textarea id="action-items" data-i18n-placeholder="placeholder-action-items" placeholder="List courses, books, projects, or tasks with deadlines."></textarea>
+        </div>
+      </section>
+
+      <!-- Next 1-1 Preparation -->
+      <section class="section one-on-one">
+        <h2 class="section-title" data-i18n="section-1-1">Next 1-1 Preparation</h2>
+        <div class="form-group">
+          <label for="questions" data-i18n="label-questions">Questions for Tech Lead</label>
+          <textarea id="questions" data-i18n-placeholder="placeholder-questions" placeholder="What do you want to ask or clarify during our next sync?"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="challenges" data-i18n="label-challenges">Current Challenges</label>
+          <textarea id="challenges" data-i18n-placeholder="placeholder-challenges" placeholder="Any blockers or difficulties you're facing right now?"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="feedback" data-i18n="label-feedback">Feedback for Team/Lead</label>
+          <textarea id="feedback" data-i18n-placeholder="placeholder-feedback" placeholder="What could be improved in our processes or collaboration?"></textarea>
+        </div>
+      </section>
+    </form>
+
+    <section class="section" style="background: #FFFBEB; border: 1px solid #FEF3C7;">
+      <h3 style="font-size: var(--text-md); margin-bottom: 12px; color: #92400E;">⚙️ Setup Guide</h3>
+      <ol style="margin-left: 20px; font-size: var(--text-sm); color: #92400E;">
+        <li>Create a project in <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>.</li>
+        <li>Enable **Google Docs API** and **Google Drive API**.</li>
+        <li>Create **OAuth 2.0 Client ID** (Web application).</li>
+        <li>Add `http://localhost` (or your domain) to **Authorized JavaScript origins**.</li>
+        <li>Replace `CLIENT_ID` in this file's script tag (line 397).</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Tech Lead Toolkit. All data is stored in your Google Account.</p>
+  </footer>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script>
+    /* 
+      SET UP YOUR GOOGLE API CLIENT ID HERE 
+      You can get one from the Google Cloud Console: https://console.cloud.google.com/
+    */
+    const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file';
+
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
+    let currentLang = 'en';
+
+    const TRANSLATIONS = {
+      en: {
+        'logo-text': 'IDP Tool',
+        'sign-in': 'Sign in with Google',
+        'signed-in': 'Signed In',
+        'doc-id-placeholder': 'Google Doc ID or URL...',
+        'load-btn': 'Load from Doc',
+        'save-btn': 'Save to Doc',
+        'create-btn': 'Create New Doc',
+        'section-general': 'General Information',
+        'label-employee-name': 'Employee Name',
+        'placeholder-name': 'Enter name',
+        'label-job-title': 'Job Title / Level',
+        'placeholder-job': 'e.g. Senior Backend Engineer',
+        'label-review-period': 'Review Period',
+        'placeholder-period': 'e.g. Q1-Q2 2024',
+        'label-manager-name': 'Tech Lead / Manager',
+        'section-self': 'Self-Assessment',
+        'label-strengths': 'My Strengths',
+        'placeholder-strengths': 'What are your key contributions and technical strengths?',
+        'label-improvements': 'Areas for Growth',
+        'placeholder-improvements': 'Where do you see opportunities for development?',
+        'section-goals': 'Career Goals',
+        'label-short-term': 'Short-Term Goals (3-6 months)',
+        'placeholder-short-term': 'Specific technical skills or project milestones.',
+        'label-long-term': 'Long-Term Goals (1-2 years)',
+        'placeholder-long-term': 'Career progression, new roles, or major expertise areas.',
+        'section-action': 'Action Plan',
+        'label-action-items': 'Specific Actions & Resources',
+        'placeholder-action-items': 'List courses, books, projects, or tasks with deadlines.',
+        'section-1-1': 'Next 1-1 Preparation',
+        'label-questions': 'Questions for Tech Lead',
+        'placeholder-questions': 'What do you want to ask or clarify during our next sync?',
+        'label-challenges': 'Current Challenges',
+        'placeholder-challenges': 'Any blockers or difficulties you\'re facing right now?',
+        'label-feedback': 'Feedback for Team/Lead',
+        'placeholder-feedback': 'What could be improved in our processes or collaboration?',
+        'doc-header': 'INDIVIDUAL DEVELOPMENT PLAN (IDP)',
+        'doc-employee': 'Employee',
+        'doc-title': 'Title',
+        'doc-period': 'Period',
+        'doc-manager': 'Manager',
+        'doc-strengths': 'Strengths',
+        'doc-improvements': 'Areas for Growth',
+        'doc-short-term': 'Short-Term (3-6 months)',
+        'doc-long-term': 'Long-Term (1-2 years)',
+        'doc-action': 'Specific Actions & Resources',
+        'doc-questions': 'Questions for Tech Lead',
+        'doc-challenges': 'Current Challenges',
+        'doc-feedback': 'Feedback for Team/Lead'
+      },
+      ru: {
+        'logo-text': 'Инструмент ИПР',
+        'sign-in': 'Войти через Google',
+        'signed-in': 'Вы вошли',
+        'doc-id-placeholder': 'ID документа или URL...',
+        'load-btn': 'Загрузить из Doc',
+        'save-btn': 'Сохранить в Doc',
+        'create-btn': 'Создать новый Doc',
+        'section-general': 'Общая информация',
+        'label-employee-name': 'Имя сотрудника',
+        'placeholder-name': 'Введите имя',
+        'label-job-title': 'Должность / Уровень',
+        'placeholder-job': 'напр. Senior Backend Engineer',
+        'label-review-period': 'Период обзора',
+        'placeholder-period': 'напр. Q1-Q2 2024',
+        'label-manager-name': 'Техлид / Менеджер',
+        'section-self': 'Самооценка',
+        'label-strengths': 'Мои сильные стороны',
+        'placeholder-strengths': 'Ваши ключевые достижения и технические навыки?',
+        'label-improvements': 'Области для роста',
+        'placeholder-improvements': 'В чем вы видите возможности для развития?',
+        'section-goals': 'Карьерные цели',
+        'label-short-term': 'Краткосрочные цели (3-6 месяцев)',
+        'placeholder-short-term': 'Конкретные навыки или вехи проекта.',
+        'label-long-term': 'Долгосрочные цели (1-2 года)',
+        'placeholder-long-term': 'Карьерный рост, новые роли или экспертные области.',
+        'section-action': 'План действий',
+        'label-action-items': 'Конкретные действия и ресурсы',
+        'placeholder-action-items': 'Курсы, книги, проекты или задачи с дедлайнами.',
+        'section-1-1': 'Подготовка к следующему 1-1',
+        'label-questions': 'Вопросы к техлиду',
+        'placeholder-questions': 'Что вы хотите спросить или уточнить на следующей встрече?',
+        'label-challenges': 'Текущие сложности',
+        'placeholder-challenges': 'Есть ли блокирующие факторы или трудности сейчас?',
+        'label-feedback': 'Обратная связь для команды/лида',
+        'placeholder-feedback': 'Что можно улучшить в процессах или взаимодействии?',
+        'doc-header': 'ИНДИВИДУАЛЬНЫЙ ПЛАН РАЗВИТИЯ (ИПР)',
+        'doc-employee': 'Сотрудник',
+        'doc-title': 'Должность',
+        'doc-period': 'Период',
+        'doc-manager': 'Менеджер',
+        'doc-strengths': 'Сильные стороны',
+        'doc-improvements': 'Области для роста',
+        'doc-short-term': 'Краткосрочные (3-6 месяцев)',
+        'doc-long-term': 'Долгосрочные (1-2 года)',
+        'doc-action': 'Действия и ресурсы',
+        'doc-questions': 'Вопросы к техлиду',
+        'doc-challenges': 'Сложности',
+        'doc-feedback': 'Обратная связь'
+      }
+    };
+
+    const authBtn = document.getElementById('auth-btn');
+    const loadBtn = document.getElementById('load-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const createBtn = document.getElementById('create-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const btnEn = document.getElementById('btn-en');
+    const btnRu = document.getElementById('btn-ru');
+    const docIdInput = document.getElementById('doc-id');
+    const idpForm = document.getElementById('idp-form');
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (TRANSLATIONS[lang][key]) {
+          el.textContent = TRANSLATIONS[lang][key];
+        }
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (TRANSLATIONS[lang][key]) {
+          el.placeholder = TRANSLATIONS[lang][key];
+        }
+      });
+      
+      btnEn.setAttribute('aria-pressed', lang === 'en');
+      btnRu.setAttribute('aria-pressed', lang === 'ru');
+    }
+
+    btnEn.onclick = () => setLanguage('en');
+    btnRu.onclick = () => setLanguage('ru');
+
+    function gapiLoaded() {
+      gapi.load('client', intializeGapiClient);
+    }
+
+    async function intializeGapiClient() {
+      await gapi.client.init({
+        discoveryDocs: ['https://docs.googleapis.com/$discovery/rest?version=v1'],
+      });
+      gapiInited = true;
+      maybeEnableButtons();
+    }
+
+    function gisLoaded() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // defined later
+      });
+      gisInited = true;
+      maybeEnableButtons();
+    }
+
+    function maybeEnableButtons() {
+      if (gapiInited && gisInited) {
+        authBtn.style.display = 'flex';
+      }
+    }
+
+    function handleAuthClick() {
+      tokenClient.callback = async (resp) => {
+        if (resp.error !== undefined) {
+          throw (resp);
+        }
+        authBtn.classList.add('signed-in');
+        authBtn.querySelector('span').textContent = 'Signed In';
+        console.log('Successfully signed in');
+      };
+
+      if (gapi.client.getToken() === null) {
+        tokenClient.requestAccessToken({prompt: 'consent'});
+      } else {
+        tokenClient.requestAccessToken({prompt: ''});
+      }
+    }
+
+    // --- IDP Logic ---
+
+    const FORM_FIELDS = [
+      'employee-name', 'job-title', 'review-period', 'manager-name',
+      'strengths', 'improvements', 'short-term', 'long-term',
+      'action-items', 'questions', 'challenges', 'feedback'
+    ];
+
+    async function createNewDoc() {
+      if (!gapi.client.getToken()) return handleAuthClick();
+      
+      const employeeName = document.getElementById('employee-name').value || 'Developer';
+      const title = `IDP - ${employeeName} - ${new Date().toLocaleDateString()}`;
+      
+      try {
+        const response = await gapi.client.docs.documents.create({
+          title: title,
+        });
+        const docId = response.result.documentId;
+        docIdInput.value = docId;
+        alert(`New Doc Created! ID: ${docId}`);
+        await saveToDoc();
+      } catch (err) {
+        console.error('Error creating doc:', err);
+      }
+    }
+
+    async function saveToDoc() {
+      if (!gapi.client.getToken()) return handleAuthClick();
+      const docId = extractDocId(docIdInput.value);
+      if (!docId) return alert('Please enter a Google Doc ID or URL');
+
+      const data = {};
+      FORM_FIELDS.forEach(id => {
+        data[id] = document.getElementById(id).value;
+      });
+
+      // Simple strategy: Clear the doc and write new content
+      // Real strategy: Update specific sections (more complex)
+      // For this tool, we'll use a "Clear and Write" approach or append
+      
+      try {
+        const doc = await gapi.client.docs.documents.get({ documentId: docId });
+        const endOfDoc = (doc.result.body.content.slice(-1)[0].endIndex - 1) || 1;
+
+        const requests = [
+          {
+            deleteContentRange: {
+              range: { startIndex: 1, endIndex: endOfDoc }
+            }
+          },
+          {
+            insertText: {
+              location: { index: 1 },
+              text: generateDocText(data)
+            }
+          }
+        ];
+
+        await gapi.client.docs.documents.batchUpdate({
+          documentId: docId,
+          resource: { requests }
+        });
+        alert('Saved successfully!');
+      } catch (err) {
+        console.error('Error saving doc:', err);
+        alert('Error saving doc. Check console for details.');
+      }
+    }
+
+    async function loadFromDoc() {
+      if (!gapi.client.getToken()) return handleAuthClick();
+      const docId = extractDocId(docIdInput.value);
+      if (!docId) return alert('Please enter a Google Doc ID or URL');
+
+      try {
+        const response = await gapi.client.docs.documents.get({ documentId: docId });
+        const content = response.result.body.content;
+        let fullText = '';
+        content.forEach(element => {
+          if (element.paragraph) {
+            element.paragraph.elements.forEach(el => {
+              if (el.textRun) fullText += el.textRun.content;
+            });
+          }
+        });
+
+        parseDocTextToForm(fullText);
+        alert('Loaded successfully!');
+      } catch (err) {
+        console.error('Error loading doc:', err);
+        alert('Error loading doc. Is the ID correct?');
+      }
+    }
+
+    function extractDocId(input) {
+      if (!input) return null;
+      if (input.includes('/d/')) {
+        return input.split('/d/')[1].split('/')[0];
+      }
+      return input;
+    }
+
+    function generateDocText(data) {
+      const t = TRANSLATIONS[currentLang];
+      return `${t['doc-header']}
+=======================================
+${t['doc-employee']}: ${data['employee-name']}
+${t['doc-title']}: ${data['job-title']}
+${t['doc-period']}: ${data['review-period']}
+${t['doc-manager']}: ${data['manager-name']}
+
+${currentLang === 'en' ? 'SELF-ASSESSMENT' : 'САМООЦЕНКА'}
+---------------------------------------
+[${t['doc-strengths']}]
+${data['strengths']}
+
+[${t['doc-improvements']}]
+${data['improvements']}
+
+${currentLang === 'en' ? 'CAREER GOALS' : 'КАРЬЕРНЫЕ ЦЕЛИ'}
+---------------------------------------
+[${t['doc-short-term']}]
+${data['short-term']}
+
+[${t['doc-long-term']}]
+${data['long-term']}
+
+${currentLang === 'en' ? 'ACTION PLAN' : 'ПЛАН ДЕЙСТВИЙ'}
+---------------------------------------
+[${t['doc-action']}]
+${data['action-items']}
+
+${currentLang === 'en' ? 'NEXT 1-1 PREPARATION' : 'ПОДГОТОВКА К СЛЕДУЮЩЕМУ 1-1'}
+---------------------------------------
+[${t['doc-questions']}]
+${data['questions']}
+
+[${t['doc-challenges']}]
+${data['challenges']}
+
+[${t['doc-feedback']}]
+${data['feedback']}
+`;
+    }
+
+    function parseDocTextToForm(text) {
+      const mappings = {
+        'employee-name': /(?:Employee|Сотрудник): (.*)/,
+        'job-title': /(?:Title|Должность): (.*)/,
+        'review-period': /(?:Period|Период): (.*)/,
+        'manager-name': /(?:Manager|Менеджер): (.*)/,
+        'strengths': /\[(?:Strengths|Сильные стороны)\]\n([\s\S]*?)(?:\n\n\[(?:Areas|Области)|$)/,
+        'improvements': /\[(?:Areas for Growth|Области для роста)\]\n([\s\S]*?)(?:\n\n(?:CAREER|КАРЬЕРНЫЕ)|$)/,
+        'short-term': /\[(?:Short-Term \(3-6 months\)|Краткосрочные \(3-6 месяцев\))\]\n([\s\S]*?)(?:\n\n\[(?:Long|Долгосрочные)|$)/,
+        'long-term': /\[(?:Long-Term \(1-2 years\)|Долгосрочные \(1-2 года\))\]\n([\s\S]*?)(?:\n\n(?:ACTION|ПЛАН)|$)/,
+        'action-items': /\[(?:Specific Actions & Resources|Действия и ресурсы)\]\n([\s\S]*?)(?:\n\n(?:NEXT|ПОДГОТОВКА)|$)/,
+        'questions': /\[(?:Questions for Tech Lead|Вопросы к техлиду)\]\n([\s\S]*?)(?:\n\n\[(?:Current|Сложности)|$)/,
+        'challenges': /\[(?:Current Challenges|Сложности)\]\n([\s\S]*?)(?:\n\n\[(?:Feedback|Обратная связь)|$)/,
+        'feedback': /\[(?:Feedback for Team\/Lead|Обратная связь)\]\n([\s\S]*)/
+      };
+
+      Object.entries(mappings).forEach(([id, regex]) => {
+        const match = text.match(regex);
+        if (match && match[1]) {
+          document.getElementById(id).value = match[1].trim();
+        }
+      });
+    }
+
+    function handleCopy() {
+      const id = extractDocId(docIdInput.value);
+      if (!id) return alert('No Doc ID to copy');
+      const url = `https://docs.google.com/document/d/${id}/edit`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Doc URL copied to clipboard!');
+      });
+    }
+
+    authBtn.onclick = handleAuthClick;
+    saveBtn.onclick = saveToDoc;
+    loadBtn.onclick = loadFromDoc;
+    createBtn.onclick = createNewDoc;
+    copyBtn.onclick = handleCopy;
+
+    window.onload = () => {
+      gapiLoaded();
+      gisLoaded();
+    };
+  </script>
+</body>
+</html>
