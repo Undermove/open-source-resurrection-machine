@@ -751,10 +751,7 @@
 
     .score-tip {
       display: none;
-      position: absolute;
-      bottom: calc(100% + 10px);
-      left: 50%;
-      transform: translateX(-50%);
+      position: fixed;
       width: 240px;
       padding: var(--sp-4);
       background: var(--bg-1);
@@ -763,19 +760,16 @@
       border: 1px solid var(--border-1);
       border-radius: var(--radius);
       box-shadow: var(--shadow-lg);
-      z-index: 100;
+      z-index: 1000;
       font: 400 0.75rem/1.5 var(--font);
       color: var(--text-1);
       white-space: normal;
-      animation: scoreTipIn 0.15s var(--ease-out) both;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s var(--ease-out);
     }
 
-    @keyframes scoreTipIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-
-    .score-tip-wrap:hover .score-tip { display: block; }
+    .score-tip.visible { display: block; opacity: 1; }
 
     .score-tip strong { color: var(--text-0); font-weight: 600; }
 
@@ -1009,6 +1003,8 @@
       </div>
     </footer>
   </div>
+
+<div class="score-tip" id="scoreTip"></div>
 
 <script>
 const M=1e6;
@@ -1257,7 +1253,7 @@ function renderTable(){
     return`<tr>
       <td><span class="prov">${pl(m.provider)}</span></td>
       <td class="mn" title="${m.id}">${m.name}</td>
-      <td class="sc">${qs>0?`<div class="sb score-tip-wrap"><div class="st"><div class="sf" style="width:${qs}%;background:${col}"></div></div><span class="sn" style="color:${col}">${qs}</span><div class="score-tip"><strong>${m.name}</strong><div class="score-tip-rows">${m.q.elo_text?`<div class="score-tip-row"><span class="score-tip-label">Text ELO</span><span class="score-tip-val">${m.q.elo_text.toFixed(1)}</span></div>`:''} ${m.q.elo_code?`<div class="score-tip-row"><span class="score-tip-label">Code ELO</span><span class="score-tip-val">${m.q.elo_code.toFixed(1)}</span></div>`:''} ${m.q.elo_vision?`<div class="score-tip-row"><span class="score-tip-label">Vision ELO</span><span class="score-tip-val">${m.q.elo_vision.toFixed(1)}</span></div>`:''}</div><div class="score-tip-calc">ELO range: ${eloRange.min.toFixed(0)}–${eloRange.max.toFixed(0)}<br>Normalized: (${m.q.elo_text?m.q.elo_text.toFixed(0):'—'} − ${eloRange.min.toFixed(0)}) / (${eloRange.max.toFixed(0)} − ${eloRange.min.toFixed(0)}) × 100 = <strong>${qs}</strong></div><div class="score-tip-note">Source: arena.ai leaderboard<br>Score = text ELO normalized to 0–100</div></div></div>`:'<span style="color:var(--text-3)">—</span>'}</td>
+      <td class="sc">${qs>0?`<div class="sb score-tip-wrap" data-tip="${encodeURIComponent(JSON.stringify({name:m.name,qs,elo_text:m.q.elo_text,elo_code:m.q.elo_code,elo_vision:m.q.elo_vision}))}"><div class="st"><div class="sf" style="width:${qs}%;background:${col}"></div></div><span class="sn" style="color:${col}">${qs}</span></div>`:'<span style="color:var(--text-3)">—</span>'}</td>
       <td class="pr ${pc(m.promptPrice)}">${fmt$(m.promptPrice)}</td>
       <td class="pr ${pc(m.completionPrice)}">${fmt$(m.completionPrice)}</td>
       <td class="pr ${pc(m.bl)}">${fmt$(m.bl)}</td>
@@ -1280,6 +1276,49 @@ function renderTable(){
     th.querySelector('.arr').textContent=k===sKey?(sAsc?'▲':'▼'):'';
   });
 }
+
+// Score tooltip positioning
+const scoreTipEl=document.getElementById('scoreTip');
+let tipActive=false;
+
+document.addEventListener('mouseover',e=>{
+  const wrap=e.target.closest('.score-tip-wrap');
+  if(!wrap||!wrap.dataset.tip)return;
+  const d=JSON.parse(decodeURIComponent(wrap.dataset.tip));
+  let html=`<strong>${d.name}</strong><div class="score-tip-rows">`;
+  if(d.elo_text)html+=`<div class="score-tip-row"><span class="score-tip-label">Text ELO</span><span class="score-tip-val">${d.elo_text.toFixed(1)}</span></div>`;
+  if(d.elo_code)html+=`<div class="score-tip-row"><span class="score-tip-label">Code ELO</span><span class="score-tip-val">${d.elo_code.toFixed(1)}</span></div>`;
+  if(d.elo_vision)html+=`<div class="score-tip-row"><span class="score-tip-label">Vision ELO</span><span class="score-tip-val">${d.elo_vision.toFixed(1)}</span></div>`;
+  html+=`</div><div class="score-tip-calc">ELO range: ${eloRange.min.toFixed(0)}–${eloRange.max.toFixed(0)}<br>Normalized: (${d.elo_text?d.elo_text.toFixed(0):'—'} − ${eloRange.min.toFixed(0)}) / (${eloRange.max.toFixed(0)} − ${eloRange.min.toFixed(0)}) × 100 = <strong>${d.qs}</strong></div><div class="score-tip-note">Source: arena.ai leaderboard</div>`;
+  scoreTipEl.innerHTML=html;
+
+  const rect=wrap.getBoundingClientRect();
+  const tipH=200; // approximate
+  const spaceAbove=rect.top;
+  const spaceBelow=window.innerHeight-rect.bottom;
+
+  scoreTipEl.style.left=Math.max(8,Math.min(window.innerWidth-252,rect.left+rect.width/2-120))+'px';
+
+  if(spaceBelow>=tipH||spaceBelow>=spaceAbove){
+    scoreTipEl.style.top=(rect.bottom+8)+'px';
+    scoreTipEl.style.bottom='auto';
+  }else{
+    scoreTipEl.style.bottom=(window.innerHeight-rect.top+8)+'px';
+    scoreTipEl.style.top='auto';
+  }
+
+  scoreTipEl.classList.add('visible');
+  tipActive=true;
+});
+
+document.addEventListener('mouseout',e=>{
+  const wrap=e.target.closest('.score-tip-wrap');
+  if(!wrap)return;
+  const related=e.relatedTarget;
+  if(related&&related.closest&&related.closest('.score-tip-wrap')===wrap)return;
+  scoreTipEl.classList.remove('visible');
+  tipActive=false;
+});
 
 function renderChips(){
   const counts={};
