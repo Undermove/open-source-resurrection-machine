@@ -1123,7 +1123,7 @@ const PICKS=[
     why:'Lowest cost model that has Arena.ai benchmark data. Good for routing and sub-agents.'},
 ];
 
-let all=[],sKey='valueScore',sAsc=false,provs=new Set(),query='',picksVendor=null;
+let all=[],sKey='qualityScore',sAsc=false,provs=new Set(),query='',picksVendor=null;
 
 async function load(){
   const r=await fetch('https://openrouter.ai/api/v1/models');
@@ -1137,7 +1137,9 @@ function parse(raw){
     const po=parseFloat(m.pricing?.completion||'0')*M;
     const bl=pi*0.75+po*0.25;
     const prov=m.id.split('/')[0]||'?';
-    const mName=m.name||m.id.split('/')[1]||m.id;
+    let mName=m.name||m.id.split('/')[1]||m.id;
+    // Strip provider prefix like "OpenAI: " since we show provider in its own column
+    mName=mName.replace(/^[^:]+:\s*/,'');
     const arena=findArena(m.id,mName);
     const q=buildQ(arena);
     const qs=q?.s||0;
