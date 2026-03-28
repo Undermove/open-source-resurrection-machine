@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MECH — Heavy Assault Walker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #09090b;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Inter', system-ui, sans-serif;
+    cursor: crosshair;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #hud {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 10;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    color: oklch(0.85 0.15 145);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.8;
+    text-shadow: 0 0 12px oklch(0.6 0.2 145 / 0.6);
+  }
+
+  #hud .label {
+    color: oklch(0.55 0.05 145);
+    font-weight: 400;
+  }
+
+  #hud .value {
+    color: oklch(0.9 0.15 145);
+    font-weight: 700;
+  }
+
+  #controls-hint {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    color: oklch(0.5 0.03 250);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+    opacity: 0.7;
+    transition: opacity 1s ease;
+  }
+
+  #crosshair-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: oklch(0.9 0.2 30);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px oklch(0.7 0.25 30 / 0.8);
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div><span class="label">Speed: </span><span class="value" id="hud-speed">0.0</span> <span class="label">m/s</span></div>
+  <div><span class="label">Heading: </span><span class="value" id="hud-heading">0°</span></div>
+  <div><span class="label">Turret: </span><span class="value" id="hud-turret">0°</span></div>
+  <div><span class="label">Throttle: </span><span class="value" id="hud-throttle">0%</span></div>
+  <div style="margin-top:0.4rem"><span class="label">Boost: </span><span class="value" id="hud-boost">100%</span> <span class="label" id="hud-boost-status"></span></div>
+</div>
+
+<div id="controls-hint">
+  WASD — Move &nbsp;|&nbsp; Mouse — Aim turret &nbsp;|&nbsp; LMB — Fire &nbsp;|&nbsp; Shift — Boost thrusters
+</div>
+
+<div id="crosshair-dot"></div>
+
+<canvas id="game"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const crosshairDot = document.getElementById('crosshair-dot');
+
+  const dpr = devicePixelRatio || 1;
+  let W, H;
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const screenW = () => W;
+  const screenH = () => H;
+
+  // --- Input ---
+  const keys = {};
+  window.addEventListener('keydown', e => { keys[e.code] = true; });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  let mouseX = screenW() / 2;
+  let mouseY = screenH() / 2;
+  let mouseDown = false;
+  window.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    crosshairDot.style.left = mouseX + 'px';
+    crosshairDot.style.top = mouseY + 'px';
+  });
+  window.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
+  window.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
+
+  // --- World ---
+  const GRID_SIZE = 80;
+  const GROUND_COLOR = '#0c0c10';
+  const GRID_COLOR = 'rgba(255,255,255,0.03)';
+
+  // --- Debris / environment objects ---
+  const debris = [];
+  for (let i = 0; i < 200; i++) {
+    debris.push({
+      x: (Math.random() - 0.5) * 6000,
+      y: (Math.random() - 0.5) * 6000,
+      w: 8 + Math.random() * 40,
+      h: 8 + Math.random() * 40,
+      rot: Math.random() * Math.PI * 2,
+      color: `rgba(${30 + Math.random()*20}, ${30 + Math.random()*20}, ${35 + Math.random()*20}, ${0.4 + Math.random()*0.3})`,
+    });
+  }
+
+  // --- Mech state ---
+  const mech = {
+    x: 0,
+    y: 0,
+    // Velocity
+    vx: 0,
+    vy: 0,
+    // Legs angle (direction of movement)
+    legsAngle: 0,
+    legsAngularVel: 0,
+    // Body/turret angle (aims at mouse)
+    bodyAngle: 0,
+    bodyAngularVel: 0,
+    // Walk cycle
+    walkPhase: 0,
+    speed: 0,
+    // Screen shake
+    shakeX: 0,
+    shakeY: 0,
+    shakeDecay: 0,
+    // Footstep timing
+    lastFootstep: 0,
+    // Firing
+    fireTimer: 0,
+    fireSide: 0, // alternates 0/1
+    muzzleFlash: [0, 0], // flash intensity per side
+    // Recoil
+    recoilOffset: 0,
+    // Boost thrusters
+    boostFuel: 1.0, // 0..1
+    boosting: false,
+    boostCooldown: 0, // frames until regen starts
+  };
+
+  // --- Projectiles ---
+  const projectiles = [];
+
+  // --- Footstep dust ---
+  const dustParticles = [];
+
+  // --- Muzzle particles ---
+  const muzzleParticles = [];
+
+  // --- Thruster exhaust particles ---
+  const thrusterParticles = [];
+
+  // --- Physics constants ---
+  const MASS = 18;
+  const MAX_SPEED = 1.6; // much slower top speed
+  const ACCEL_FORCE = 0.012; // very slow buildup
+  const FRICTION = 0.004; // low friction = long coast
+  const BRAKE_FRICTION = 0.018; // slow braking too
+  const LEGS_TURN_SPEED = 0.018;
+  const LEGS_TURN_DAMPING = 0.88;
+  const BODY_TURN_SPEED = 0.045;
+  const BODY_TURN_DAMPING = 0.85;
+  const FIRE_RATE = 22; // slower fire rate — heavy cannons
+  const PROJECTILE_SPEED = 4.5; // slow, visible shells
+  const PROJECTILE_SIZE = 6; // big shells
+  const PROJECTILE_TRAIL_SIZE = 14; // glow radius
+  const PROJECTILE_LIFE = 160; // travel further since slower
+
+  // Walk cycle: discrete heavy steps
+  const STEP_PHASE_SPEED_MIN = 0.025;
+  const STEP_PHASE_SPEED_MAX = 0.10;
+
+  // Boost thrusters
+  const BOOST_FORCE = 0.15; // strong impulse
+  const BOOST_MAX_SPEED = 4.0; // can exceed normal max
+  const BOOST_FUEL_DRAIN = 0.008; // per frame while boosting
+  const BOOST_FUEL_REGEN = 0.003; // per frame while not boosting
+  const BOOST_COOLDOWN = 40; // frames after release before regen
+  const BOOST_DRAG = 0.025; // heavy drag when boost ends (decelerating)
+
+  // --- Mech dimensions ---
+  const LEG_LENGTH = 36;
+  const LEG_WIDTH = 14;
+  const LEG_STRIDE = 22;
+  const BODY_W = 44;
+  const BODY_H = 56;
+  const GUN_W = 10;
+  const GUN_H = 50;
+  const GUN_OFFSET_X = 32;
+  const GUN_OFFSET_Y = -6;
+
+  function normalizeAngle(a) {
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    return a;
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  // --- Update ---
+  function update() {
+    const dt = 1; // fixed timestep
+
+    // --- Input direction ---
+    let inputX = 0, inputY = 0;
+    if (keys['KeyW'] || keys['ArrowUp']) inputY -= 1;
+    if (keys['KeyS'] || keys['ArrowDown']) inputY += 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+
+    const hasInput = inputX !== 0 || inputY !== 0;
+    let inputAngle = Math.atan2(inputY, inputX);
+
+    // --- Legs rotation (follows movement direction with inertia) ---
+    if (hasInput) {
+      let angleDiff = normalizeAngle(inputAngle - mech.legsAngle);
+      // Torque-based rotation — heavier = slower turn
+      mech.legsAngularVel += angleDiff * LEGS_TURN_SPEED;
+    }
+    mech.legsAngularVel *= LEGS_TURN_DAMPING;
+    mech.legsAngle += mech.legsAngularVel;
+    mech.legsAngle = normalizeAngle(mech.legsAngle);
+
+    // --- Acceleration / friction ---
+    if (hasInput) {
+      const mag = Math.sqrt(inputX * inputX + inputY * inputY);
+      const nx = inputX / mag;
+      const ny = inputY / mag;
+      // Force applied in input direction
+      mech.vx += nx * ACCEL_FORCE;
+      mech.vy += ny * ACCEL_FORCE;
+    }
+
+    // --- Boost thrusters (Shift) ---
+    const shiftHeld = keys['ShiftLeft'] || keys['ShiftRight'];
+    const wantBoost = shiftHeld && hasInput && mech.boostFuel > 0;
+    mech.boosting = wantBoost;
+
+    if (wantBoost) {
+      const mag = Math.sqrt(inputX * inputX + inputY * inputY);
+      const nx = inputX / mag;
+      const ny = inputY / mag;
+      mech.vx += nx * BOOST_FORCE;
+      mech.vy += ny * BOOST_FORCE;
+      mech.boostFuel = Math.max(0, mech.boostFuel - BOOST_FUEL_DRAIN);
+      mech.boostCooldown = BOOST_COOLDOWN;
+
+      // Thruster exhaust particles (from rear of body)
+      const rearAngle = mech.legsAngle + Math.PI; // opposite of movement
+      for (let i = 0; i < 3; i++) {
+        const spread = (Math.random() - 0.5) * 0.8;
+        const spd = 2 + Math.random() * 3;
+        const ox = mech.x + Math.cos(rearAngle) * 30 + (Math.random() - 0.5) * 12;
+        const oy = mech.y + Math.sin(rearAngle) * 30 + (Math.random() - 0.5) * 12;
+        thrusterParticles.push({
+          x: ox, y: oy,
+          vx: Math.cos(rearAngle + spread) * spd + mech.vx * 0.3,
+          vy: Math.sin(rearAngle + spread) * spd + mech.vy * 0.3,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.03,
+          size: 5 + Math.random() * 10,
+        });
+      }
+
+      // Shake while boosting
+      mech.shakeDecay = Math.max(mech.shakeDecay, 1.5);
+    }
+
+    // Fuel regen
+    if (!wantBoost) {
+      if (mech.boostCooldown > 0) {
+        mech.boostCooldown--;
+      } else {
+        mech.boostFuel = Math.min(1, mech.boostFuel + BOOST_FUEL_REGEN);
+      }
+    }
+
+    // Friction — heavier drag after boost to simulate "engines dying"
+    const postBoostDrag = (!wantBoost && mech.speed > MAX_SPEED) ? BOOST_DRAG : 0;
+    const frictionCoeff = (hasInput ? FRICTION : BRAKE_FRICTION) + postBoostDrag;
+    mech.vx *= (1 - frictionCoeff);
+    mech.vy *= (1 - frictionCoeff);
+
+    // Speed cap (boost allows exceeding normal max)
+    mech.speed = Math.sqrt(mech.vx * mech.vx + mech.vy * mech.vy);
+    const currentMaxSpeed = wantBoost ? BOOST_MAX_SPEED : BOOST_MAX_SPEED; // no hard cap during coast-down
+    if (mech.speed > currentMaxSpeed) {
+      mech.vx = (mech.vx / mech.speed) * currentMaxSpeed;
+      mech.vy = (mech.vy / mech.speed) * currentMaxSpeed;
+      mech.speed = currentMaxSpeed;
+    }
+
+    // Apply velocity
+    mech.x += mech.vx;
+    mech.y += mech.vy;
+
+    // --- Body rotation (follows mouse with inertia) ---
+    const worldMouseX = mouseX - screenW() / 2 + mech.x;
+    const worldMouseY = mouseY - screenH() / 2 + mech.y;
+    const targetBodyAngle = Math.atan2(worldMouseY - mech.y, worldMouseX - mech.x);
+    let bodyDiff = normalizeAngle(targetBodyAngle - mech.bodyAngle);
+    mech.bodyAngularVel += bodyDiff * BODY_TURN_SPEED;
+    mech.bodyAngularVel *= BODY_TURN_DAMPING;
+    mech.bodyAngle += mech.bodyAngularVel;
+    mech.bodyAngle = normalizeAngle(mech.bodyAngle);
+
+    // --- Walk cycle (heavy discrete steps) ---
+    const prevPhase = mech.walkPhase;
+
+    // Phase speed scales with mech speed — slow walk = very slow steps
+    const speedRatio = Math.min(mech.speed / MAX_SPEED, 1);
+    const phaseSpeed = speedRatio > 0.01
+      ? STEP_PHASE_SPEED_MIN + (STEP_PHASE_SPEED_MAX - STEP_PHASE_SPEED_MIN) * speedRatio
+      : 0;
+    mech.walkPhase += phaseSpeed;
+
+    // Footstep detection (every PI = one step)
+    if (mech.speed > 0.05) {
+      const prevStep = Math.floor(prevPhase / Math.PI);
+      const currStep = Math.floor(mech.walkPhase / Math.PI);
+      if (currStep > prevStep) {
+        // STOMP! Big screen shake
+        const intensity = 0.5 + speedRatio * 0.5; // always feels heavy
+        mech.shakeDecay = intensity * 6;
+
+        // Dust burst
+        const side = currStep % 2 === 0 ? -1 : 1;
+        const footX = mech.x + Math.cos(mech.legsAngle + Math.PI / 2) * side * LEG_STRIDE * 0.5;
+        const footY = mech.y + Math.sin(mech.legsAngle + Math.PI / 2) * side * LEG_STRIDE * 0.5;
+        for (let i = 0; i < 14; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 0.5 + Math.random() * 2.5;
+          dustParticles.push({
+            x: footX + (Math.random() - 0.5) * 20,
+            y: footY + (Math.random() - 0.5) * 20,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            life: 1,
+            decay: 0.008 + Math.random() * 0.012,
+            size: 4 + Math.random() * 12,
+          });
+        }
+      }
+    }
+
+    // --- Screen shake ---
+    if (mech.shakeDecay > 0) {
+      mech.shakeX = (Math.random() - 0.5) * mech.shakeDecay * 4;
+      mech.shakeY = (Math.random() - 0.5) * mech.shakeDecay * 4;
+      mech.shakeDecay *= 0.88;
+      if (mech.shakeDecay < 0.05) mech.shakeDecay = 0;
+    } else {
+      mech.shakeX = 0;
+      mech.shakeY = 0;
+    }
+
+    // --- Firing ---
+    if (mech.fireTimer > 0) mech.fireTimer--;
+    if (mouseDown && mech.fireTimer <= 0) {
+      mech.fireTimer = FIRE_RATE;
+      const side = mech.fireSide;
+      mech.fireSide = 1 - mech.fireSide;
+
+      const sideSign = side === 0 ? -1 : 1;
+      const cos = Math.cos(mech.bodyAngle);
+      const sin = Math.sin(mech.bodyAngle);
+      const gunTipX = mech.x + cos * (GUN_H * 0.5 + GUN_OFFSET_Y) - sin * sideSign * GUN_OFFSET_X;
+      const gunTipY = mech.y + sin * (GUN_H * 0.5 + GUN_OFFSET_Y) + cos * sideSign * GUN_OFFSET_X;
+
+      projectiles.push({
+        x: gunTipX,
+        y: gunTipY,
+        vx: cos * PROJECTILE_SPEED + mech.vx * 0.3, // inherit some mech velocity
+        vy: sin * PROJECTILE_SPEED + mech.vy * 0.3,
+        life: PROJECTILE_LIFE,
+      });
+
+      mech.muzzleFlash[side] = 1;
+      mech.recoilOffset = 8; // bigger recoil for heavy cannons
+      mech.shakeDecay = Math.max(mech.shakeDecay, 3.5);
+
+      // Muzzle particles — big cannon blast
+      for (let i = 0; i < 10; i++) {
+        const spread = (Math.random() - 0.5) * 0.7;
+        const spd = 1.5 + Math.random() * 5;
+        muzzleParticles.push({
+          x: gunTipX,
+          y: gunTipY,
+          vx: Math.cos(mech.bodyAngle + spread) * spd,
+          vy: Math.sin(mech.bodyAngle + spread) * spd,
+          life: 1,
+          decay: 0.025 + Math.random() * 0.04,
+          size: 3 + Math.random() * 8,
+        });
+      }
+    }
+
+    mech.muzzleFlash[0] *= 0.7;
+    mech.muzzleFlash[1] *= 0.7;
+    mech.recoilOffset *= 0.8;
+
+    // --- Update projectiles ---
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) projectiles.splice(i, 1);
+    }
+
+    // --- Update dust ---
+    for (let i = dustParticles.length - 1; i >= 0; i--) {
+      const p = dustParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.96;
+      p.vy *= 0.96;
+      p.life -= p.decay;
+      if (p.life <= 0) dustParticles.splice(i, 1);
+    }
+
+    // --- Update muzzle particles ---
+    for (let i = muzzleParticles.length - 1; i >= 0; i--) {
+      const p = muzzleParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.92;
+      p.vy *= 0.92;
+      p.life -= p.decay;
+      if (p.life <= 0) muzzleParticles.splice(i, 1);
+    }
+
+    // --- Update thruster particles ---
+    for (let i = thrusterParticles.length - 1; i >= 0; i--) {
+      const p = thrusterParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.94;
+      p.vy *= 0.94;
+      p.life -= p.decay;
+      if (p.life <= 0) thrusterParticles.splice(i, 1);
+    }
+
+    // --- HUD ---
+    document.getElementById('hud-speed').textContent = (mech.speed * 10).toFixed(1);
+    document.getElementById('hud-heading').textContent = Math.round(((mech.legsAngle * 180 / Math.PI) + 360) % 360) + '°';
+    document.getElementById('hud-turret').textContent = Math.round(((mech.bodyAngle * 180 / Math.PI) + 360) % 360) + '°';
+    document.getElementById('hud-throttle').textContent = Math.round((mech.speed / MAX_SPEED) * 100) + '%';
+    document.getElementById('hud-boost').textContent = Math.round(mech.boostFuel * 100) + '%';
+    const boostStatus = document.getElementById('hud-boost-status');
+    if (mech.boosting) {
+      boostStatus.textContent = '■ BURN';
+      boostStatus.style.color = 'oklch(0.85 0.25 60)';
+    } else if (mech.boostCooldown > 0) {
+      boostStatus.textContent = '□ COOLING';
+      boostStatus.style.color = 'oklch(0.6 0.1 30)';
+    } else if (mech.boostFuel < 1) {
+      boostStatus.textContent = '↑ REGEN';
+      boostStatus.style.color = 'oklch(0.65 0.12 145)';
+    } else {
+      boostStatus.textContent = '● READY';
+      boostStatus.style.color = 'oklch(0.75 0.15 145)';
+    }
+  }
+
+  // --- Render ---
+  function render() {
+    const sw = screenW();
+    const sh = screenH();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, sw, sh);
+
+    // Camera
+    const camX = mech.x - sw / 2 + mech.shakeX;
+    const camY = mech.y - sh / 2 + mech.shakeY;
+
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    // --- Ground grid ---
+    const startX = Math.floor(camX / GRID_SIZE) * GRID_SIZE;
+    const startY = Math.floor(camY / GRID_SIZE) * GRID_SIZE;
+    ctx.strokeStyle = GRID_COLOR;
+    ctx.lineWidth = 1;
+    for (let x = startX; x < camX + sw + GRID_SIZE; x += GRID_SIZE) {
+      ctx.beginPath();
+      ctx.moveTo(x, camY);
+      ctx.lineTo(x, camY + sh);
+      ctx.stroke();
+    }
+    for (let y = startY; y < camY + sh + GRID_SIZE; y += GRID_SIZE) {
+      ctx.beginPath();
+      ctx.moveTo(camX, y);
+      ctx.lineTo(camX + sw, y);
+      ctx.stroke();
+    }
+
+    // --- Debris ---
+    for (const d of debris) {
+      if (Math.abs(d.x - mech.x) > sw && Math.abs(d.y - mech.y) > sh) continue;
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot);
+      ctx.fillStyle = d.color;
+      ctx.fillRect(-d.w / 2, -d.h / 2, d.w, d.h);
+      ctx.restore();
+    }
+
+    // --- Dust particles ---
+    for (const p of dustParticles) {
+      ctx.globalAlpha = p.life * 0.4;
+      ctx.fillStyle = '#8a8a7a';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // --- Mech shadow ---
+    ctx.save();
+    ctx.translate(mech.x + 6, mech.y + 6);
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 42, 42, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // --- LEGS ---
+    drawLegs();
+
+    // --- BODY (turret) ---
+    drawBody();
+
+    // --- Projectiles (heavy, visible shells) ---
+    for (const p of projectiles) {
+      const alpha = Math.min(p.life / 30, 1);
+      const angle = Math.atan2(p.vy, p.vx);
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(angle);
+
+      // Outer glow
+      ctx.globalAlpha = alpha * 0.3;
+      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, PROJECTILE_TRAIL_SIZE);
+      glow.addColorStop(0, 'oklch(0.9 0.25 55)');
+      glow.addColorStop(0.4, 'oklch(0.7 0.2 40 / 0.5)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, PROJECTILE_TRAIL_SIZE, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tracer trail
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.strokeStyle = 'oklch(0.8 0.2 50)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-18, 0);
+      ctx.stroke();
+
+      // Shell core (elongated)
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = 'oklch(0.95 0.18 60)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, PROJECTILE_SIZE, PROJECTILE_SIZE * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hot center
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, 0, PROJECTILE_SIZE * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // --- Muzzle particles ---
+    for (const p of muzzleParticles) {
+      ctx.globalAlpha = p.life * 0.8;
+      ctx.fillStyle = `oklch(${0.7 + p.life * 0.3} 0.2 ${50 + (1 - p.life) * 20})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // --- Thruster exhaust particles ---
+    for (const p of thrusterParticles) {
+      ctx.save();
+      ctx.globalAlpha = p.life * 0.7;
+      // Color transitions: white-hot → orange → dark smoke
+      if (p.life > 0.6) {
+        const t = (p.life - 0.6) / 0.4;
+        ctx.fillStyle = `oklch(${0.85 + t * 0.15} ${0.15 + t * 0.1} ${60 - t * 20})`;
+      } else if (p.life > 0.3) {
+        ctx.fillStyle = `oklch(${0.5 + p.life * 0.5} 0.15 30)`;
+      } else {
+        ctx.globalAlpha = p.life * 1.2;
+        ctx.fillStyle = `oklch(0.35 0.02 250)`;
+      }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (0.5 + p.life * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Non-linear step curve: quick lift, slam down, hold
+  // Input: phase within one step (0..PI), Output: -1..1 with sharp transitions
+  function stepCurve(phase) {
+    // Normalize to 0..1 within one step
+    const t = (phase % Math.PI) / Math.PI;
+    // Quick lift (0..0.3), slam forward (0.3..0.5), hold/ground (0.5..1.0)
+    if (t < 0.3) {
+      // Ease out — foot lifts and swings forward
+      const p = t / 0.3;
+      return Math.sin(p * Math.PI * 0.5);
+    } else if (t < 0.5) {
+      // Slam down — fast ease in
+      const p = (t - 0.3) / 0.2;
+      return Math.cos(p * Math.PI * 0.5);
+    } else {
+      // Planted on ground — no movement
+      return 0;
+    }
+  }
+
+  function drawLegs() {
+    ctx.save();
+    ctx.translate(mech.x, mech.y);
+    ctx.rotate(mech.legsAngle);
+
+    const strideAmount = Math.min(mech.speed / MAX_SPEED, 1);
+    // Which step are we on?
+    const stepIndex = Math.floor(mech.walkPhase / Math.PI);
+    const leftCurve = stepIndex % 2 === 0 ? stepCurve(mech.walkPhase) : 0;
+    const rightCurve = stepIndex % 2 === 1 ? stepCurve(mech.walkPhase) : 0;
+
+    // Persistent foot positions: each foot slides forward on its step, then stays
+    // Left foot offset accumulates over steps
+    const leftStride = leftCurve * LEG_LENGTH * 0.5 * strideAmount;
+    const rightStride = rightCurve * LEG_LENGTH * 0.5 * strideAmount;
+
+    // --- Left leg ---
+    ctx.save();
+    ctx.translate(0, -LEG_STRIDE);
+    const leftOffset = leftStride;
+    ctx.translate(leftOffset, 0);
+
+    // Thigh
+    ctx.fillStyle = '#3a3a40';
+    ctx.strokeStyle = '#55555d';
+    ctx.lineWidth = 1;
+    roundRect(ctx, -LEG_WIDTH / 2, -LEG_WIDTH * 0.6, LEG_WIDTH, LEG_WIDTH * 1.2, 3);
+
+    // Foot/tread
+    ctx.fillStyle = '#2a2a30';
+    ctx.strokeStyle = '#48484f';
+    roundRect(ctx, -LEG_WIDTH * 0.7, -LEG_LENGTH * 0.35, LEG_WIDTH * 1.4, LEG_LENGTH * 0.7, 4);
+
+    // Tread details
+    ctx.fillStyle = '#222228';
+    for (let i = -2; i <= 2; i++) {
+      ctx.fillRect(-LEG_WIDTH * 0.5, i * 6 - 1.5, LEG_WIDTH, 2);
+    }
+
+    ctx.restore();
+
+    // --- Right leg ---
+    ctx.save();
+    ctx.translate(0, LEG_STRIDE);
+    const rightOffset = rightStride;
+    ctx.translate(rightOffset, 0);
+
+    ctx.fillStyle = '#3a3a40';
+    ctx.strokeStyle = '#55555d';
+    ctx.lineWidth = 1;
+    roundRect(ctx, -LEG_WIDTH / 2, -LEG_WIDTH * 0.6, LEG_WIDTH, LEG_WIDTH * 1.2, 3);
+
+    ctx.fillStyle = '#2a2a30';
+    ctx.strokeStyle = '#48484f';
+    roundRect(ctx, -LEG_WIDTH * 0.7, -LEG_LENGTH * 0.35, LEG_WIDTH * 1.4, LEG_LENGTH * 0.7, 4);
+
+    ctx.fillStyle = '#222228';
+    for (let i = -2; i <= 2; i++) {
+      ctx.fillRect(-LEG_WIDTH * 0.5, i * 6 - 1.5, LEG_WIDTH, 2);
+    }
+
+    ctx.restore();
+
+    // --- Hip joint ---
+    ctx.fillStyle = '#44444c';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5a5a64';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawBody() {
+    ctx.save();
+    ctx.translate(mech.x, mech.y);
+    ctx.rotate(mech.bodyAngle);
+
+    // Recoil offset
+    const recoilX = -mech.recoilOffset;
+
+    ctx.translate(recoilX, 0);
+
+    // --- Gun arms ---
+    for (let side = -1; side <= 1; side += 2) {
+      const sideIdx = side === -1 ? 0 : 1;
+      ctx.save();
+      ctx.translate(GUN_OFFSET_Y, side * GUN_OFFSET_X);
+
+      // Gun barrel
+      ctx.fillStyle = '#4a4a52';
+      ctx.strokeStyle = '#5e5e68';
+      ctx.lineWidth = 1;
+      roundRect(ctx, -GUN_H * 0.3, -GUN_W / 2, GUN_H * 0.85, GUN_W, 3);
+
+      // Gun tip
+      ctx.fillStyle = '#555560';
+      roundRect(ctx, GUN_H * 0.4, -GUN_W * 0.35, GUN_H * 0.15, GUN_W * 0.7, 2);
+
+      // Gun body detail
+      ctx.fillStyle = '#3a3a42';
+      roundRect(ctx, -GUN_H * 0.2, -GUN_W * 0.35, GUN_H * 0.3, GUN_W * 0.7, 2);
+
+      // Muzzle flash
+      if (mech.muzzleFlash[sideIdx] > 0.05) {
+        const f = mech.muzzleFlash[sideIdx];
+        ctx.save();
+        ctx.translate(GUN_H * 0.55, 0);
+        ctx.globalAlpha = f;
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 20 * f);
+        gradient.addColorStop(0, 'oklch(0.95 0.2 60)');
+        gradient.addColorStop(0.5, 'oklch(0.8 0.25 40 / 0.6)');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20 * f, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // --- Main body / cabin ---
+    // Body shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    roundRect(ctx, -BODY_H * 0.45 + 2, -BODY_W * 0.45 + 2, BODY_H * 0.9, BODY_W * 0.9, 8);
+
+    // Main hull
+    const hullGrad = ctx.createLinearGradient(-BODY_H / 2, 0, BODY_H / 2, 0);
+    hullGrad.addColorStop(0, '#52525c');
+    hullGrad.addColorStop(0.5, '#65656f');
+    hullGrad.addColorStop(1, '#52525c');
+    ctx.fillStyle = hullGrad;
+    ctx.strokeStyle = '#7a7a85';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, -BODY_H * 0.42, -BODY_W * 0.42, BODY_H * 0.84, BODY_W * 0.84, 7);
+
+    // Cabin window / viewport
+    ctx.fillStyle = '#1a3a4a';
+    ctx.strokeStyle = '#2a6a8a';
+    ctx.lineWidth = 1;
+    roundRect(ctx, BODY_H * 0.05, -BODY_W * 0.22, BODY_H * 0.2, BODY_W * 0.44, 4);
+
+    // Viewport glow
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    const viewGlow = ctx.createRadialGradient(BODY_H * 0.15, 0, 0, BODY_H * 0.15, 0, 16);
+    viewGlow.addColorStop(0, 'oklch(0.7 0.15 200)');
+    viewGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = viewGlow;
+    ctx.fillRect(BODY_H * 0.05, -BODY_W * 0.22, BODY_H * 0.2, BODY_W * 0.44);
+    ctx.restore();
+
+    // Rear detail (engine)
+    ctx.fillStyle = '#3a3a42';
+    roundRect(ctx, -BODY_H * 0.42, -BODY_W * 0.3, BODY_H * 0.15, BODY_W * 0.6, 3);
+
+    // Engine vents
+    ctx.fillStyle = '#2a2a30';
+    for (let i = -2; i <= 2; i++) {
+      ctx.fillRect(-BODY_H * 0.4, i * 6 - 1.5, BODY_H * 0.1, 3);
+    }
+
+    // Center pivot
+    ctx.fillStyle = '#6a6a74';
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#8a8a95';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Armor panel lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-BODY_H * 0.1, -BODY_W * 0.42);
+    ctx.lineTo(-BODY_H * 0.1, BODY_W * 0.42);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(BODY_H * 0.02, -BODY_W * 0.42);
+    ctx.lineTo(BODY_H * 0.02, BODY_W * 0.42);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.fill();
+    if (ctx.strokeStyle && ctx.lineWidth > 0) ctx.stroke();
+  }
+
+  // --- Game loop ---
+  function loop() {
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+
+  // Fade out controls hint
+  setTimeout(() => {
+    document.getElementById('controls-hint').style.opacity = '0';
+  }, 5000);
+})();
+</script>
+</body>
+</html>
