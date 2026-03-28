@@ -143,7 +143,7 @@ const core={x:AW/2,y:AH/2,hp:200,maxHp:200,radius:30,wallRadius:80,wallHp:60,max
 const P={x:AW/2,y:AH/2-200,vx:0,vy:0,legsA:0,legsAV:0,bodyA:0,bodyAV:0,walkPhase:0,speed:0,hp:100,maxHp:100,shakeX:0,shakeY:0,shakeDec:0,fireT:0,fireSide:0,mFlash:[0,0],recoil:0,boostFuel:1,boosting:false,boostCD:0,hitFlash:0,ammo:30,reloadT:0,burst:0,ammoS:[]};
 for(let i=0;i<30;i++)P.ammoS.push('r');
 const MAX_S=1.6,ACC=.012,FRI=.004,BRK=.018,LTS=.018,LTD=.88,BTS=.045,BTD=.85;
-const FRT=20,PSP=4.5,PSZ=6,PTR=14,PLF=200;
+const FRT=20,PSP=4.5,PSZ=6,PTR=14,PLF=800;
 const SMN=.025,SMX=.10;
 const BF=.15,BM=4,BD=.008,BR=.003,BCD=40,BDR=.025;
 const AMMO=30,RINT=25,SPB=.01,SPP=.015,SPM=.25,SPD=.003; // RINT=25 much slower reload
@@ -251,9 +251,12 @@ function update(){
     const dist=Math.hypot(tx-e.x,ty-e.y);
     const flankStr=dist<300?.0:Math.min(1,dist/600); // flank more when far
     const desiredA=toTA+e.flankAngle*flankStr;
-    e.angle+=norm(desiredA-e.angle)*.05;
-    e.vx+=Math.cos(e.angle)*.025*e.speed;e.vy+=Math.sin(e.angle)*.025*e.speed;
-    e.vx*=.97;e.vy*=.97;e.x+=e.vx;e.y+=e.vy;e.hitFlash*=.85;
+    e.angle+=norm(desiredA-e.angle)*.04;
+    const eAcc=.06*e.speed;
+    e.vx+=Math.cos(e.angle)*eAcc;e.vy+=Math.sin(e.angle)*eAcc;
+    const eSpd=Math.hypot(e.vx,e.vy),eMax=e.speed*1.8;
+    if(eSpd>eMax){e.vx=e.vx/eSpd*eMax;e.vy=e.vy/eSpd*eMax;}
+    e.vx*=.965;e.vy*=.965;e.x+=e.vx;e.y+=e.vy;e.hitFlash*=.85;
     if(e.x<-5)e.x=-5;if(e.x>AW+5)e.x=AW+5;if(e.y<-5)e.y=-5;if(e.y>AH+5)e.y=AH+5;
 
     // Enemy reload
@@ -262,10 +265,10 @@ function update(){
     // Enemy fire at player (only if have ammo)
     e.fireCD--;
     const dToP=Math.hypot(P.x-e.x,P.y-e.y);
-    if(e.fireCD<=0&&dToP<450&&e.ammo>0){
+    if(e.fireCD<=0&&dToP<1200&&e.ammo>0){
       e.fireCD=e.fireRate+Math.floor(Math.random()*20);e.ammo--;
       const ea=Math.atan2(P.y-e.y,P.x-e.x)+(Math.random()-.5)*.15;
-      projs.push({x:e.x+Math.cos(ea)*e.size,y:e.y+Math.sin(ea)*e.size,vx:Math.cos(ea)*3,vy:Math.sin(ea)*3,life:100,own:'e'});}
+      projs.push({x:e.x+Math.cos(ea)*e.size,y:e.y+Math.sin(ea)*e.size,vx:Math.cos(ea)*3+e.vx*.4,vy:Math.sin(ea)*3+e.vy*.4,life:800,own:'e'});}
 
     // Damage core wall / core on contact
     const dToC=Math.hypot(core.x-e.x,core.y-e.y);
@@ -282,7 +285,7 @@ function update(){
   // === PROJECTILES ===
   for(let i=projs.length-1;i>=0;i--){
     const p=projs[i];p.x+=p.vx;p.y+=p.vy;p.life--;
-    if(p.x<-30||p.x>AW+30||p.y<-30||p.y>AH+30)p.life=0;
+    if(p.x<-120||p.x>AW+120||p.y<-120||p.y>AH+120)p.life=0;
     if(p.own==='p'){
       for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];
         if(Math.hypot(p.x-e.x,p.y-e.y)<e.size+5){e.hp--;e.hitFlash=1;p.life=0;sfxHit();
