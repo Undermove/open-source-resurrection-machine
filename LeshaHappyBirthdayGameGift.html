@@ -513,7 +513,7 @@ addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
 
 // === ARENA ===
 const AW=2400,AH=1600,AB=3;
-const core={x:AW/2,y:AH/2,hp:200,maxHp:200,radius:30,wallRadius:80,wallHp:150,maxWallHp:150,hitFlash:0};
+const core={x:AW/2,y:AH/2,hp:200,maxHp:200,radius:30,wallRadius:80,wallHp:300,maxWallHp:300,hitFlash:0};
 const P={x:AW/2,y:AH/2-200,vx:0,vy:0,legsA:0,legsAV:0,bodyA:0,bodyAV:0,walkPhase:0,speed:0,hp:100,maxHp:100,shakeX:0,shakeY:0,shakeDec:0,fireT:0,fireSide:0,mFlash:[0,0],recoil:0,boostFuel:1,boosting:false,boostCD:0,hitFlash:0,ammo:30,reloadT:0,burst:0,ammoS:[]};
 for(let i=0;i<30;i++)P.ammoS.push('r');
 const MAX_S=1.6,ACC=.012,FRI=.004,BRK=.018,LTS=.018,LTD=.88,BTS=.045,BTD=.85;
