@@ -158,15 +158,21 @@ let wave=1,spawnT=0,eSpawned=0,kills=0,waveD=0;
 const WB=4,WS=2; // 4 base + 2 per wave
 const E_AMMO=5, E_RELOAD=40; // enemy mag: 5 rounds, slower reload
 
+const AGGRO_RANGE=500, DEAGGRO_RANGE=750;
 function spawnE(){
   const sd=Math.floor(Math.random()*4);
   let x,y;
   if(sd===0){x=Math.random()*AW;y=-30;}else if(sd===1){x=AW+30;y=Math.random()*AH;}
   else if(sd===2){x=Math.random()*AW;y=AH+30;}else{x=-30;y=Math.random()*AH;}
-  enemies.push({x,y,vx:0,vy:0,angle:0,hp:2,maxHp:2,speed:.5+Math.random()*.3+wave*.04,fireCD:0,fireRate:60-Math.min(wave*3,30),hitFlash:0,size:12+Math.random()*3,
-    ammo:E_AMMO,ammoMax:E_AMMO,reloadT:0, // enemy ammo
-    flankAngle:(Math.random()-.5)*1.2, // each enemy has unique flanking offset
-    targetCore:Math.random()<.6, // 60% try to reach core
+  const initA=Math.atan2(AH/2-y,AW/2-x);
+  enemies.push({x,y,vx:0,vy:0,bodyA:initA,turretA:initA,turretAV:0,
+    hp:3,maxHp:3,speed:.5+Math.random()*.3+wave*.04,
+    fireCD:40+Math.floor(Math.random()*30),fireRate:55-Math.min(wave*3,25),
+    hitFlash:0,mFlash:0,recoil:0,size:14+Math.random()*2,
+    ammo:E_AMMO,ammoMax:E_AMMO,reloadT:0,
+    flankAngle:(Math.random()-.5)*1.2,
+    state:'assault', // 'assault' (go to core) or 'engage' (fight player)
+    stateT:0, // time in current state
   });
 }
 function showWave(n){waveLabel.textContent='WAVE '+n;waveLabel.style.opacity='1';setTimeout(()=>{waveLabel.style.opacity='0';},2000);}
@@ -243,39 +249,65 @@ function update(){
 
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
-    // Smart AI: pick target (core or player), then flank
-    let tx,ty;
-    if(e.targetCore&&core.hp>0){tx=core.x;ty=core.y;}else{tx=P.x;ty=P.y;}
-    const toTA=Math.atan2(ty-e.y,tx-e.x);
-    // Flanking: offset the approach angle
-    const dist=Math.hypot(tx-e.x,ty-e.y);
-    const flankStr=dist<300?.0:Math.min(1,dist/600); // flank more when far
-    const desiredA=toTA+e.flankAngle*flankStr;
-    e.angle+=norm(desiredA-e.angle)*.04;
-    const eAcc=.06*e.speed;
-    e.vx+=Math.cos(e.angle)*eAcc;e.vy+=Math.sin(e.angle)*eAcc;
-    const eSpd=Math.hypot(e.vx,e.vy),eMax=e.speed*1.8;
+    const dToP=Math.hypot(P.x-e.x,P.y-e.y);
+    e.stateT++;
+
+    // === STATE MACHINE ===
+    if(e.state==='assault'&&dToP<AGGRO_RANGE){e.state='engage';e.stateT=0;}
+    if(e.state==='engage'&&dToP>DEAGGRO_RANGE&&e.stateT>90){e.state='assault';e.stateT=0;}
+
+    // === BODY MOVEMENT (drive target) ===
+    let driveX,driveY;
+    if(e.state==='engage'){
+      // Flank around player
+      const toP=Math.atan2(P.y-e.y,P.x-e.x);
+      const flankStr=dToP<200?.0:Math.min(1,dToP/400);
+      const driveA=toP+e.flankAngle*flankStr;
+      driveX=e.x+Math.cos(driveA)*100;driveY=e.y+Math.sin(driveA)*100;
+    }else{
+      // Drive toward core
+      driveX=core.x;driveY=core.y;
+    }
+    const driveAngle=Math.atan2(driveY-e.y,driveX-e.x);
+    e.bodyA+=norm(driveAngle-e.bodyA)*.035; // body turns slowly (heavy)
+    const eAcc=.055*e.speed;
+    e.vx+=Math.cos(e.bodyA)*eAcc;e.vy+=Math.sin(e.bodyA)*eAcc;
+    const eSpd=Math.hypot(e.vx,e.vy),eMax=e.speed*1.6;
     if(eSpd>eMax){e.vx=e.vx/eSpd*eMax;e.vy=e.vy/eSpd*eMax;}
-    e.vx*=.965;e.vy*=.965;e.x+=e.vx;e.y+=e.vy;e.hitFlash*=.85;
+    e.vx*=.96;e.vy*=.96;e.x+=e.vx;e.y+=e.vy;
+    e.hitFlash*=.85;e.mFlash*=.6;e.recoil*=.75;
     if(e.x<-5)e.x=-5;if(e.x>AW+5)e.x=AW+5;if(e.y<-5)e.y=-5;if(e.y>AH+5)e.y=AH+5;
 
-    // Enemy reload
+    // === TURRET AIM (independent of body) ===
+    let aimX,aimY;
+    if(e.state==='engage'||dToP<1000){aimX=P.x;aimY=P.y;}
+    else if(core.hp>0){aimX=core.x;aimY=core.y;}
+    else{aimX=P.x;aimY=P.y;}
+    const aimA=Math.atan2(aimY-e.y,aimX-e.x);
+    e.turretAV+=norm(aimA-e.turretA)*.06;
+    e.turretAV*=.82;e.turretA+=e.turretAV;e.turretA=norm(e.turretA);
+
+    // === RELOAD ===
     if(e.ammo<e.ammoMax){e.reloadT++;if(e.reloadT>=E_RELOAD){e.reloadT=0;e.ammo++;}}
 
-    // Enemy fire at player (only if have ammo)
+    // === FIRE (from turret direction) ===
     e.fireCD--;
-    const dToP=Math.hypot(P.x-e.x,P.y-e.y);
-    if(e.fireCD<=0&&dToP<1200&&e.ammo>0){
-      e.fireCD=e.fireRate+Math.floor(Math.random()*20);e.ammo--;
-      const ea=Math.atan2(P.y-e.y,P.x-e.x)+(Math.random()-.5)*.15;
-      projs.push({x:e.x+Math.cos(ea)*e.size,y:e.y+Math.sin(ea)*e.size,vx:Math.cos(ea)*3+e.vx*.4,vy:Math.sin(ea)*3+e.vy*.4,life:800,own:'e'});}
+    const canFire=e.state==='engage'?dToP<1200:(dToP<800);
+    const turretOnTarget=Math.abs(norm(aimA-e.turretA))<.2;
+    if(e.fireCD<=0&&canFire&&e.ammo>0&&turretOnTarget){
+      e.fireCD=e.fireRate+Math.floor(Math.random()*20);e.ammo--;e.mFlash=1;e.recoil=4;
+      const ea=e.turretA+(Math.random()-.5)*.12;
+      const mx=e.x+Math.cos(ea)*(e.size+8),my=e.y+Math.sin(ea)*(e.size+8);
+      projs.push({x:mx,y:my,vx:Math.cos(ea)*3.2+e.vx*.3,vy:Math.sin(ea)*3.2+e.vy*.3,life:800,own:'e'});
+      for(let k=0;k<5;k++){const sp=(Math.random()-.5)*.5,s=1+Math.random()*3;
+        muzzle.push({x:mx,y:my,vx:Math.cos(ea+sp)*s,vy:Math.sin(ea+sp)*s,life:1,dec:.04+Math.random()*.04,sz:2+Math.random()*5});}}
 
-    // Damage core wall / core on contact
+    // === CONTACT DAMAGE (core) ===
     const dToC=Math.hypot(core.x-e.x,core.y-e.y);
     if(dToC<core.wallRadius+e.size&&core.wallHp>0){
       core.wallHp-=.05;core.hitFlash=Math.max(core.hitFlash,.3);
-      // Push enemy back
       const pa=Math.atan2(e.y-core.y,e.x-core.x);e.x=core.x+Math.cos(pa)*(core.wallRadius+e.size);e.y=core.y+Math.sin(pa)*(core.wallRadius+e.size);
+      e.vx*=-.3;e.vy*=-.3; // bounce off wall
     }
     if(core.wallHp<=0&&dToC<core.radius+e.size&&core.hp>0){
       core.hp-=.1;core.hitFlash=1;
@@ -426,15 +458,70 @@ function drawBody(){
   ctx.fillStyle='#6a6a74';ctx.strokeStyle='#8a8a95';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}
 
 function drawEnemy(e){
-  ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.angle);const s=e.size;
-  ctx.globalAlpha=.2;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(2,2,s*.7,s*.5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  if(e.hitFlash>.1){ctx.globalAlpha=e.hitFlash*.5;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,s*1.1,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
-  ctx.fillStyle='oklch(0.35 0.2 0)';ctx.strokeStyle='oklch(0.5 0.25 0)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(s,0);ctx.lineTo(-s*.6,-s*.6);ctx.lineTo(-s*.25,0);ctx.lineTo(-s*.6,s*.6);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.fillStyle='oklch(0.25 0.15 0)';ctx.beginPath();ctx.moveTo(s*.4,0);ctx.lineTo(-s*.2,-s*.3);ctx.lineTo(-s*.05,0);ctx.lineTo(-s*.2,s*.3);ctx.closePath();ctx.fill();
-  ctx.fillStyle='oklch(0.9 0.3 0)';ctx.globalAlpha=.7+Math.sin(Date.now()*.01)*.2;ctx.beginPath();ctx.arc(s*.12,0,s*.1,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  if(e.hp<e.maxHp){const bw=s*1,bh=2,bx=-bw/2,by=-s-6;ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(bx,by,bw,bh);ctx.fillStyle='oklch(0.7 0.25 0)';ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh);}
-  ctx.restore();}
+  const s=e.size;
+  // Shadow
+  ctx.save();ctx.translate(e.x+3,e.y+3);ctx.globalAlpha=.18;ctx.fillStyle='#000';
+  ctx.beginPath();ctx.ellipse(0,0,s*1.1,s*.8,e.bodyA,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Hit flash overlay
+  if(e.hitFlash>.1){ctx.save();ctx.translate(e.x,e.y);ctx.globalAlpha=e.hitFlash*.4;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,s*1.3,0,Math.PI*2);ctx.fill();ctx.restore();}
+  // === BODY (hull + tracks) ===
+  ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.bodyA);
+  const hw=s*1.4,hh=s*1.0; // hull width (length), height
+  // Tracks
+  ctx.fillStyle='#2a2228';ctx.strokeStyle='#3a3035';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(-hw*.55,-hh*.65,hw*1.1,hh*.2,2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.roundRect(-hw*.55,hh*.45,hw*1.1,hh*.2,2);ctx.fill();ctx.stroke();
+  // Track detail lines
+  ctx.strokeStyle='#48383f';ctx.lineWidth=.5;
+  for(let t=-1;t<=1;t+=2){const ty=t<0?-hh*.55:hh*.5;
+    for(let k=0;k<5;k++){const lx=-hw*.4+k*hw*.2;ctx.beginPath();ctx.moveTo(lx,ty);ctx.lineTo(lx,ty+hh*.12);ctx.stroke();}}
+  // Hull body
+  const hg=ctx.createLinearGradient(-hw*.4,0,hw*.4,0);
+  hg.addColorStop(0,'#4a2a2a');hg.addColorStop(.5,'#5c3535');hg.addColorStop(1,'#4a2a2a');
+  ctx.fillStyle=hg;ctx.strokeStyle='#6a4040';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(-hw*.42,-hh*.4,hw*.84,hh*.8,3);ctx.fill();ctx.stroke();
+  // Engine exhaust vents (rear)
+  ctx.fillStyle='#2a1818';
+  ctx.fillRect(-hw*.5,-hh*.25,hw*.1,hh*.15);ctx.fillRect(-hw*.5,hh*.1,hw*.1,hh*.15);
+  // Armor plate detail
+  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=.5;
+  ctx.beginPath();ctx.moveTo(-hw*.15,-hh*.35);ctx.lineTo(-hw*.15,hh*.35);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(hw*.15,-hh*.35);ctx.lineTo(hw*.15,hh*.35);ctx.stroke();
+  ctx.restore();
+  // === TURRET (rotates independently) ===
+  ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.turretA);ctx.translate(-e.recoil,0);
+  // Barrel
+  ctx.fillStyle='#5a3535';ctx.strokeStyle='#7a4a4a';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(s*.3,-2.5,s*1.2,5,2);ctx.fill();ctx.stroke();
+  // Barrel tip
+  ctx.fillStyle='#3a2020';ctx.beginPath();ctx.roundRect(s*1.3,-3.5,4,7,1);ctx.fill();
+  // Turret base
+  const tg=ctx.createRadialGradient(0,0,0,0,0,s*.55);
+  tg.addColorStop(0,'#6a3838');tg.addColorStop(.7,'#502828');tg.addColorStop(1,'#3a1a1a');
+  ctx.fillStyle=tg;ctx.strokeStyle='#7a4545';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,0,s*.5,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Turret hatch
+  ctx.fillStyle='#4a2525';ctx.strokeStyle='#5a3030';ctx.lineWidth=.5;
+  ctx.beginPath();ctx.arc(-s*.1,0,s*.18,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Red sensor eye
+  ctx.fillStyle='oklch(0.85 0.3 0)';ctx.globalAlpha=.7+Math.sin(Date.now()*.008)*.25;
+  ctx.beginPath();ctx.arc(s*.15,0,2.5,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.3;ctx.fillStyle='oklch(0.9 0.3 0)';ctx.beginPath();ctx.arc(s*.15,0,5,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  // Muzzle flash
+  if(e.mFlash>.05){const f=e.mFlash;ctx.save();ctx.translate(s*1.5,0);ctx.globalAlpha=f;
+    const mg=ctx.createRadialGradient(0,0,0,0,0,16*f);mg.addColorStop(0,'oklch(0.95 0.25 40)');mg.addColorStop(.5,'oklch(0.8 0.3 20/.5)');mg.addColorStop(1,'transparent');
+    ctx.fillStyle=mg;ctx.beginPath();ctx.arc(0,0,16*f,0,Math.PI*2);ctx.fill();ctx.restore();}
+  ctx.restore();
+  // HP bar
+  if(e.hp<e.maxHp){const bw=s*1.4,bh=2.5,bx=e.x-bw/2,by=e.y-s*1.1;
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle=e.hp>1?'oklch(0.7 0.2 0)':'oklch(0.9 0.3 0)';ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh);}
+  // State indicator (small dot)
+  ctx.save();ctx.translate(e.x,e.y-s*1.4);ctx.globalAlpha=.5;
+  ctx.fillStyle=e.state==='engage'?'oklch(0.8 0.3 0)':'oklch(0.6 0.2 220)';
+  ctx.beginPath();ctx.arc(0,0,2,0,Math.PI*2);ctx.fill();ctx.restore();
+}
 
 // === AMMO HUD ===
 function renderAmmo(){
