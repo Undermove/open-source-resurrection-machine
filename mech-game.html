@@ -480,66 +480,67 @@ function triggerDefeat(reason){gState='defeat';const dt=document.getElementById(
 function triggerVictory(){gState='victory';document.getElementById('victory-overlay').classList.remove('hidden');vicIdx=0;advanceVic();}
 
 // === UPDATE ===
-function update(){
+function update(dt){
   if(gState!=='playing')return;
+  const pw=Math.pow;
   let ix=0,iy=0;
   if(keys.KeyW||keys.ArrowUp)iy-=1;if(keys.KeyS||keys.ArrowDown)iy+=1;
   if(keys.KeyA||keys.ArrowLeft)ix-=1;if(keys.KeyD||keys.ArrowRight)ix+=1;
   const hI=ix!==0||iy!==0,inA=Math.atan2(iy,ix);
-  if(hI)P.legsAV+=norm(inA-P.legsA)*LTS;
-  P.legsAV*=LTD;P.legsA+=P.legsAV;P.legsA=norm(P.legsA);
-  if(hI){const m=Math.hypot(ix,iy);P.vx+=ix/m*ACC;P.vy+=iy/m*ACC;}
+  if(hI)P.legsAV+=norm(inA-P.legsA)*LTS*dt;
+  P.legsAV*=pw(LTD,dt);P.legsA+=P.legsAV*dt;P.legsA=norm(P.legsA);
+  if(hI){const m=Math.hypot(ix,iy);P.vx+=ix/m*ACC*dt;P.vy+=iy/m*ACC*dt;}
   const sh=keys.ShiftLeft||keys.ShiftRight,wB=sh&&hI&&P.boostFuel>0,was=P.boosting;P.boosting=wB;
   if(wB&&!was)thrStart();if(!wB&&was)thrStop();
-  if(wB){const m=Math.hypot(ix,iy);P.vx+=ix/m*BF;P.vy+=iy/m*BF;P.boostFuel=Math.max(0,P.boostFuel-BD);P.boostCD=BCD;const ra=P.legsA+Math.PI;for(let i=0;i<3;i++){const sp=(Math.random()-.5)*.8,s=2+Math.random()*3;thrP.push({x:P.x+Math.cos(ra)*30+(Math.random()-.5)*12,y:P.y+Math.sin(ra)*30+(Math.random()-.5)*12,vx:Math.cos(ra+sp)*s+P.vx*.3,vy:Math.sin(ra+sp)*s+P.vy*.3,life:1,dec:.02+Math.random()*.03,sz:5+Math.random()*10});}P.shakeDec=Math.max(P.shakeDec,1.5);}
-  if(!wB){if(P.boostCD>0)P.boostCD--;else P.boostFuel=Math.min(1,P.boostFuel+BR);}
-  const pd=(!wB&&P.speed>MAX_S)?BDR:0;P.vx*=(1-(hI?FRI:BRK)-pd);P.vy*=(1-(hI?FRI:BRK)-pd);
+  if(wB){const m=Math.hypot(ix,iy);P.vx+=ix/m*BF*dt;P.vy+=iy/m*BF*dt;P.boostFuel=Math.max(0,P.boostFuel-BD*dt);P.boostCD=BCD;const ra=P.legsA+Math.PI;const thrCount=Math.max(1,Math.round(3*dt));for(let i=0;i<thrCount;i++){const sp=(Math.random()-.5)*.8,s=2+Math.random()*3;thrP.push({x:P.x+Math.cos(ra)*30+(Math.random()-.5)*12,y:P.y+Math.sin(ra)*30+(Math.random()-.5)*12,vx:Math.cos(ra+sp)*s+P.vx*.3,vy:Math.sin(ra+sp)*s+P.vy*.3,life:1,dec:.02+Math.random()*.03,sz:5+Math.random()*10});}P.shakeDec=Math.max(P.shakeDec,1.5);}
+  if(!wB){if(P.boostCD>0)P.boostCD-=dt;else P.boostFuel=Math.min(1,P.boostFuel+BR*dt);}
+  const pd=(!wB&&P.speed>MAX_S)?BDR:0;const fric=pw(1-(hI?FRI:BRK)-pd,dt);P.vx*=fric;P.vy*=fric;
   P.speed=Math.hypot(P.vx,P.vy);if(P.speed>BM){P.vx=P.vx/P.speed*BM;P.vy=P.vy/P.speed*BM;P.speed=BM;}
-  P.x+=P.vx;P.y+=P.vy;const pad=30;
+  P.x+=P.vx*dt;P.y+=P.vy*dt;const pad=30;
   if(P.x<pad){P.x=pad;P.vx*=-.3;}if(P.x>AW-pad){P.x=AW-pad;P.vx*=-.3;}if(P.y<pad){P.y=pad;P.vy*=-.3;}if(P.y>AH-pad){P.y=AH-pad;P.vy*=-.3;}
   const dcP=Math.hypot(P.x-core.x,P.y-core.y);if(dcP<core.wallRadius+20&&core.wallHp>0){const a=Math.atan2(P.y-core.y,P.x-core.x);P.x=core.x+Math.cos(a)*(core.wallRadius+20);P.y=core.y+Math.sin(a)*(core.wallRadius+20);}
   const sc=Math.min(W/AW,H/AH),oX=(W-AW*sc)/2,oY=(H-AH*sc)/2;const amx=(mouseX-oX)/sc,amy=(mouseY-oY)/sc;const tba=Math.atan2(amy-P.y,amx-P.x);
-  P.bodyAV+=norm(tba-P.bodyA)*BTS;P.bodyAV*=BTD;P.bodyA+=P.bodyAV;P.bodyA=norm(P.bodyA);
-  const pp=P.walkPhase,sr=Math.min(P.speed/MAX_S,1),ps=sr>.01?SMN+(SMX-SMN)*sr:0;P.walkPhase+=ps;
+  P.bodyAV+=norm(tba-P.bodyA)*BTS*dt;P.bodyAV*=pw(BTD,dt);P.bodyA+=P.bodyAV*dt;P.bodyA=norm(P.bodyA);
+  const pp=P.walkPhase,sr=Math.min(P.speed/MAX_S,1),ps=sr>.01?SMN+(SMX-SMN)*sr:0;P.walkPhase+=ps*dt;
   if(P.speed>.05){const pS=Math.floor(pp/Math.PI),cS=Math.floor(P.walkPhase/Math.PI);if(cS>pS){const int=.5+sr*.5;P.shakeDec=int*6;sfxStep(int);const sd=cS%2===0?-1:1,fx=P.x+Math.cos(P.legsA+Math.PI/2)*sd*LS*.5,fy=P.y+Math.sin(P.legsA+Math.PI/2)*sd*LS*.5;for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2,s=.5+Math.random()*2.5;dust.push({x:fx+(Math.random()-.5)*20,y:fy+(Math.random()-.5)*20,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,dec:.008+Math.random()*.012,sz:4+Math.random()*12});}}}
-  if(P.shakeDec>0){P.shakeX=(Math.random()-.5)*P.shakeDec*4;P.shakeY=(Math.random()-.5)*P.shakeDec*4;P.shakeDec*=.88;if(P.shakeDec<.05)P.shakeDec=0;}else{P.shakeX=0;P.shakeY=0;}
+  if(P.shakeDec>0){P.shakeX=(Math.random()-.5)*P.shakeDec*4;P.shakeY=(Math.random()-.5)*P.shakeDec*4;P.shakeDec*=pw(.88,dt);if(P.shakeDec<.05)P.shakeDec=0;}else{P.shakeX=0;P.shakeY=0;}
   // Damage smoke
   const dmgR=1-P.hp/P.maxHp;
-  if(dmgR>.2&&Math.random()<dmgR*.12){smokeP.push({x:P.x+(Math.random()-.5)*30,y:P.y+(Math.random()-.5)*30,vx:(Math.random()-.5)*.5,vy:-1-Math.random()*1.5,life:1,dec:.005+Math.random()*.008,sz:8+Math.random()*20,type:'smoke'});}
-  if(dmgR>.6&&Math.random()<(dmgR-.6)*.25){smokeP.push({x:P.x+(Math.random()-.5)*20,y:P.y+(Math.random()-.5)*20,vx:(Math.random()-.5)*1,vy:-2-Math.random()*2,life:1,dec:.015+Math.random()*.02,sz:4+Math.random()*10,type:'fire'});}
-  if(P.hp<=30){alarmT++;if(alarmT%60===0)sfxAlarm();}else alarmT=0;
+  if(dmgR>.2&&Math.random()<dmgR*.12*dt){smokeP.push({x:P.x+(Math.random()-.5)*30,y:P.y+(Math.random()-.5)*30,vx:(Math.random()-.5)*.5,vy:-1-Math.random()*1.5,life:1,dec:.005+Math.random()*.008,sz:8+Math.random()*20,type:'smoke'});}
+  if(dmgR>.6&&Math.random()<(dmgR-.6)*.25*dt){smokeP.push({x:P.x+(Math.random()-.5)*20,y:P.y+(Math.random()-.5)*20,vx:(Math.random()-.5)*1,vy:-2-Math.random()*2,life:1,dec:.015+Math.random()*.02,sz:4+Math.random()*10,type:'fire'});}
+  if(P.hp<=30){alarmT+=dt;if(alarmT>=60){sfxAlarm();alarmT=0;}}else alarmT=0;
   // Fire
-  if(P.fireT>0)P.fireT--;cSpread=Math.max(0,cSpread-SPD);if(!mouseDown)P.burst=Math.max(0,P.burst-.5);
+  if(P.fireT>0)P.fireT-=dt;cSpread=Math.max(0,cSpread-SPD*dt);if(!mouseDown)P.burst=Math.max(0,P.burst-.5*dt);
   if(mouseDown&&P.fireT<=0&&P.ammo>0){P.fireT=FRT;P.ammo--;const si=P.ammoS.lastIndexOf('r');if(si>=0)P.ammoS[si]='s';P.burst++;cSpread=Math.min(SPM,SPB+P.burst*SPP);const sd=P.fireSide;P.fireSide=1-P.fireSide;const ss=sd===0?-1:1,cs=Math.cos(P.bodyA),sn=Math.sin(P.bodyA);const gx=P.x+cs*(GH*.5+GOY)-sn*ss*GOX,gy=P.y+sn*(GH*.5+GOY)+cs*ss*GOX;const sa=P.bodyA+(Math.random()-.5)*cSpread*2,scs=Math.cos(sa),ssn=Math.sin(sa);projs.push({x:gx,y:gy,vx:scs*PSP+P.vx*.3,vy:ssn*PSP+P.vy*.3,life:PLF,own:'p'});P.mFlash[sd]=1;P.recoil=8;P.shakeDec=Math.max(P.shakeDec,3.5);sfxCannon();for(let i=0;i<12;i++){const sp=(Math.random()-.5)*.7,s=1.5+Math.random()*5;muzzle.push({x:gx,y:gy,vx:Math.cos(sa+sp)*s,vy:Math.sin(sa+sp)*s,life:1,dec:.02+Math.random()*.035,sz:3+Math.random()*10});}}
-  if(P.ammo<AMMO){P.reloadT++;if(P.reloadT>=RINT){P.reloadT=0;const ri=P.ammoS.indexOf('s');if(ri>=0){P.ammoS[ri]='r';P.ammo++;}}}
-  P.mFlash[0]*=.65;P.mFlash[1]*=.65;P.recoil*=.8;P.hitFlash*=.9;core.hitFlash*=.92;
+  if(P.ammo<AMMO){P.reloadT+=dt;if(P.reloadT>=RINT){P.reloadT=0;const ri=P.ammoS.indexOf('s');if(ri>=0){P.ammoS[ri]='r';P.ammo++;}}}
+  P.mFlash[0]*=pw(.65,dt);P.mFlash[1]*=pw(.65,dt);P.recoil*=pw(.8,dt);P.hitFlash*=pw(.9,dt);core.hitFlash*=pw(.92,dt);
   // Enemies
   const wT=WB+wave*WS;
-  if(eSpawned<wT&&enemies.length<3){spawnT--;if(spawnT<=0){spawnE();eSpawned++;spawnT=Math.max(12,50-wave*2);}}
+  if(eSpawned<wT&&enemies.length<3){spawnT-=dt;if(spawnT<=0){spawnE();eSpawned++;spawnT=Math.max(12,50-wave*2);}}
   if(eSpawned>=wT&&enemies.length===0&&waveD===0)waveD=90;
-  if(waveD>0){waveD--;if(waveD===0){wave++;eSpawned=0;if(wave>WIN_WAVE-1){triggerVictory();return;}showWave(wave);}}
-  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];const dToP=Math.hypot(P.x-e.x,P.y-e.y);e.stateT++;
+  if(waveD>0){waveD-=dt;if(waveD<=0){waveD=0;wave++;eSpawned=0;if(wave>WIN_WAVE-1){triggerVictory();return;}showWave(wave);}}
+  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];const dToP=Math.hypot(P.x-e.x,P.y-e.y);e.stateT+=dt;
     if(e.state==='assault'&&dToP<AGGRO_RANGE){e.state='engage';e.stateT=0;}if(e.state==='engage'&&dToP>DEAGGRO_RANGE&&e.stateT>90){e.state='assault';e.stateT=0;}
     let driveX,driveY;if(e.state==='engage'){const toP=Math.atan2(P.y-e.y,P.x-e.x);const flankStr=dToP<200?.0:Math.min(1,dToP/400);const driveA=toP+e.flankAngle*flankStr;driveX=e.x+Math.cos(driveA)*100;driveY=e.y+Math.sin(driveA)*100;}else{driveX=core.x;driveY=core.y;}
-    const driveAngle=Math.atan2(driveY-e.y,driveX-e.x);e.bodyA+=norm(driveAngle-e.bodyA)*.035;const eAcc=.055*e.speed;e.vx+=Math.cos(e.bodyA)*eAcc;e.vy+=Math.sin(e.bodyA)*eAcc;const eSpd=Math.hypot(e.vx,e.vy),eMax=e.speed*1.6;if(eSpd>eMax){e.vx=e.vx/eSpd*eMax;e.vy=e.vy/eSpd*eMax;}e.vx*=.96;e.vy*=.96;e.x+=e.vx;e.y+=e.vy;e.hitFlash*=.85;e.mFlash*=.6;e.recoil*=.75;
+    const driveAngle=Math.atan2(driveY-e.y,driveX-e.x);e.bodyA+=norm(driveAngle-e.bodyA)*.035*dt;const eAcc=.055*e.speed*dt;e.vx+=Math.cos(e.bodyA)*eAcc;e.vy+=Math.sin(e.bodyA)*eAcc;const eSpd=Math.hypot(e.vx,e.vy),eMax=e.speed*1.6;if(eSpd>eMax){e.vx=e.vx/eSpd*eMax;e.vy=e.vy/eSpd*eMax;}e.vx*=pw(.96,dt);e.vy*=pw(.96,dt);e.x+=e.vx*dt;e.y+=e.vy*dt;e.hitFlash*=pw(.85,dt);e.mFlash*=pw(.6,dt);e.recoil*=pw(.75,dt);
     if(e.x<-5)e.x=-5;if(e.x>AW+5)e.x=AW+5;if(e.y<-5)e.y=-5;if(e.y>AH+5)e.y=AH+5;
     let aimX,aimY;if(e.state==='engage'||dToP<1000){aimX=P.x;aimY=P.y;}else if(core.hp>0){aimX=core.x;aimY=core.y;}else{aimX=P.x;aimY=P.y;}
-    const aimA=Math.atan2(aimY-e.y,aimX-e.x);e.turretAV+=norm(aimA-e.turretA)*.06;e.turretAV*=.82;e.turretA+=e.turretAV;e.turretA=norm(e.turretA);
-    if(e.ammo<e.ammoMax){e.reloadT++;if(e.reloadT>=E_RELOAD){e.reloadT=0;e.ammo++;}}
-    e.fireCD--;const canFire=e.state==='engage'?dToP<1200:(dToP<800);const turretOnTarget=Math.abs(norm(aimA-e.turretA))<.2;
+    const aimA=Math.atan2(aimY-e.y,aimX-e.x);e.turretAV+=norm(aimA-e.turretA)*.06*dt;e.turretAV*=pw(.82,dt);e.turretA+=e.turretAV*dt;e.turretA=norm(e.turretA);
+    if(e.ammo<e.ammoMax){e.reloadT+=dt;if(e.reloadT>=E_RELOAD){e.reloadT=0;e.ammo++;}}
+    e.fireCD-=dt;const canFire=e.state==='engage'?dToP<1200:(dToP<800);const turretOnTarget=Math.abs(norm(aimA-e.turretA))<.2;
     if(e.fireCD<=0&&canFire&&e.ammo>0&&turretOnTarget){e.fireCD=e.fireRate+Math.floor(Math.random()*20);e.ammo--;e.mFlash=1;e.recoil=4;const ea=e.turretA+(Math.random()-.5)*.12;const mx=e.x+Math.cos(ea)*(e.size+8),my=e.y+Math.sin(ea)*(e.size+8);projs.push({x:mx,y:my,vx:Math.cos(ea)*3.2+e.vx*.3,vy:Math.sin(ea)*3.2+e.vy*.3,life:800,own:'e'});for(let k=0;k<5;k++){const sp=(Math.random()-.5)*.5,s=1+Math.random()*3;muzzle.push({x:mx,y:my,vx:Math.cos(ea+sp)*s,vy:Math.sin(ea+sp)*s,life:1,dec:.04+Math.random()*.04,sz:2+Math.random()*5});}}
-    const dToC=Math.hypot(core.x-e.x,core.y-e.y);if(dToC<core.wallRadius+e.size&&core.wallHp>0){core.wallHp-=.05;core.hitFlash=Math.max(core.hitFlash,.3);const pa=Math.atan2(e.y-core.y,e.x-core.x);e.x=core.x+Math.cos(pa)*(core.wallRadius+e.size);e.y=core.y+Math.sin(pa)*(core.wallRadius+e.size);e.vx*=-.3;e.vy*=-.3;}
-    if(core.wallHp<=0&&dToC<core.radius+e.size&&core.hp>0){core.hp-=.1;core.hitFlash=1;}}
+    const dToC=Math.hypot(core.x-e.x,core.y-e.y);if(dToC<core.wallRadius+e.size&&core.wallHp>0){core.wallHp-=.05*dt;core.hitFlash=Math.max(core.hitFlash,.3);const pa=Math.atan2(e.y-core.y,e.x-core.x);e.x=core.x+Math.cos(pa)*(core.wallRadius+e.size);e.y=core.y+Math.sin(pa)*(core.wallRadius+e.size);e.vx*=-.3;e.vy*=-.3;}
+    if(core.wallHp<=0&&dToC<core.radius+e.size&&core.hp>0){core.hp-=.1*dt;core.hitFlash=1;}}
   // Projectiles
-  for(let i=projs.length-1;i>=0;i--){const p=projs[i];p.x+=p.vx;p.y+=p.vy;p.life--;if(p.x<-120||p.x>AW+120||p.y<-120||p.y>AH+120)p.life=0;
+  for(let i=projs.length-1;i>=0;i--){const p=projs[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.x<-120||p.x>AW+120||p.y<-120||p.y>AH+120)p.life=0;
     if(p.own==='p'){for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];if(Math.hypot(p.x-e.x,p.y-e.y)<e.size+5){e.hp--;e.hitFlash=1;p.life=0;sfxHit();if(e.hp<=0){kills++;sfxDeath();for(let k=0;k<16;k++){const a=Math.random()*Math.PI*2,s=1+Math.random()*3;expl.push({x:e.x,y:e.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,dec:.015+Math.random()*.02,sz:2+Math.random()*8});}enemies.splice(j,1);}break;}}}
     if(p.own==='e'){if(Math.hypot(p.x-P.x,p.y-P.y)<26){P.hp-=5;P.hitFlash=1;P.shakeDec=Math.max(P.shakeDec,5);p.life=0;}if(Math.hypot(p.x-core.x,p.y-core.y)<core.wallRadius+4&&core.wallHp>0){core.wallHp-=1;core.hitFlash=1;p.life=0;}if(core.wallHp<=0&&Math.hypot(p.x-core.x,p.y-core.y)<core.radius+4&&core.hp>0){core.hp-=2;core.hitFlash=1;p.life=0;}}
     if(p.life<=0)projs.splice(i,1);}
-  for(let i=dust.length-1;i>=0;i--){const p=dust[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.96;p.vy*=.96;p.life-=p.dec;if(p.life<=0)dust.splice(i,1);}
-  for(let i=muzzle.length-1;i>=0;i--){const p=muzzle[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.9;p.vy*=.9;p.life-=p.dec;if(p.life<=0)muzzle.splice(i,1);}
-  for(let i=thrP.length-1;i>=0;i--){const p=thrP[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.94;p.vy*=.94;p.life-=p.dec;if(p.life<=0)thrP.splice(i,1);}
-  for(let i=expl.length-1;i>=0;i--){const p=expl[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.95;p.vy*=.95;p.life-=p.dec;if(p.life<=0)expl.splice(i,1);}
-  for(let i=smokeP.length-1;i>=0;i--){const p=smokeP[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.98;p.vy*=.99;p.life-=p.dec;p.sz*=1.005;if(p.life<=0)smokeP.splice(i,1);}
+  for(let i=dust.length-1;i>=0;i--){const p=dust[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=pw(.96,dt);p.vy*=pw(.96,dt);p.life-=p.dec*dt;if(p.life<=0)dust.splice(i,1);}
+  for(let i=muzzle.length-1;i>=0;i--){const p=muzzle[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=pw(.9,dt);p.vy*=pw(.9,dt);p.life-=p.dec*dt;if(p.life<=0)muzzle.splice(i,1);}
+  for(let i=thrP.length-1;i>=0;i--){const p=thrP[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=pw(.94,dt);p.vy*=pw(.94,dt);p.life-=p.dec*dt;if(p.life<=0)thrP.splice(i,1);}
+  for(let i=expl.length-1;i>=0;i--){const p=expl[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=pw(.95,dt);p.vy*=pw(.95,dt);p.life-=p.dec*dt;if(p.life<=0)expl.splice(i,1);}
+  for(let i=smokeP.length-1;i>=0;i--){const p=smokeP[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=pw(.98,dt);p.vy*=pw(.99,dt);p.life-=p.dec*dt;p.sz*=pw(1.005,dt);if(p.life<=0)smokeP.splice(i,1);}
   if(P.hp<=0)triggerDefeat('mech');if(core.hp<=0)triggerDefeat('core');
   // HUD
   document.getElementById('h-hp').textContent=Math.ceil(Math.max(0,P.hp));document.getElementById('h-hp').style.color=P.hp>50?'oklch(0.85 0.2 145)':P.hp>25?'oklch(0.85 0.2 60)':'oklch(0.9 0.3 0)';
@@ -585,8 +586,9 @@ function drawEnemy(e){const s=e.size;ctx.save();ctx.translate(e.x+3,e.y+3);ctx.g
 function renderAmmo(){const c=ammoX,cw=200,ch=320;ammoC.style.width='90px';ammoC.style.height='150px';c.clearRect(0,0,cw,ch);c.fillStyle='rgba(10,10,14,.6)';c.beginPath();c.roundRect(4,4,cw-8,ch-8,12);c.fill();c.strokeStyle='rgba(255,255,255,.06)';c.lineWidth=2;c.beginPath();c.roundRect(4,4,cw-8,ch-8,12);c.stroke();c.font='bold 14px "JetBrains Mono",monospace';c.fillStyle='rgba(255,255,255,.3)';c.textAlign='center';c.fillText('MAGAZINE',cw/2,24);c.font='bold 22px "JetBrains Mono",monospace';c.fillStyle=P.ammo>10?'oklch(0.85 0.15 145)':P.ammo>5?'oklch(0.85 0.2 60)':'oklch(0.9 0.3 0)';c.fillText(P.ammo+'/'+AMMO,cw/2,50);const rows=10,rw=16,rh=20,gap=4,padX=24,padY=60;for(let i=0;i<AMMO;i++){const col=Math.floor(i/rows),row=i%rows,x=padX+col*(rw+gap*2),y=padY+row*(rh+2),st=P.ammoS[i];if(st==='r'){const g=c.createLinearGradient(x,y,x+rw,y);g.addColorStop(0,'#8a7a40');g.addColorStop(.4,'#c4a84a');g.addColorStop(.6,'#c4a84a');g.addColorStop(1,'#8a7a40');c.fillStyle=g;c.beginPath();c.roundRect(x,y,rw,rh,3);c.fill();c.fillStyle='#9a8a50';c.beginPath();c.roundRect(x+3,y,rw-6,5,2);c.fill();}else{c.fillStyle='rgba(255,255,255,.04)';c.beginPath();c.roundRect(x,y,rw,rh,3);c.fill();c.strokeStyle='rgba(255,255,255,.06)';c.lineWidth=1;c.beginPath();c.roundRect(x,y,rw,rh,3);c.stroke();if(P.ammoS.indexOf('s')===i){const pr=P.reloadT/RINT,fH=rh*pr;c.fillStyle='rgba(180,160,60,.3)';c.beginPath();c.roundRect(x,y+rh-fH,rw,fH,2);c.fill();}}}const sp=Math.min(cSpread/SPM,1);c.fillStyle='rgba(255,255,255,.18)';c.font='9px "JetBrains Mono",monospace';c.textAlign='center';c.fillText('SPREAD',cw/2,ch-22);const bx=20,by=ch-16,bw=cw-40,bh=5;c.fillStyle='rgba(255,255,255,.06)';c.fillRect(bx,by,bw,bh);c.fillStyle=sp<.3?'oklch(0.7 0.15 145)':sp<.7?'oklch(0.8 0.2 60)':'oklch(0.85 0.25 0)';c.fillRect(bx,by,bw*sp,bh);}
 
 showWave(1);
-function loop(){update();render();renderAmmo();requestAnimationFrame(loop);}
-loop();
+let lastT=0;
+function loop(t){const dt=lastT?Math.min((t-lastT)/16.667,3):1;lastT=t;update(dt);render();renderAmmo();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
 })();
 </script>
 </body>
