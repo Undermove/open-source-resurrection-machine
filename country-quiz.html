@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Какая страна вам подходит?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #09090b;
+            --surface: #131316;
+            --surface-2: #1a1a1f;
+            --border: #27272a;
+            --text: #fafafa;
+            --text-muted: #a1a1aa;
+            --accent: oklch(0.75 0.18 160);
+            --accent-glow: oklch(0.65 0.22 160);
+            --purple: oklch(0.7 0.2 290);
+            --orange: oklch(0.75 0.18 55);
+            --pink: oklch(0.72 0.2 350);
+            --blue: oklch(0.7 0.18 240);
+            --radius: 1rem;
+            --transition: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+
+            &::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background:
+                    radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.3 0.15 290 / 0.3), transparent),
+                    radial-gradient(ellipse 60% 40% at 80% 80%, oklch(0.25 0.12 160 / 0.2), transparent),
+                    radial-gradient(ellipse 50% 50% at 10% 60%, oklch(0.2 0.1 55 / 0.15), transparent);
+                pointer-events: none;
+                z-index: 0;
+            }
+        }
+
+        svg.noise {
+            position: fixed;
+            width: 0;
+            height: 0;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            filter: url(#noiseFilter);
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #app {
+            position: relative;
+            z-index: 2;
+            width: min(90vw, 40rem);
+            min-height: 24rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ─── Intro Screen ─── */
+        .screen {
+            width: 100%;
+            animation: fadeIn 0.6s var(--transition) both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(1.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-1rem); }
+        }
+
+        .screen.leaving {
+            animation: fadeOut 0.35s var(--transition) both;
+        }
+
+        .intro {
+            text-align: center;
+
+            & h1 {
+                font-size: clamp(2rem, 5vw, 3.2rem);
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1.15;
+                background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 1rem;
+            }
+
+            & p {
+                font-size: 1.1rem;
+                color: var(--text-muted);
+                line-height: 1.6;
+                max-width: 32rem;
+                margin: 0 auto 2.5rem;
+            }
+        }
+
+        /* ─── Buttons ─── */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.9rem 2.2rem;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #000;
+            background: var(--accent);
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.3s var(--transition);
+            position: relative;
+            overflow: hidden;
+
+            &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                box-shadow: 0 0 1.5rem oklch(0.7 0.2 160 / 0.4);
+                opacity: 0;
+                transition: opacity 0.3s var(--transition);
+            }
+
+            &:hover {
+                transform: translateY(-1px);
+                &::after { opacity: 1; }
+            }
+
+            &:active {
+                transform: scale(0.97);
+            }
+        }
+
+        /* ─── Question Card ─── */
+        .question-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2.5rem;
+            backdrop-filter: blur(16px);
+            width: 100%;
+
+            & .progress {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 2rem;
+
+                & .progress-bar {
+                    flex: 1;
+                    height: 4px;
+                    background: var(--surface-2);
+                    border-radius: 999px;
+                    overflow: hidden;
+
+                    & .progress-fill {
+                        height: 100%;
+                        background: linear-gradient(90deg, var(--accent), var(--blue));
+                        border-radius: inherit;
+                        transition: width 0.5s var(--transition);
+                    }
+                }
+
+                & .progress-label {
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    white-space: nowrap;
+                }
+            }
+
+            & .countries-remaining {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 1.5rem;
+                font-family: 'JetBrains Mono', monospace;
+
+                & .count {
+                    color: var(--accent);
+                    font-weight: 600;
+                }
+            }
+
+            & h2 {
+                font-size: clamp(1.25rem, 3vw, 1.6rem);
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                line-height: 1.3;
+                margin-bottom: 1.75rem;
+            }
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            padding: 1rem 1.25rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.25s var(--transition);
+
+            & .option-key {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.75rem;
+                height: 1.75rem;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--text-muted);
+                background: var(--bg);
+                border-radius: 0.4rem;
+                flex-shrink: 0;
+                transition: all 0.25s var(--transition);
+            }
+
+            &:hover {
+                border-color: var(--accent);
+                background: oklch(0.2 0.05 160 / 0.3);
+                transform: translateX(4px);
+
+                & .option-key {
+                    color: var(--accent);
+                    background: oklch(0.15 0.08 160 / 0.5);
+                }
+            }
+
+            &:active {
+                transform: scale(0.98) translateX(4px);
+            }
+        }
+
+        /* ─── Loading Screen ─── */
+        .loading-screen {
+            text-align: center;
+            width: 100%;
+
+            & h2 {
+                font-size: clamp(1.5rem, 4vw, 2rem);
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                margin-bottom: 2rem;
+            }
+        }
+
+        .globe-container {
+            width: 8rem;
+            height: 8rem;
+            margin: 0 auto 2rem;
+            position: relative;
+
+            & .globe {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                border: 2px solid var(--border);
+                position: relative;
+                animation: globeSpin 3s linear infinite;
+                overflow: hidden;
+                background: var(--surface);
+
+                &::before {
+                    content: '🌍';
+                    font-size: 4rem;
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+            }
+
+            & .scan-line {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 120%;
+                height: 3px;
+                background: linear-gradient(90deg, transparent, var(--accent), transparent);
+                animation: scanDown 2s var(--transition) infinite;
+                box-shadow: 0 0 1rem var(--accent-glow);
+            }
+        }
+
+        @keyframes globeSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes scanDown {
+            0%, 100% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        .loading-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: left;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            max-height: 16rem;
+            overflow-y: auto;
+            line-height: 1.8;
+
+            & .log-line {
+                opacity: 0;
+                animation: logAppear 0.3s var(--transition) both;
+
+                &.error { color: oklch(0.7 0.2 25); }
+                &.warn { color: oklch(0.8 0.15 80); }
+                &.success { color: var(--accent); }
+                &.highlight {
+                    color: var(--text);
+                    font-weight: 600;
+                }
+            }
+        }
+
+        @keyframes logAppear {
+            from { opacity: 0; transform: translateY(0.3rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Result Screen ─── */
+        .result-screen {
+            text-align: center;
+            width: 100%;
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 3rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background: conic-gradient(
+                    from 0deg,
+                    oklch(0.4 0.15 160 / 0.1),
+                    oklch(0.4 0.15 290 / 0.1),
+                    oklch(0.4 0.15 55 / 0.1),
+                    oklch(0.4 0.15 350 / 0.1),
+                    oklch(0.4 0.15 160 / 0.1)
+                );
+                animation: rotateBg 8s linear infinite;
+                z-index: 0;
+            }
+
+            & > * {
+                position: relative;
+                z-index: 1;
+            }
+        }
+
+        @keyframes rotateBg {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-flag {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: flagBounce 0.6s var(--transition) both;
+            animation-delay: 0.2s;
+        }
+
+        @keyframes flagBounce {
+            0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+            60% { transform: scale(1.2) rotate(5deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0); }
+        }
+
+        .result-title {
+            font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--purple), var(--pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeIn 0.5s var(--transition) both;
+            animation-delay: 0.4s;
+        }
+
+        .result-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.5s var(--transition) both;
+            animation-delay: 0.6s;
+        }
+
+        .perks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            text-align: left;
+
+            & .perk {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.6rem;
+                padding: 0.85rem 1rem;
+                background: oklch(0.15 0.02 160 / 0.5);
+                border: 1px solid oklch(0.3 0.05 160 / 0.2);
+                border-radius: 0.75rem;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                opacity: 0;
+                animation: perkAppear 0.4s var(--transition) both;
+
+                & .perk-icon {
+                    font-size: 1.1rem;
+                    flex-shrink: 0;
+                }
+
+                & .perk-text {
+                    line-height: 1.4;
+
+                    & strong {
+                        color: var(--text);
+                        display: block;
+                        font-weight: 600;
+                        margin-bottom: 0.15rem;
+                    }
+                }
+            }
+        }
+
+        @keyframes perkAppear {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .result-cta {
+            animation: fadeIn 0.5s var(--transition) both;
+            animation-delay: 2.5s;
+        }
+
+        .btn-share {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.8rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.3s var(--transition);
+
+            &:hover {
+                border-color: var(--accent);
+                transform: translateY(-1px);
+            }
+
+            &:active {
+                transform: scale(0.97);
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            overflow: hidden;
+
+            & .confetti-piece {
+                position: absolute;
+                width: 0.6rem;
+                height: 0.6rem;
+                top: -1rem;
+                animation: confettiFall linear both;
+            }
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        @media (max-width: 640px) {
+            .question-card {
+                padding: 1.75rem;
+            }
+
+            .perks {
+                grid-template-columns: 1fr;
+            }
+
+            .result-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<svg class="noise">
+    <filter id="noiseFilter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+    </filter>
+</svg>
+<div class="noise-overlay"></div>
+
+<div id="app"></div>
+
+<script>
+const app = document.getElementById('app');
+
+const questions = [
+    {
+        question: "Какой климат вам ближе?",
+        options: [
+            { text: "Тёплый и солнечный круглый год", eliminate: 80 },
+            { text: "Четыре чётких времени года", eliminate: 60 },
+            { text: "Прохладный с уютными дождями", eliminate: 70 },
+            { text: "Мне всё равно, лишь бы вайб был правильный", eliminate: 90 }
+        ],
+        countriesBefore: 195
+    },
+    {
+        question: "Как вы относитесь к бюрократии?",
+        options: [
+            { text: "Обожаю стоять в очередях — это медитация", eliminate: 85 },
+            { text: "Терпимо, если есть электронные госуслуги", eliminate: 70 },
+            { text: "Ненавижу — всё должно быть в два клика", eliminate: 75 },
+            { text: "Бюро-что? У нас этого не должно быть!", eliminate: 95 }
+        ],
+        countriesBefore: 47
+    },
+    {
+        question: "Ваш идеальный завтрак — это...",
+        options: [
+            { text: "Круассан и чёрный кофе", eliminate: 80 },
+            { text: "Каша — сила наша", eliminate: 85 },
+            { text: "Что-то экзотическое — манго, драконий фрукт", eliminate: 75 },
+            { text: "Завтрак — это выдумка, мне бы поспать", eliminate: 95 }
+        ],
+        countriesBefore: 18
+    },
+    {
+        question: "Какая суперсила нужна для жизни в вашей идеальной стране?",
+        options: [
+            { text: "Телепортация — чтобы не стоять в пробках", eliminate: 70 },
+            { text: "Бессмертие — слишком много всего хочу попробовать", eliminate: 80 },
+            { text: "Чтение мыслей — чтобы понимать местных", eliminate: 85 },
+            { text: "Умение превращать всё в праздник", eliminate: 97 }
+        ],
+        countriesBefore: 7
+    },
+    {
+        question: "Что для вас важнее всего в стране?",
+        options: [
+            { text: "Высокий уровень жизни и стабильность", eliminate: 60 },
+            { text: "Свобода и самовыражение", eliminate: 70 },
+            { text: "Культура и история", eliminate: 75 },
+            { text: "Чтобы было весело и немного безумно", eliminate: 99 }
+        ],
+        countriesBefore: 3
+    },
+    {
+        question: "Последний вопрос: выберите мем, который описывает вас лучше всего",
+        options: [
+            { text: "\"This is fine\" 🔥🐕", eliminate: 90 },
+            { text: "\"Stonks\" 📈", eliminate: 85 },
+            { text: "\"I don't know what I expected\" 📦", eliminate: 80 },
+            { text: "\"It's all coming together\" 😏", eliminate: 100 }
+        ],
+        countriesBefore: 2
+    }
+];
+
+const loadingMessages = [
+    { text: "> Запуск GeoPsych Engine v4.2.0...", delay: 0 },
+    { text: "> Анализ психологического профиля...", delay: 800 },
+    { text: "> Сканирование 195 стран...", delay: 1600 },
+    { text: "> Сопоставление культурных паттернов...", delay: 2400 },
+    { text: "> Проверка визовых совместимостей...", delay: 3200 },
+    { text: "> Учёт кулинарных предпочтений...", delay: 3800 },
+    { text: "> Расчёт коэффициента вайба...", delay: 4600 },
+    { text: "> Фильтрация по уровню безумия...", delay: 5400 },
+    { text: "> Осталось 47 стран... уточняю...", delay: 6200 },
+    { text: "> Осталось 12 стран...", delay: 7000 },
+    { text: "> Осталось 3 страны...", delay: 7600 },
+    { text: "> Осталась 1 страна...", delay: 8200 },
+    { text: "> Проверка существования...", delay: 9000 },
+    { text: "> ⚠ ОШИБКА: страна не найдена в базе ООН", delay: 10000, cls: "error" },
+    { text: "> Повторный поиск...", delay: 11000 },
+    { text: "> ⚠ ОШИБКА: совпадений не обнаружено", delay: 12000, cls: "error" },
+    { text: "> Расширяю поиск за пределы официальных баз...", delay: 13200 },
+    { text: "> Подключение к альтернативной картографии...", delay: 14200 },
+    { text: "> ...", delay: 15200 },
+    { text: "> ....", delay: 15800 },
+    { text: "> .....", delay: 16400 },
+    { text: "> Подождите... кажется, что-то есть!", delay: 17200, cls: "warn" },
+    { text: "> Обнаружен неизвестный объект...", delay: 18200, cls: "warn" },
+    { text: "> Координаты: 🌈.404° N, ✨.808° E", delay: 19200, cls: "success" },
+    { text: "> ✓ СОВПАДЕНИЕ НАЙДЕНО — 99.97% совместимость", delay: 20200, cls: "success" },
+    { text: "> Загрузка данных о стране...", delay: 21200, cls: "success" },
+    { text: "> ✓ Готово!", delay: 22200, cls: "highlight" },
+];
+
+const perks = [
+    { icon: "🌈", title: "Вечная радуга", desc: "Небо всегда цвета настроения" },
+    { icon: "🍕", title: "Бесплатная пицца", desc: "По пятницам. И вторникам. И вообще." },
+    { icon: "😴", title: "Сиеста 3 раза в день", desc: "Законодательно закреплённый сон" },
+    { icon: "🎉", title: "Праздник каждый день", desc: "195 дней — дни стран, остальные — просто так" },
+    { icon: "🐱", title: "Коты — госслужащие", desc: "Мурчат и одобряют документы" },
+    { icon: "🚀", title: "Нет понедельников", desc: "Неделя начинается со среды" },
+    { icon: "🎵", title: "Гимн — lo-fi", desc: "Расслабляющие биты на государственном уровне" },
+    { icon: "🧁", title: "Валюта — кексики", desc: "Инфляция? Нет, только глазурь" },
+];
+
+let currentQuestion = 0;
+
+function renderIntro() {
+    app.innerHTML = `
+        <div class="screen intro">
+            <h1>Какая страна<br>вам подходит?</h1>
+            <p>Научно обоснованный тест* на основе передового психогеографического анализа. Ответьте на 6 вопросов и узнайте свою идеальную страну.</p>
+            <button class="btn-primary" onclick="startQuiz()">
+                Начать тест →
+            </button>
+            <p style="font-size: 0.7rem; color: #52525b; margin-top: 1.5rem;">
+                * точность 99.97% по данным Института Очень Серьёзной Науки
+            </p>
+        </div>
+    `;
+}
+
+function startQuiz() {
+    currentQuestion = 0;
+    const screen = app.querySelector('.screen');
+    screen.classList.add('leaving');
+    setTimeout(() => renderQuestion(), 350);
+}
+
+function renderQuestion() {
+    const q = questions[currentQuestion];
+    const progress = ((currentQuestion) / questions.length) * 100;
+    const countriesLeft = q.countriesBefore;
+    const keys = ['A', 'B', 'C', 'D'];
+
+    app.innerHTML = `
+        <div class="screen">
+            <div class="question-card">
+                <div class="progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <span class="progress-label">${currentQuestion + 1}/${questions.length}</span>
+                </div>
+                <div class="countries-remaining">
+                    🌍 Осталось стран: <span class="count">${countriesLeft}</span>
+                </div>
+                <h2>${q.question}</h2>
+                <div class="options">
+                    ${q.options.map((opt, i) => `
+                        <button class="option-btn" onclick="selectOption(${i})">
+                            <span class="option-key">${keys[i]}</span>
+                            <span>${opt.text}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    requestAnimationFrame(() => {
+        const fill = app.querySelector('.progress-fill');
+        if (fill) {
+            fill.style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+        }
+    });
+}
+
+function selectOption(index) {
+    const btns = app.querySelectorAll('.option-btn');
+    btns[index].style.borderColor = 'var(--accent)';
+    btns[index].style.background = 'oklch(0.2 0.05 160 / 0.4)';
+    btns.forEach(b => b.style.pointerEvents = 'none');
+
+    setTimeout(() => {
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+            const screen = app.querySelector('.screen');
+            screen.classList.add('leaving');
+            setTimeout(() => renderQuestion(), 350);
+        } else {
+            const screen = app.querySelector('.screen');
+            screen.classList.add('leaving');
+            setTimeout(() => renderLoading(), 350);
+        }
+    }, 400);
+}
+
+function renderLoading() {
+    app.innerHTML = `
+        <div class="screen loading-screen">
+            <div class="globe-container">
+                <div class="globe"></div>
+                <div class="scan-line"></div>
+            </div>
+            <h2>Ищем вашу страну...</h2>
+            <div class="loading-log" id="log"></div>
+        </div>
+    `;
+
+    const log = document.getElementById('log');
+
+    loadingMessages.forEach((msg, i) => {
+        setTimeout(() => {
+            const line = document.createElement('div');
+            line.className = `log-line ${msg.cls || ''}`;
+            line.textContent = msg.text;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+
+            if (i === loadingMessages.length - 1) {
+                setTimeout(() => {
+                    const screen = app.querySelector('.screen');
+                    screen.classList.add('leaving');
+                    setTimeout(() => renderResult(), 500);
+                }, 1500);
+            }
+        }, msg.delay);
+    });
+}
+
+function renderResult() {
+    app.innerHTML = `
+        <div class="screen result-screen">
+            <div class="result-card">
+                <div class="result-flag">🏳️‍🌈</div>
+                <div class="result-title">Мульти-Пульти</div>
+                <div class="result-subtitle">Самая уютная страна во всех вселенных</div>
+                <div class="perks">
+                    ${perks.map((p, i) => `
+                        <div class="perk" style="animation-delay: ${0.8 + i * 0.15}s">
+                            <span class="perk-icon">${p.icon}</span>
+                            <div class="perk-text">
+                                <strong>${p.title}</strong>
+                                ${p.desc}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="result-cta">
+                    <button class="btn-share" onclick="location.reload()">
+                        🔄 Пройти ещё раз
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    launchConfetti();
+}
+
+function launchConfetti() {
+    const container = document.createElement('div');
+    container.className = 'confetti';
+    document.body.appendChild(container);
+
+    const colors = [
+        'oklch(0.75 0.18 160)',
+        'oklch(0.7 0.2 290)',
+        'oklch(0.75 0.18 55)',
+        'oklch(0.72 0.2 350)',
+        'oklch(0.7 0.18 240)',
+        'oklch(0.85 0.15 90)'
+    ];
+
+    for (let i = 0; i < 80; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+        piece.style.animationDelay = Math.random() * 2 + 's';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.width = (0.4 + Math.random() * 0.6) + 'rem';
+        piece.style.height = (0.4 + Math.random() * 0.6) + 'rem';
+        container.appendChild(piece);
+    }
+
+    setTimeout(() => container.remove(), 6000);
+}
+
+// Init
+renderIntro();
+</script>
+
+</body>
+</html>
