@@ -582,64 +582,199 @@
 <script>
 const app = document.getElementById('app');
 
+/* ═══════════════════════════════════════
+   СТРАНЫ — каждая со своим вайбом
+   ═══════════════════════════════════════ */
+const countries = {
+    wonka: {
+        id: "wonka",
+        flag: "🍫",
+        name: "Страна Вилли Вонки",
+        subtitle: "Шоколадные реки, карамельные берега и ноль калорий",
+        coords: "🍫.777° N, 🏭.candy° E",
+        perks: [
+            { icon: "🍫", title: "Шоколадные реки", desc: "Можно пить прямо из русла" },
+            { icon: "🍭", title: "Деревья из леденцов", desc: "Парки здесь — это десерт" },
+            { icon: "🎩", title: "Президент — Вонка", desc: "Безумный, но справедливый" },
+            { icon: "🧃", title: "Жвачка-обед", desc: "Три блюда в одной жвачке" },
+            { icon: "🎶", title: "Умпа-лумпы поют", desc: "Вместо новостей — мюзикл" },
+            { icon: "🚀", title: "Лифт летает", desc: "Стеклянный, в любом направлении" },
+            { icon: "🤸", title: "Вечное детство", desc: "Взрослеть не обязательно" },
+            { icon: "✨", title: "Золотой билет навсегда", desc: "Один раз получил — гражданин" },
+        ]
+    },
+    shire: {
+        id: "shire",
+        flag: "🧙",
+        name: "Шир",
+        subtitle: "Зелёные холмы, второй завтрак и никаких приключений",
+        coords: "🌿.111° N, 🍺.elevensies° E",
+        perks: [
+            { icon: "🍳", title: "Шесть приёмов пищи", desc: "Завтрак, 2-й завтрак, элевензис, обед..." },
+            { icon: "🏡", title: "Дома в холмах", desc: "Круглые двери — это уютно" },
+            { icon: "🍺", title: "Паб на каждом углу", desc: "«Зелёный Дракон» ждёт с утра" },
+            { icon: "🌻", title: "Лучшие сады в мире", desc: "Сэм Гэмджи лично одобряет" },
+            { icon: "🎆", title: "Фейерверки Гэндальфа", desc: "Каждый праздник — взрыв эмоций" },
+            { icon: "🦶", title: "Обувь не нужна", desc: "Шерстяные ноги — нац. гордость" },
+            { icon: "📖", title: "Никаких приключений", desc: "Самый важный закон Шира" },
+            { icon: "🎂", title: "На ДР дарят ОНИ", desc: "Именинник раздаёт подарки гостям" },
+        ]
+    },
+    bikini: {
+        id: "bikini",
+        flag: "🍍",
+        name: "Бикини Боттом",
+        subtitle: "Подводный город, где каждый день — как мем",
+        coords: "🍍.420° N, 🪸.bottom° E",
+        perks: [
+            { icon: "🍍", title: "Жизнь в ананасе", desc: "Самая стильная недвижимость" },
+            { icon: "🍔", title: "Крабсбургеры", desc: "Секретный рецепт. Навсегда." },
+            { icon: "🎸", title: "Патрик — философ", desc: "«Нет, это Патрик» — нац. девиз" },
+            { icon: "🧽", title: "Оптимизм на max", desc: "Я готов! Я готов! Я готов!" },
+            { icon: "🦑", title: "Сквидвард — погода", desc: "Прогноз: уныло. Всегда уныло." },
+            { icon: "🏋️", title: "Песочный спорт", desc: "Сэнди одобряет карате на пляже" },
+            { icon: "🚤", title: "Права не нужны", desc: "Миссис Пафф всё равно не сдашь" },
+            { icon: "🎵", title: "Нац. гимн", desc: "«Кто проживает на дне океана?»" },
+        ]
+    },
+    narnia: {
+        id: "narnia",
+        flag: "🦁",
+        name: "Нарния",
+        subtitle: "За шкафом — целый мир. Буквально.",
+        coords: "🦁.aslan° N, ❄️.wardrobe° E",
+        perks: [
+            { icon: "🧥", title: "Вход через шкаф", desc: "Граница — меховые шубы IKEA" },
+            { icon: "🦁", title: "Аслан решает", desc: "Лев — и царь, и суд, и совесть" },
+            { icon: "❄️", title: "Зима → Весна", desc: "Климат меняется от сюжета" },
+            { icon: "🧊", title: "Рахат-лукум", desc: "Бесплатно. Но осторожно." },
+            { icon: "🗡", title: "Детей делают королями", desc: "Опыт работы не требуется" },
+            { icon: "🦫", title: "Бобры — лучшие друзья", desc: "Накормят и приютят" },
+            { icon: "🕰", title: "Время идёт иначе", desc: "10 лет там = 5 минут тут" },
+            { icon: "🚪", title: "Вход бесплатный", desc: "Но только если ты веришь" },
+        ]
+    },
+    hogwarts: {
+        id: "hogwarts",
+        flag: "⚡",
+        name: "Хогсмид",
+        subtitle: "Единственная полностью волшебная деревня Британии",
+        coords: "⚡.934° N, 🧹.hogsmeade° E",
+        perks: [
+            { icon: "🍺", title: "Сливочное пиво", desc: "В «Трёх Мётлах» — безлимит" },
+            { icon: "🏰", title: "Вид на Хогвартс", desc: "Замок прямо за холмом" },
+            { icon: "🧙", title: "Все — волшебники", desc: "Маглов не пускают, извините" },
+            { icon: "🦉", title: "Почта — совы", desc: "Доставка за 0 минут, с перьями" },
+            { icon: "🍬", title: "Сладкое Королевство", desc: "Магазин Хонейдьюкс. Рай." },
+            { icon: "👻", title: "Привидения — соседи", desc: "Прозрачные, но дружелюбные" },
+            { icon: "🧣", title: "Четыре факультета", desc: "Вся политика — шляпа решает" },
+            { icon: "🎃", title: "Хэллоуин — лучший", desc: "Тыквы размером с карету" },
+        ]
+    },
+    multipulti: {
+        id: "multipulti",
+        flag: "🎪",
+        name: "Мульти-Пульти",
+        subtitle: "Никто не знает где это — но все хотят туда",
+        coords: "🎪.404° N, ✨.808° E",
+        perks: [
+            { icon: "🧁", title: "Валюта — кексики", desc: "Инфляция? Нет, только глазурь" },
+            { icon: "🍕", title: "Бесплатная пицца", desc: "По пятницам. И вторникам. И вообще." },
+            { icon: "🐱", title: "Коты — госслужащие", desc: "Мурчат и одобряют документы" },
+            { icon: "🎉", title: "Праздник каждый день", desc: "195 дней — дни стран, остальные — просто так" },
+            { icon: "🚀", title: "Нет понедельников", desc: "Неделя начинается со среды" },
+            { icon: "🎵", title: "Гимн — lo-fi", desc: "Расслабляющие биты на гос. уровне" },
+            { icon: "☁️", title: "Облака из ваты", desc: "Сладкой. И да, их можно есть" },
+            { icon: "🛝", title: "Горки вместо лестниц", desc: "Вверх — лифт, вниз — вжух!" },
+        ]
+    }
+};
+
+// Ключи стран: wonka, shire, bikini, narnia, hogwarts, multipulti
+const countryKeys = ["wonka", "shire", "bikini", "narnia", "hogwarts", "multipulti"];
+
+/* ═══════════════════════════════════════
+   ВОПРОСЫ — серьёзный психогеографический тест
+   scores: [wonka, shire, bikini, narnia, hogwarts, multipulti]
+   ═══════════════════════════════════════ */
 const questions = [
     {
-        question: "Какой климат вам ближе?",
+        question: "Какой климат вам ближе всего?",
         options: [
-            { text: "Тёплый и солнечный круглый год", eliminate: 80 },
-            { text: "Четыре чётких времени года", eliminate: 60 },
-            { text: "Прохладный с уютными дождями", eliminate: 70 },
-            { text: "Мне всё равно, лишь бы вайб был правильный", eliminate: 90 }
+            { text: "Тропический — тепло, влажно, яркие краски", scores: [2, 0, 3, 0, 0, 1] },
+            { text: "Умеренный — мягкие сезоны, зелёные поля", scores: [0, 3, 0, 1, 2, 1] },
+            { text: "Континентальный — морозные зимы и жаркое лето", scores: [0, 1, 0, 3, 1, 1] },
+            { text: "Мне важнее атмосфера, чем погода", scores: [3, 0, 1, 0, 1, 3] }
         ],
         countriesBefore: 195
     },
     {
-        question: "Как вы относитесь к бюрократии?",
+        question: "Как вы относитесь к иерархии и правилам?",
         options: [
-            { text: "Обожаю стоять в очередях — это медитация", eliminate: 85 },
-            { text: "Терпимо, если есть электронные госуслуги", eliminate: 70 },
-            { text: "Ненавижу — всё должно быть в два клика", eliminate: 75 },
-            { text: "Бюро-что? У нас этого не должно быть!", eliminate: 95 }
+            { text: "Уважаю традиции и чёткую структуру", scores: [0, 1, 0, 2, 3, 0] },
+            { text: "Предпочитаю равенство и простоту", scores: [0, 3, 1, 0, 0, 1] },
+            { text: "Правила нужны, но с творческим подходом", scores: [3, 0, 1, 1, 1, 2] },
+            { text: "Чем меньше правил — тем лучше", scores: [1, 0, 3, 0, 0, 3] }
         ],
-        countriesBefore: 47
+        countriesBefore: 52
     },
     {
-        question: "Ваш идеальный завтрак — это...",
+        question: "Ваш идеальный ритм жизни?",
         options: [
-            { text: "Круассан и чёрный кофе", eliminate: 80 },
-            { text: "Каша — сила наша", eliminate: 85 },
-            { text: "Что-то экзотическое — манго, драконий фрукт", eliminate: 75 },
-            { text: "Завтрак — это выдумка, мне бы поспать", eliminate: 95 }
+            { text: "Размеренный, с долгими обедами и прогулками", scores: [0, 3, 0, 1, 0, 1] },
+            { text: "Насыщенный — учёба, карьера, саморазвитие", scores: [1, 0, 0, 1, 3, 0] },
+            { text: "Спонтанный — каждый день не похож на другой", scores: [2, 0, 3, 0, 0, 3] },
+            { text: "Креативный — мне нужно пространство для идей", scores: [3, 0, 1, 1, 1, 2] }
         ],
-        countriesBefore: 18
+        countriesBefore: 28
     },
     {
-        question: "Какая суперсила нужна для жизни в вашей идеальной стране?",
+        question: "Что для вас важнее в окружающих людях?",
         options: [
-            { text: "Телепортация — чтобы не стоять в пробках", eliminate: 70 },
-            { text: "Бессмертие — слишком много всего хочу попробовать", eliminate: 80 },
-            { text: "Чтение мыслей — чтобы понимать местных", eliminate: 85 },
-            { text: "Умение превращать всё в праздник", eliminate: 97 }
+            { text: "Открытость и дружелюбие", scores: [1, 2, 3, 0, 0, 2] },
+            { text: "Верность и надёжность", scores: [0, 3, 0, 2, 1, 0] },
+            { text: "Интеллект и глубина", scores: [1, 0, 0, 2, 3, 0] },
+            { text: "Чувство юмора и лёгкость", scores: [2, 0, 2, 0, 0, 3] }
+        ],
+        countriesBefore: 14
+    },
+    {
+        question: "Как вы принимаете важные решения?",
+        options: [
+            { text: "Анализирую факты и думаю логически", scores: [1, 0, 0, 1, 3, 0] },
+            { text: "Доверяю интуиции и чувствам", scores: [2, 1, 1, 2, 0, 2] },
+            { text: "Советуюсь с близкими людьми", scores: [0, 3, 1, 1, 1, 1] },
+            { text: "Иду на риск — будет что будет", scores: [2, 0, 3, 0, 0, 3] }
         ],
         countriesBefore: 7
     },
     {
-        question: "Что для вас важнее всего в стране?",
+        question: "Что вас больше всего истощает?",
         options: [
-            { text: "Высокий уровень жизни и стабильность", eliminate: 60 },
-            { text: "Свобода и самовыражение", eliminate: 70 },
-            { text: "Культура и история", eliminate: 75 },
-            { text: "Чтобы было весело и немного безумно", eliminate: 99 }
+            { text: "Рутина и предсказуемость", scores: [3, 0, 2, 0, 1, 3] },
+            { text: "Конфликты и агрессия", scores: [0, 3, 0, 1, 0, 1] },
+            { text: "Хаос и отсутствие структуры", scores: [0, 1, 0, 2, 3, 0] },
+            { text: "Одиночество и изоляция", scores: [1, 0, 3, 0, 1, 2] }
         ],
-        countriesBefore: 3
+        countriesBefore: 4
     },
     {
-        question: "Последний вопрос: выберите мем, который описывает вас лучше всего",
+        question: "Выберите утверждение, с которым вы согласны больше всего",
         options: [
-            { text: "\"This is fine\" 🔥🐕", eliminate: 90 },
-            { text: "\"Stonks\" 📈", eliminate: 85 },
-            { text: "\"I don't know what I expected\" 📦", eliminate: 80 },
-            { text: "\"It's all coming together\" 😏", eliminate: 100 }
+            { text: "Стабильность — основа счастья", scores: [0, 3, 0, 1, 2, 0] },
+            { text: "Жизнь слишком коротка для серьёзности", scores: [2, 0, 3, 0, 0, 3] },
+            { text: "Знания и дисциплина открывают любые двери", scores: [0, 0, 0, 2, 3, 0] },
+            { text: "Воображение важнее знания", scores: [3, 1, 1, 1, 0, 3] }
+        ],
+        countriesBefore: 2
+    },
+    {
+        question: "Последний вопрос: какой мем описывает вашу жизненную философию?",
+        options: [
+            { text: "\"This is fine\" 🔥🐕 — всё горит, но я спокоен", scores: [2, 0, 2, 0, 0, 3] },
+            { text: "\"Stonks\" 📈 — мои решения всегда гениальны", scores: [3, 0, 1, 0, 1, 2] },
+            { text: "\"I have no idea what I'm doing\" 🐶💻", scores: [1, 0, 3, 0, 0, 2] },
+            { text: "\"One does not simply...\" 🧙 — я всё усложняю", scores: [0, 2, 0, 2, 3, 0] }
         ],
         countriesBefore: 2
     }
@@ -659,9 +794,9 @@ const loadingMessages = [
     { text: "> Осталось 3 страны...", delay: 7600 },
     { text: "> Осталась 1 страна...", delay: 8200 },
     { text: "> Проверка существования...", delay: 9000 },
-    { text: "> ⚠ ОШИБКА: страна не найдена в базе ООН", delay: 10000, cls: "error" },
+    { text: "> \u26A0 ОШИБКА: страна не найдена в базе ООН", delay: 10000, cls: "error" },
     { text: "> Повторный поиск...", delay: 11000 },
-    { text: "> ⚠ ОШИБКА: совпадений не обнаружено", delay: 12000, cls: "error" },
+    { text: "> \u26A0 ОШИБКА: совпадений не обнаружено", delay: 12000, cls: "error" },
     { text: "> Расширяю поиск за пределы официальных баз...", delay: 13200 },
     { text: "> Подключение к альтернативной картографии...", delay: 14200 },
     { text: "> ...", delay: 15200 },
@@ -669,32 +804,40 @@ const loadingMessages = [
     { text: "> .....", delay: 16400 },
     { text: "> Подождите... кажется, что-то есть!", delay: 17200, cls: "warn" },
     { text: "> Обнаружен неизвестный объект...", delay: 18200, cls: "warn" },
-    { text: "> Координаты: 🌈.404° N, ✨.808° E", delay: 19200, cls: "success" },
-    { text: "> ✓ СОВПАДЕНИЕ НАЙДЕНО — 99.97% совместимость", delay: 20200, cls: "success" },
+    // индекс 23 — координаты, подставляются динамически
+    { text: "> Координаты: ...", delay: 19200, cls: "success", dynamic: "coords" },
+    { text: "> \u2713 СОВПАДЕНИЕ НАЙДЕНО — 99.97% совместимость", delay: 20200, cls: "success" },
     { text: "> Загрузка данных о стране...", delay: 21200, cls: "success" },
-    { text: "> ✓ Готово!", delay: 22200, cls: "highlight" },
-];
-
-const perks = [
-    { icon: "🌈", title: "Вечная радуга", desc: "Небо всегда цвета настроения" },
-    { icon: "🍕", title: "Бесплатная пицца", desc: "По пятницам. И вторникам. И вообще." },
-    { icon: "😴", title: "Сиеста 3 раза в день", desc: "Законодательно закреплённый сон" },
-    { icon: "🎉", title: "Праздник каждый день", desc: "195 дней — дни стран, остальные — просто так" },
-    { icon: "🐱", title: "Коты — госслужащие", desc: "Мурчат и одобряют документы" },
-    { icon: "🚀", title: "Нет понедельников", desc: "Неделя начинается со среды" },
-    { icon: "🎵", title: "Гимн — lo-fi", desc: "Расслабляющие биты на государственном уровне" },
-    { icon: "🧁", title: "Валюта — кексики", desc: "Инфляция? Нет, только глазурь" },
+    { text: "> \u2713 Готово!", delay: 22200, cls: "highlight" },
 ];
 
 let currentQuestion = 0;
+let scores = {};
+
+function resetScores() {
+    scores = {};
+    countryKeys.forEach(k => scores[k] = 0);
+}
+
+function getWinner() {
+    let maxScore = -1;
+    let winner = "multipulti";
+    for (const key of countryKeys) {
+        if (scores[key] > maxScore) {
+            maxScore = scores[key];
+            winner = key;
+        }
+    }
+    return countries[winner];
+}
 
 function renderIntro() {
     app.innerHTML = `
         <div class="screen intro">
             <h1>Какая страна<br>вам подходит?</h1>
-            <p>Научно обоснованный тест* на основе передового психогеографического анализа. Ответьте на 6 вопросов и узнайте свою идеальную страну.</p>
+            <p>Научно обоснованный тест* на основе передового психогеографического анализа. Ответьте на 8 вопросов и узнайте свою идеальную страну.</p>
             <button class="btn-primary" onclick="startQuiz()">
-                Начать тест →
+                Начать тест \u2192
             </button>
             <p style="font-size: 0.7rem; color: #52525b; margin-top: 1.5rem;">
                 * точность 99.97% по данным Института Очень Серьёзной Науки
@@ -705,6 +848,7 @@ function renderIntro() {
 
 function startQuiz() {
     currentQuestion = 0;
+    resetScores();
     const screen = app.querySelector('.screen');
     screen.classList.add('leaving');
     setTimeout(() => renderQuestion(), 350);
@@ -726,7 +870,7 @@ function renderQuestion() {
                     <span class="progress-label">${currentQuestion + 1}/${questions.length}</span>
                 </div>
                 <div class="countries-remaining">
-                    🌍 Осталось стран: <span class="count">${countriesLeft}</span>
+                    \uD83C\uDF0D Осталось стран: <span class="count">${countriesLeft}</span>
                 </div>
                 <h2>${q.question}</h2>
                 <div class="options">
@@ -750,6 +894,13 @@ function renderQuestion() {
 }
 
 function selectOption(index) {
+    // Начисляем очки
+    const q = questions[currentQuestion];
+    const optScores = q.options[index].scores;
+    countryKeys.forEach((key, i) => {
+        scores[key] += optScores[i];
+    });
+
     const btns = app.querySelectorAll('.option-btn');
     btns[index].style.borderColor = 'var(--accent)';
     btns[index].style.background = 'oklch(0.2 0.05 160 / 0.4)';
@@ -770,6 +921,8 @@ function selectOption(index) {
 }
 
 function renderLoading() {
+    const winner = getWinner();
+
     app.innerHTML = `
         <div class="screen loading-screen">
             <div class="globe-container">
@@ -787,7 +940,12 @@ function renderLoading() {
         setTimeout(() => {
             const line = document.createElement('div');
             line.className = `log-line ${msg.cls || ''}`;
-            line.textContent = msg.text;
+            // Подставляем координаты для динамической строки
+            if (msg.dynamic === "coords") {
+                line.textContent = `> Координаты: ${winner.coords}`;
+            } else {
+                line.textContent = msg.text;
+            }
             log.appendChild(line);
             log.scrollTop = log.scrollHeight;
 
@@ -795,22 +953,22 @@ function renderLoading() {
                 setTimeout(() => {
                     const screen = app.querySelector('.screen');
                     screen.classList.add('leaving');
-                    setTimeout(() => renderResult(), 500);
+                    setTimeout(() => renderResult(winner), 500);
                 }, 1500);
             }
         }, msg.delay);
     });
 }
 
-function renderResult() {
+function renderResult(country) {
     app.innerHTML = `
         <div class="screen result-screen">
             <div class="result-card">
-                <div class="result-flag">🏳️‍🌈</div>
-                <div class="result-title">Мульти-Пульти</div>
-                <div class="result-subtitle">Самая уютная страна во всех вселенных</div>
+                <div class="result-flag">${country.flag}</div>
+                <div class="result-title">${country.name}</div>
+                <div class="result-subtitle">${country.subtitle}</div>
                 <div class="perks">
-                    ${perks.map((p, i) => `
+                    ${country.perks.map((p, i) => `
                         <div class="perk" style="animation-delay: ${0.8 + i * 0.15}s">
                             <span class="perk-icon">${p.icon}</span>
                             <div class="perk-text">
@@ -822,7 +980,7 @@ function renderResult() {
                 </div>
                 <div class="result-cta">
                     <button class="btn-share" onclick="location.reload()">
-                        🔄 Пройти ещё раз
+                        \uD83D\uDD04 Пройти ещё раз
                     </button>
                 </div>
             </div>
