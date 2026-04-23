@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Код Хэмминга — пошаговая иллюстрация</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --text: #f0f0f5;
+      --muted: #8a8a9a;
+      --dim: #4a4a5a;
+      --stroke: rgba(255,255,255,0.08);
+      --stroke2: rgba(255,255,255,0.15);
+      --glass: rgba(18,18,28,0.6);
+      --accent: #7cacf8;
+      --radius: 1rem;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+
+      --data-color: #7cacf8;
+      --data-bg: rgba(60,90,160,0.25);
+      --parity-color: #6ee7b7;
+      --parity-bg: rgba(40,120,80,0.25);
+      --error-color: #f87171;
+      --error-bg: rgba(160,50,50,0.3);
+      --ok-color: #6ee7b7;
+      --ok-bg: rgba(34,120,80,0.25);
+
+      --k1: #fbbf24; --k1-bg: rgba(251,191,36,0.15);
+      --k2: #60a5fa; --k2-bg: rgba(96,165,250,0.15);
+      --k4: #4ade80; --k4-bg: rgba(74,222,128,0.15);
+      --k8: #fb923c; --k8-bg: rgba(251,146,60,0.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif; line-height: 1.6; overflow-x: hidden;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(60,100,180,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(40,140,80,0.08) 0%, transparent 50%);
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    h1 { font-family: 'Onest', sans-serif; font-size: clamp(1.5rem,5vw,2.2rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+
+    /* Progress */
+    .progress { display: flex; gap: 0.3rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .pdot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: all 0.3s; flex-shrink: 0; }
+    .pdot.active { background: var(--accent); transform: scale(1.4); }
+    .pdot.done { background: var(--ok-color); }
+
+    /* Layout: grid + sidebar calc */
+    .main-area { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; justify-content: center; }
+    .grid-col { flex-shrink: 0; }
+    .info-col { flex: 1; min-width: 260px; }
+
+    /* 4x4 grid */
+    .grid-4x4 { display: grid; grid-template-columns: repeat(4,52px); gap: 6px; }
+    .cell {
+      width: 52px; height: 52px; border-radius: 0.5rem;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700;
+      position: relative; border: 1.5px solid transparent;
+      transition: all 0.4s var(--ease);
+    }
+    .cell .p-lbl { position: absolute; top: 2px; font-size: 0.5rem; font-weight: 600; }
+    .cell .i-lbl { position: absolute; bottom: 2px; font-size: 0.55rem; color: var(--dim); }
+    .cell-data { background: var(--data-bg); color: var(--data-color); }
+    .cell-parity { background: var(--parity-bg); color: var(--parity-color); }
+    .cell-empty { background: rgba(255,255,255,0.03); color: var(--dim); }
+    .cell-unknown { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px dashed var(--dim); }
+    .cell.hl { z-index: 1; }
+    .cell.hl-k1 { box-shadow: inset 0 0 0 2px var(--k1), 0 0 14px rgba(251,191,36,0.3); }
+    .cell.hl-k2 { box-shadow: inset 0 0 0 2px var(--k2), 0 0 14px rgba(96,165,250,0.3); }
+    .cell.hl-k4 { box-shadow: inset 0 0 0 2px var(--k4), 0 0 14px rgba(74,222,128,0.3); }
+    .cell.hl-k8 { box-shadow: inset 0 0 0 2px var(--k8), 0 0 14px rgba(251,146,60,0.3); }
+    .cell.dimmed { opacity: 0.15; }
+    .cell.found { box-shadow: inset 0 0 0 2px var(--error-color), 0 0 20px rgba(248,113,113,0.5); background: var(--error-bg)!important; color: var(--error-color)!important; }
+    .cell.corrected { box-shadow: inset 0 0 0 2px var(--ok-color), 0 0 20px rgba(110,231,183,0.5); background: var(--ok-bg)!important; color: var(--ok-color)!important; animation: gpulse 0.8s; }
+    .cell.error-hit { animation: shake 0.5s var(--ease); background: var(--error-bg)!important; color: var(--error-color)!important; border-color: var(--error-color)!important; }
+    .cell.clickable { cursor: pointer; }
+    .cell.clickable:hover { transform: scale(1.1); border-color: var(--error-color); box-shadow: 0 0 12px rgba(248,113,113,0.3); z-index: 1; }
+
+    .check-badge {
+      position: absolute; top: -6px; right: -6px;
+      width: 18px; height: 18px; border-radius: 50%;
+      font-size: 0.6rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2; animation: pop-in 0.3s var(--ease);
+    }
+    .check-badge.pass { background: var(--ok-color); color: var(--bg); }
+    .check-badge.fail { background: var(--error-color); color: var(--bg); }
+
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px) rotate(-2deg)} 40%{transform:translateX(4px) rotate(2deg)} 60%{transform:translateX(-2px)} 80%{transform:translateX(2px)} }
+    @keyframes gpulse { 0%{box-shadow:0 0 0 0 rgba(110,231,183,0.6)} 100%{box-shadow:0 0 0 16px rgba(110,231,183,0)} }
+    @keyframes drop-in { 0%{opacity:0;transform:translateY(-20px) scale(0.8)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes pop-in { 0%{opacity:0;transform:scale(0.5)} 50%{transform:scale(1.15)} 100%{opacity:1;transform:scale(1)} }
+    @keyframes flash-bg { 0%{background:rgba(255,255,255,0.15)} 100%{background:transparent} }
+
+    /* Calc panel (tetris-like stacking) */
+    .calc-panel {
+      background: var(--glass); border: 1px solid var(--stroke);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      backdrop-filter: blur(12px); min-height: 200px;
+    }
+    .calc-title {
+      font-family: 'Onest', sans-serif; font-size: 0.95rem; font-weight: 600;
+      margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .calc-title .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Stacking bits */
+    .stack { display: flex; flex-direction: column; gap: 4px; margin-bottom: 0.75rem; }
+    .stack-row {
+      display: flex; align-items: center; gap: 6px;
+      opacity: 0; animation: drop-in 0.3s var(--ease) forwards;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
+    }
+    .stack-bit {
+      width: 32px; height: 32px; border-radius: 0.375rem;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1rem;
+    }
+    .stack-pos { font-size: 0.7rem; color: var(--dim); width: 28px; text-align: right; }
+    .stack-plus { color: var(--dim); font-size: 0.8rem; width: 14px; text-align: center; }
+    .stack-running { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+
+    /* Sum result */
+    .sum-line {
+      border-top: 1px solid var(--stroke2); padding-top: 0.5rem; margin-top: 0.25rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      opacity: 0; animation: pop-in 0.4s var(--ease) forwards;
+    }
+    .sum-val { font-weight: 700; font-size: 1.3rem; }
+    .sum-verdict { font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 1rem; font-weight: 600; }
+    .sum-verdict.odd { background: var(--error-bg); color: var(--error-color); }
+    .sum-verdict.even { background: var(--ok-bg); color: var(--ok-color); }
+
+    /* Result bit */
+    .result-bit-row {
+      margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.9rem; opacity: 0; animation: pop-in 0.4s var(--ease) forwards;
+    }
+    .result-bit-val {
+      width: 36px; height: 36px; border-radius: 0.5rem;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700;
+    }
+
+    /* Bottom narration */
+    .bottom-info {
+      background: var(--glass); border: 1px solid var(--stroke);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      backdrop-filter: blur(12px); margin-bottom: 1.5rem;
+      color: var(--muted); font-size: 0.85rem; line-height: 1.6;
+      text-align: center;
+    }
+    .bottom-info strong { color: var(--text); }
+    .bottom-info .err { color: var(--error-color); font-weight: 600; }
+    .bottom-info .ok { color: var(--ok-color); font-weight: 600; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      padding: 0.6rem 1.5rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; border: 1px solid; font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-next { background: rgba(60,90,160,0.3); color: var(--accent); border-color: rgba(100,140,220,0.3); }
+    .btn-next:hover { background: rgba(60,90,160,0.5); }
+    .btn-danger {
+      background: rgba(160,50,50,0.3); color: var(--error-color); border-color: rgba(248,113,113,0.3);
+    }
+    .btn-danger:hover { background: rgba(160,50,50,0.5); }
+    .btn-ghost { background: transparent; color: var(--muted); border-color: var(--stroke2); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    /* Input */
+    .input-card {
+      background: var(--glass); border: 1px solid var(--stroke);
+      border-radius: var(--radius); padding: 1.5rem; text-align: center; backdrop-filter: blur(12px);
+    }
+    .input-card label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .data-input {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--stroke2); border-radius: 0.5rem;
+      color: var(--text); padding: 0.6rem 1rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 1.1rem;
+      letter-spacing: 0.2em; width: 16rem; text-align: center;
+    }
+    .data-input:focus { outline: none; border-color: var(--accent); }
+
+    /* Line display */
+    .bit-line { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+    .bit-line .cell { width: 42px; height: 42px; font-size: 1.05rem; }
+
+    /* Morph container */
+    .morph-box { position: relative; margin: 0 auto; overflow: visible; }
+    .morph-wrap { width: 100%; overflow-x: auto; display: flex; justify-content: center; }
+    .morph-cell {
+      position: absolute;
+      width: 52px; height: 52px; border-radius: 0.5rem;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700;
+      transition: all 0.7s cubic-bezier(0.4,0,0.2,1);
+      border: 1.5px solid transparent;
+    }
+    .morph-cell .p-lbl { position: absolute; top: 2px; font-size: 0.5rem; font-weight: 600; }
+    .morph-cell .i-lbl { position: absolute; bottom: 2px; font-size: 0.55rem; color: var(--dim); }
+    .morph-cell.m-data { background: var(--data-bg); color: var(--data-color); }
+    .morph-cell.m-parity { background: var(--parity-bg); color: var(--parity-color); opacity: 0; transition: all 0.7s cubic-bezier(0.4,0,0.2,1); }
+    .morph-cell.m-parity.visible { opacity: 1; }
+    .morph-cell.m-empty { background: rgba(255,255,255,0.03); color: var(--dim); opacity: 0; transition: all 0.7s cubic-bezier(0.4,0,0.2,1); }
+    .morph-cell.m-empty.visible { opacity: 1; }
+
+    /* Send animation */
+    .send-scene { text-align: center; }
+    .send-label { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; margin: 0.3rem 0; }
+    .send-arrow { font-size: 1.5rem; color: var(--dim); margin: 0.5rem 0; }
+    .send-danger { color: var(--error-color); font-weight: 600; }
+
+    /* Lightning */
+    .lightning {
+      position: absolute; font-size: 3rem; z-index: 10;
+      animation: bolt 0.6s forwards; pointer-events: none;
+      filter: drop-shadow(0 0 20px rgba(251,191,36,0.8));
+    }
+    @keyframes bolt { 0%{opacity:0;transform:translateY(-60px) scale(0.5)} 15%{opacity:1;transform:translateY(0) scale(1.3)} 40%{transform:scale(1)} 70%{opacity:1} 100%{opacity:0;transform:scale(0.8)} }
+
+    /* Narrowing address display */
+    .addr-display {
+      display: flex; gap: 4px; justify-content: center; margin: 0.75rem 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .addr-bit {
+      width: 40px; height: 40px; border-radius: 0.375rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 700;
+      border: 1.5px solid var(--stroke2); color: var(--dim);
+      transition: all 0.4s var(--ease);
+    }
+    .addr-bit.revealed { border-color: var(--accent); color: var(--text); background: rgba(124,172,248,0.1); animation: pop-in 0.3s; }
+    .addr-bit.fail { border-color: var(--error-color); color: var(--error-color); background: var(--error-bg); }
+    .addr-bit.pass { border-color: var(--ok-color); color: var(--ok-color); background: var(--ok-bg); }
+    .addr-label { font-size: 0.6rem; color: var(--dim); text-align: center; margin-top: 2px; }
+
+    @media (max-width: 600px) {
+      .cell { width: 44px; height: 44px; font-size: 1.05rem; }
+      .grid-4x4 { grid-template-columns: repeat(4,44px); gap: 5px; }
+      .main-area { flex-direction: column; align-items: center; }
+      .info-col { min-width: unset; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Код Хэмминга</h1>
+  <p class="subtitle">Пошаговая иллюстрация: от сигнала до починки</p>
+  <div class="progress" id="progress"></div>
+  <div id="content"></div>
+  <div class="btn-row" id="controls"></div>
+</div>
+
+<script>
+const PARITY_SET = new Set([0,1,2,4,8]);
+const DATA_POS = [3,5,6,7,9,10,11,12,13,14,15];
+const CK = [
+  {bit:1, name:'К1', css:'k1', desc:'нечётные столбцы (1 и 3)'},
+  {bit:2, name:'К2', css:'k2', desc:'правая пара столбцов (2 и 3)'},
+  {bit:4, name:'К4', css:'k4', desc:'строки 1 и 3'},
+  {bit:8, name:'К8', css:'k8', desc:'нижние строки (2 и 3)'},
+];
+
+let dataBits = [1,1,0,0,1,0,1,1,0,1,1];
+let block = new Array(16).fill(0);
+let received = new Array(16).fill(0);
+let errorPos = -1;
+let step = 0;
+const STEPS = ['input','line','morph','grid','p0','p1','p2','p3','ready','unfold','send','lightning','c0','c1','c2','c3','narrow','fix'];
+
+function go(s) { step = s; render(); }
+function next() { step++; render(); }
+function render() {
+  renderProgress();
+  const fn = {
+    input: rInput, line: rLine, morph: rMorph, grid: rGrid,
+    p0: ()=>rParity(0), p1: ()=>rParity(1), p2: ()=>rParity(2), p3: ()=>rParity(3),
+    ready: rReady, unfold: rUnfold, send: rSend, lightning: rLightning,
+    c0: ()=>rCheck(0), c1: ()=>rCheck(1), c2: ()=>rCheck(2), c3: ()=>rCheck(3),
+    narrow: rNarrow, fix: rFix,
+  };
+  fn[STEPS[step]]();
+}
+
+function renderProgress() {
+  document.getElementById('progress').innerHTML = STEPS.map((_,i) =>
+    `<div class="pdot ${i===step?'active':i<step?'done':''}"></div>`
+  ).join('');
+}
+
+function setContent(h) { document.getElementById('content').innerHTML = h; }
+function setControls(h) { document.getElementById('controls').innerHTML = h; }
+function prev() {
+  if (step <= 0) return;
+  step--;
+  // Recompute state from scratch for current step
+  recomputeState();
+  render();
+}
+
+function recomputeState() {
+  // Reset block and recompute up to current step
+  block = new Array(16).fill(0);
+  DATA_POS.forEach((p,i) => { block[p] = dataBits[i]; });
+
+  const stepId = STEPS[step];
+  const paritySteps = ['p0','p1','p2','p3','ready','send','lightning','c0','c1','c2','c3','narrow','fix'];
+  const parityIdx = paritySteps.indexOf(stepId);
+
+  // Compute parity bits up to current step
+  const computeUpTo = stepId === 'p0' ? 0 : stepId === 'p1' ? 1 : stepId === 'p2' ? 2 : stepId === 'p3' ? 3 :
+    parityIdx >= 3 ? 4 : -1;
+
+  for (let j = 0; j < Math.min(computeUpTo, 4); j++) {
+    const ck = CK[j];
+    const positions = groupPositions(ck.bit, true);
+    let parity = 0;
+    positions.forEach(p => parity ^= block[p]);
+    block[ck.bit] = parity;
+  }
+
+  if (computeUpTo >= 4) {
+    // All parity computed, also compute K0
+    for (let j = 0; j < 4; j++) {
+      const ck = CK[j];
+      const positions = groupPositions(ck.bit, true);
+      let parity = 0;
+      positions.forEach(p => parity ^= block[p]);
+      block[ck.bit] = parity;
+    }
+    let ov = 0; for (let i=1;i<16;i++) ov ^= block[i];
+    block[0] = ov;
+    received = [...block];
+    // If we're past lightning, re-apply error
+    if (['c0','c1','c2','c3','narrow','fix'].includes(stepId) && errorPos >= 0) {
+      received[errorPos] ^= 1;
+    }
+  }
+}
+function backBtn() {
+  if (step <= 0) return '';
+  return `<button class="btn btn-ghost" onclick="prev()">← Назад</button>`;
+}
+function nextBtn(label='Дальше →') { return backBtn() + `<button class="btn btn-next" onclick="next()">${label}</button>`; }
+
+// ── Helpers ──
+function groupPositions(bit, excludeSelf) {
+  const r = [];
+  for (let i = 0; i < 16; i++) { if ((i & bit) && (!excludeSelf || i !== bit)) r.push(i); }
+  return r;
+}
+
+function gridHTML(data, opts={}) {
+  const {hl, hlSet, showUnk, computedSet, errAt, suspectAt, corrAt, checkResults, currentCheck} = opts;
+  // checkResults: array of {bit, fail} — all completed checks (for intersect view)
+  // currentCheck: {bit, fail} — the check being shown right now (badges on its group cells)
+  // checkResults: array of {bit, fail} from completed checks — to show ✓/✗ badges
+  let h = '<div class="grid-4x4">';
+  for (let i = 0; i < 16; i++) {
+    const isP = PARITY_SET.has(i);
+    const isUnk = showUnk && isP && (!computedSet || !computedSet.has(i));
+    let cls = 'cell';
+    if (isUnk) cls += ' cell-unknown';
+    else if (i === 0 && showUnk) cls += ' cell-unknown';
+    else if (isP) cls += ' cell-parity';
+    else cls += ' cell-data';
+
+    if (hl !== undefined) {
+      if (i & hl) cls += ` hl hl-${CK.find(c=>c.bit===hl).css}`;
+      else cls += ' dimmed';
+    }
+    if (hlSet) {
+      if (hlSet.has(i)) cls += ' hl';
+      else cls += ' dimmed';
+    }
+    if (corrAt === i) cls += ' corrected';
+    else if (suspectAt === i) cls += ' found';
+    else if (suspectAt !== undefined && suspectAt !== i) cls += ' dimmed';
+    if (errAt === i && suspectAt === undefined && corrAt === undefined) cls += ' error-hit';
+
+    const val = isUnk ? '?' : data[i];
+    const lbl = isP ? (i===0?'К0':'К'+i) : 'Д';
+    const lclr = isP ? 'var(--parity-color)' : 'var(--data-color)';
+
+    // Check badges on cells: ✓ from passing group always wins over ✗
+    let badge = '';
+    const allChecks = checkResults ? [...checkResults] : [];
+    if (currentCheck) allChecks.push(currentCheck);
+    if (allChecks.length > 0) {
+      let hasPass = false, hasFail = false;
+      for (const cr of allChecks) {
+        if (i & cr.bit) {
+          if (!cr.fail) hasPass = true;
+          else hasFail = true;
+        }
+      }
+      if (hasPass) badge = '<span class="check-badge pass">✓</span>';
+      else if (hasFail) badge = '<span class="check-badge fail">✗</span>';
+    }
+
+    h += `<div class="${cls}" id="cell-${i}"><span class="p-lbl" style="color:${lclr}">${lbl}</span>${val}${badge}<span class="i-lbl">${i}</span></div>`;
+  }
+  return h + '</div>';
+}
+
+function stackHTML(positions, data, color, cssVar, delay0=0) {
+  let h = '<div class="stack">';
+  let running = 0;
+  positions.forEach((pos, i) => {
+    const v = data[pos];
+    running += v;
+    const d = delay0 + i * 120;
+    const bg = v === 1 ? `var(--${cssVar}-bg)` : 'rgba(255,255,255,0.03)';
+    const clr = v === 1 ? `var(--${cssVar})` : 'var(--dim)';
+    h += `<div class="stack-row" style="animation-delay:${d}ms">`;
+    h += `<span class="stack-pos">[${pos}]</span>`;
+    h += i > 0 ? '<span class="stack-plus">+</span>' : '<span class="stack-plus"> </span>';
+    h += `<div class="stack-bit" style="background:${bg};color:${clr}">${v}</div>`;
+    h += `<span class="stack-running">= ${running}</span>`;
+    h += '</div>';
+  });
+  h += '</div>';
+  return {html: h, sum: running};
+}
+
+function sumLineHTML(sum, color, cssVar, delay) {
+  const odd = sum % 2 !== 0;
+  return `<div class="sum-line" style="animation-delay:${delay}ms">
+    <span>Σ =</span>
+    <span class="sum-val" style="color:var(--${cssVar})">${sum}</span>
+    <span class="sum-verdict ${odd?'odd':'even'}">${odd?'нечётное':'чётное'}</span>
+  </div>`;
+}
+
+function resultBitHTML(name, val, cssVar, delay, explanation) {
+  const bg = `var(--${cssVar}-bg)`;
+  const clr = `var(--${cssVar})`;
+  return `<div class="result-bit-row" style="animation-delay:${delay}ms">
+    <div class="result-bit-val" style="background:${bg};color:${clr}">${val}</div>
+    <span style="color:var(--muted);font-size:0.85rem">${name} = <strong style="color:${clr}">${val}</strong> — ${explanation}</span>
+  </div>`;
+}
+
+// ── STEPS ──
+
+function rInput() {
+  setContent(`
+    <div class="main-area" style="justify-content:center">
+      <div class="input-card">
+        <label>Ты хочешь передать другу 11 бит данных</label>
+        <input type="text" class="data-input" id="inp" value="${dataBits.join('')}" maxlength="11" autocomplete="off">
+        <div style="margin-top:0.75rem">
+          <button class="btn btn-ghost" style="font-size:0.8rem" onclick="document.getElementById('inp').value=Array.from({length:11},()=>Math.random()>0.5?'1':'0').join('')">Случайные</button>
+        </div>
+      </div>
+    </div>
+  `);
+  setControls(`<button class="btn btn-next" onclick="startEncode()">Начать →</button>`);
+  document.getElementById('inp').addEventListener('keydown', e => { if (e.key==='Enter') startEncode(); });
+}
+
+function startEncode() {
+  const raw = document.getElementById('inp').value.replace(/[^01]/g,'');
+  if (raw.length!==11) { alert('Нужно ровно 11 бит'); return; }
+  dataBits = raw.split('').map(Number);
+  block = new Array(16).fill(0);
+  DATA_POS.forEach((p,i) => { block[p] = dataBits[i]; });
+  next();
+}
+
+function rLine() {
+  let h = '<div class="bottom-info"><strong>Вот твоя последовательность — 11 бит данных.</strong> Преобразуем её в сетку 4×4 и добавим контрольные биты.</div>';
+  h += '<div class="main-area" style="justify-content:center"><div class="bit-line">';
+  dataBits.forEach((b,i) => {
+    h += `<div class="cell cell-data" style="animation:drop-in 0.3s var(--ease) ${i*60}ms both">${b}</div>`;
+  });
+  h += '</div></div>';
+  setContent(h);
+  setControls(nextBtn('В сетку →'));
+}
+
+// ── Morph: line → grid(data only) → grid(+parity) ──
+const CELL_W = 52, CELL_GAP = 6;
+let morphPhase = 0;
+
+function gridPos(i) {
+  const stride = CELL_W + CELL_GAP;
+  return {x: (i % 4) * stride, y: Math.floor(i / 4) * stride};
+}
+
+function gridBoxSize() {
+  const stride = CELL_W + CELL_GAP;
+  return {w: 4 * stride - CELL_GAP, h: 4 * stride - CELL_GAP};
+}
+
+function rMorph() {
+  morphPhase = 0;
+  // Phase 0: 11 data bits in a compact line, no parity cells yet
+  const stride = CELL_W + CELL_GAP;
+  const lineW = 11 * stride - CELL_GAP;
+
+  let html = '<div class="bottom-info" id="morph-info"><strong>Вот твоя последовательность — 11 бит данных.</strong> Разложим их в сетку 4×4.</div>';
+  html += `<div class="main-area" style="justify-content:center"><div class="morph-wrap"><div class="morph-box" id="morph-box" style="width:${lineW}px;height:${CELL_W}px;transition:width 0.7s var(--ease),height 0.7s var(--ease)">`;
+
+  // Only render data cells in phase 0
+  let dataIdx = 0;
+  for (let i = 0; i < 16; i++) {
+    if (PARITY_SET.has(i)) continue;
+    const x = dataIdx * stride;
+    html += `<div class="morph-cell m-data" id="morph-${i}" style="left:${x}px;top:0px">`;
+    html += `<span class="p-lbl" style="color:var(--data-color)">Д</span>${block[i]}<span class="i-lbl">${i}</span>`;
+    html += `</div>`;
+    dataIdx++;
+  }
+
+  html += '</div></div></div>';
+  setContent(html);
+  setControls(`${backBtn()}<button class="btn btn-next" onclick="morphNext()">В сетку →</button>`);
+}
+
+function morphNext() {
+  morphPhase++;
+  if (morphPhase === 1) {
+    // Phase 1: data cells fly to their grid positions, box becomes 4×4 with empty spots
+    const size = gridBoxSize();
+    const box = document.getElementById('morph-box');
+    box.style.width = size.w + 'px';
+    box.style.height = size.h + 'px';
+
+    for (let i = 0; i < 16; i++) {
+      if (PARITY_SET.has(i)) continue;
+      const el = document.getElementById(`morph-${i}`);
+      if (el) {
+        const pos = gridPos(i);
+        el.style.left = pos.x + 'px';
+        el.style.top = pos.y + 'px';
+      }
+    }
+
+    document.getElementById('morph-info').innerHTML = '<strong>Данные встали на свои позиции.</strong> Видишь пустые места? Это позиции 0, 1, 2, 4, 8 — степени двойки. Сюда встанут контрольные биты.';
+    setControls(`${backBtn()}<button class="btn btn-next" onclick="morphNext()">Вставляем контрольные →</button>`);
+  } else if (morphPhase === 2) {
+    // Phase 2: parity ? cells appear in empty spots
+    const box = document.getElementById('morph-box');
+
+    PARITY_SET.forEach(i => {
+      const pos = gridPos(i);
+      const isK0 = i === 0;
+      const lbl = isK0 ? 'К0' : 'К' + i;
+      const cell = document.createElement('div');
+      cell.className = `morph-cell ${isK0 ? 'm-empty' : 'm-parity'}`;
+      cell.id = `morph-${i}`;
+      cell.style.left = pos.x + 'px';
+      cell.style.top = pos.y + 'px';
+      cell.style.opacity = '0';
+      cell.style.transform = 'scale(0.5)';
+      cell.innerHTML = `<span class="p-lbl" style="color:var(--parity-color)">${lbl}</span>?<span class="i-lbl">${i}</span>`;
+      box.appendChild(cell);
+
+      // Staggered fade-in
+      const delay = [0, 1, 2, 4, 8].indexOf(i) * 150;
+      setTimeout(() => {
+        cell.style.transition = 'all 0.4s var(--ease)';
+        cell.style.opacity = '1';
+        cell.style.transform = 'scale(1)';
+      }, delay + 50);
+    });
+
+    document.getElementById('morph-info').innerHTML = '<strong>Что тут за вопросики?</strong> Это контрольные биты — мы подберём их так, чтобы потом можно было вычислить где ошибка. Каждый отвечает за свою половину сетки.';
+    setControls(nextBtn('Вычисляем →'));
+  }
+}
+
+function rGrid() {
+  setContent(`
+    <div class="bottom-info">
+      <strong>Сетка 4×4.</strong> Подбираем контрольные биты так, чтобы в каждой половине было чётное число единиц.
+    </div>
+    <div class="main-area" style="justify-content:center">
+      <div class="grid-col">${gridHTML(block, {showUnk: true, computedSet: new Set()})}</div>
+    </div>
+  `);
+  setControls(nextBtn('Вычисляем К1 →'));
+}
+
+function rParity(idx) {
+  const ck = CK[idx];
+  // Compute previous parity bits (but NOT current one yet)
+  const computedBefore = new Set();
+  for (let j = 0; j < idx; j++) {
+    computedBefore.add(CK[j].bit);
+    // Ensure previous are computed in block
+    const pos = groupPositions(CK[j].bit, true);
+    let p = 0; pos.forEach(pp => p ^= block[pp]);
+    block[CK[j].bit] = p;
+  }
+
+  // Show grid with current parity still as ? and group highlighted
+  setContent(`
+    <div class="main-area">
+      <div class="grid-col">${gridHTML(block, {hl: ck.bit, showUnk: true, computedSet: computedBefore})}</div>
+      <div class="info-col">
+        <div class="calc-panel" id="calc-panel">
+          <div class="calc-title">
+            <div class="dot" style="background:var(--${ck.css})"></div>
+            <span style="color:var(--${ck.css})">${ck.name}</span>
+            <span style="color:var(--muted);font-size:0.8rem;font-weight:400">— ${ck.desc}</span>
+          </div>
+          <p style="color:var(--muted);font-size:0.85rem">Его нужно подобрать таким, чтобы он и все остальные биты в группе были в сумме чётными.</p>
+        </div>
+      </div>
+    </div>
+  `);
+  setControls(`${backBtn()}<button class="btn btn-next" onclick="computeParity(${idx})">Считаем →</button>`);
+}
+
+function computeParity(idx) {
+  const ck = CK[idx];
+  const positions = groupPositions(ck.bit, true);
+  const vals = positions.map(p => block[p]);
+  const sum = vals.reduce((a,b)=>a+b, 0);
+  const parityVal = sum % 2;
+
+  const {html: stackHtml} = stackHTML(positions, block, ck.css, ck.css);
+  const totalDelay = positions.length * 120;
+
+  const panel = document.getElementById('calc-panel');
+  if (!panel) return;
+
+  if (idx >= 2) {
+    // After first 2 steps — ask the user to guess
+    panel.innerHTML = `
+      <div class="calc-title">
+        <div class="dot" style="background:var(--${ck.css})"></div>
+        <span style="color:var(--${ck.css})">${ck.name}</span>
+        <span style="color:var(--muted);font-size:0.8rem;font-weight:400">— ${ck.desc}</span>
+      </div>
+      ${stackHtml}
+      ${sumLineHTML(sum, ck.css, ck.css, totalDelay)}
+      <div class="quiz-prompt" style="animation:pop-in 0.4s var(--ease) ${totalDelay + 200}ms both">
+        <p style="color:var(--text);font-size:0.9rem;font-weight:600;margin-bottom:0.5rem">Каким будет ${ck.name}?</p>
+        <p style="color:var(--muted);font-size:0.8rem;margin-bottom:0.75rem">Сумма = ${sum}. Нужно, чтобы общая сумма с контрольным битом была чётной.</p>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn ${parityVal === 0 ? 'btn-next' : 'btn-ghost'}" style="min-width:60px;font-family:'JetBrains Mono',monospace;font-size:1.1rem" onclick="checkGuess(${idx},0)">0</button>
+          <button class="btn ${parityVal === 1 ? 'btn-next' : 'btn-ghost'}" style="min-width:60px;font-family:'JetBrains Mono',monospace;font-size:1.1rem" onclick="checkGuess(${idx},1)">1</button>
+        </div>
+      </div>
+    `;
+    setControls('');
+  } else {
+    // First 2 steps — auto-reveal
+    revealParity(idx, parityVal, ck, sum, stackHtml, totalDelay);
+  }
+}
+
+function checkGuess(idx, guess) {
+  const ck = CK[idx];
+  const positions = groupPositions(ck.bit, true);
+  const vals = positions.map(p => block[p]);
+  const sum = vals.reduce((a,b)=>a+b, 0);
+  const parityVal = sum % 2;
+
+  const {html: stackHtml} = stackHTML(positions, block, ck.css, ck.css);
+  const totalDelay = 0; // no re-animation needed
+
+  const panel = document.getElementById('calc-panel');
+  if (!panel) return;
+
+  const correct = guess === parityVal;
+
+  if (correct) {
+    const explanation = parityVal === 1
+      ? 'нечётное, надо добавить 1 чтобы было чётным'
+      : 'уже чётное, ставим 0';
+
+    panel.innerHTML = `
+      <div class="calc-title">
+        <div class="dot" style="background:var(--${ck.css})"></div>
+        <span style="color:var(--${ck.css})">${ck.name}</span>
+        <span style="color:var(--muted);font-size:0.8rem;font-weight:400">— ${ck.desc}</span>
+      </div>
+      <div style="background:var(--ok-bg);border:1px solid rgba(110,231,183,0.3);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:0.75rem;animation:pop-in 0.4s var(--ease)">
+        <span style="color:var(--ok-color);font-weight:700;font-size:1rem">✓ Правильно!</span>
+        <span style="color:var(--muted);font-size:0.85rem"> — ${explanation}</span>
+      </div>
+      ${resultBitHTML(ck.name, parityVal, ck.css, 0, explanation)}
+    `;
+
+    // Apply and animate
+    block[ck.bit] = parityVal;
+    animateParityCell(idx, parityVal, ck);
+
+    const nextLabel = idx < 3 ? `${CK[idx+1].name} →` : 'Все вычислены →';
+    setTimeout(() => setControls(nextBtn(nextLabel)), 400);
+  } else {
+    // Wrong answer — show hint, let them try again
+    panel.querySelector('.quiz-prompt').innerHTML = `
+      <div style="background:var(--error-bg);border:1px solid rgba(248,113,113,0.3);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:0.75rem;animation:shake 0.4s var(--ease)">
+        <span style="color:var(--error-color);font-weight:700">✗ Не совсем.</span>
+        <span style="color:var(--muted);font-size:0.85rem"> Сумма = ${sum}. Если добавить ${guess}, будет ${sum + guess} — ${(sum + guess) % 2 === 0 ? 'чётное' : 'нечётное'}. Попробуй другой вариант!</span>
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-next" style="min-width:60px;font-family:'JetBrains Mono',monospace;font-size:1.1rem" onclick="checkGuess(${idx},${parityVal})">${parityVal}</button>
+      </div>
+    `;
+  }
+}
+
+function revealParity(idx, parityVal, ck, sum, stackHtml, totalDelay) {
+  block[ck.bit] = parityVal;
+
+  const computed = new Set();
+  for (let j = 0; j <= idx; j++) computed.add(CK[j].bit);
+
+  const explanation = parityVal === 1
+    ? 'нечётное, надо добавить 1 чтобы было чётным'
+    : 'уже чётное, ставим 0';
+
+  const panel = document.getElementById('calc-panel');
+  if (panel) {
+    panel.innerHTML = `
+      <div class="calc-title">
+        <div class="dot" style="background:var(--${ck.css})"></div>
+        <span style="color:var(--${ck.css})">${ck.name}</span>
+        <span style="color:var(--muted);font-size:0.8rem;font-weight:400">— ${ck.desc}</span>
+      </div>
+      ${stackHtml}
+      ${sumLineHTML(sum, ck.css, ck.css, totalDelay)}
+      ${resultBitHTML(ck.name, parityVal, ck.css, totalDelay + 300, explanation)}
+    `;
+  }
+
+  animateParityCell(idx, parityVal, ck);
+
+  const nextLabel = idx < 3 ? `${CK[idx+1].name} →` : 'Все вычислены →';
+  const delay = totalDelay + 600;
+  setTimeout(() => setControls(nextBtn(nextLabel)), delay);
+}
+
+function animateParityCell(idx, parityVal, ck) {
+  const computed = new Set();
+  for (let j = 0; j <= idx; j++) computed.add(CK[j].bit);
+
+  const gridCell = document.getElementById(`cell-${ck.bit}`);
+  if (gridCell) {
+    setTimeout(() => {
+      gridCell.classList.remove('cell-unknown');
+      gridCell.classList.add('cell-parity');
+      gridCell.style.animation = 'pop-in 0.5s var(--ease)';
+      const lclr = 'var(--parity-color)';
+      gridCell.innerHTML = `<span class="p-lbl" style="color:${lclr}">${ck.name}</span>${parityVal}<span class="i-lbl">${ck.bit}</span>`;
+    }, 300);
+  }
+}
+
+function rReady() {
+  let ov = 0; for (let i=1;i<16;i++) ov ^= block[i];
+  block[0] = ov;
+  received = [...block];
+
+  setContent(`
+    <div class="bottom-info">
+      <strong>Все контрольные вычислены!</strong> В каждой половине сетки — чётное число единиц. Передаём все 16 бит фонариком.
+    </div>
+    <div class="main-area" style="justify-content:center">
+      <div class="grid-col">${gridHTML(block, {})}</div>
+    </div>
+  `);
+  setControls(nextBtn('Передаём →'));
+}
+
+function rUnfold() {
+  // Start as 4×4 grid, then animate into a line
+  const stride = CELL_W + CELL_GAP;
+  const gSize = gridBoxSize();
+  // Line: all 16 cells in a row, slightly smaller
+  const lineCell = 38, lineGap = 4, lineStride = lineCell + lineGap;
+  const lineW = 16 * lineStride - lineGap;
+
+  let html = '<div class="bottom-info" id="unfold-info"><strong>Все контрольные вычислены!</strong> Разворачиваем сетку обратно в линию для передачи.</div>';
+  html += `<div class="main-area" style="justify-content:center"><div class="morph-wrap"><div class="morph-box" id="unfold-box" style="width:${gSize.w}px;height:${gSize.h}px;transition:width 0.7s var(--ease),height 0.7s var(--ease)">`;
+
+  for (let i = 0; i < 16; i++) {
+    const isP = PARITY_SET.has(i);
+    const cls = isP ? (i === 0 ? 'm-empty visible' : 'm-parity visible') : 'm-data';
+    const pos = gridPos(i);
+    const lbl = isP ? (i===0?'К0':'К'+i) : 'Д';
+    const lclr = isP ? 'var(--parity-color)' : 'var(--data-color)';
+    html += `<div class="morph-cell ${cls}" id="unfold-${i}" style="left:${pos.x}px;top:${pos.y}px">`;
+    html += `<span class="p-lbl" style="color:${lclr}">${lbl}</span>${block[i]}<span class="i-lbl">${i}</span>`;
+    html += `</div>`;
+  }
+
+  html += '</div></div></div>';
+  setContent(html);
+  setControls(`${backBtn()}<button class="btn btn-next" onclick="doUnfold()">Разворачиваем →</button>`);
+}
+
+function doUnfold() {
+  const lineCell = 38, lineGap = 4, lineStride = lineCell + lineGap;
+  const lineW = 16 * lineStride - lineGap;
+  const box = document.getElementById('unfold-box');
+  box.style.width = lineW + 'px';
+  box.style.height = lineCell + 'px';
+
+  for (let i = 0; i < 16; i++) {
+    const el = document.getElementById(`unfold-${i}`);
+    if (el) {
+      el.style.left = (i * lineStride) + 'px';
+      el.style.top = '0px';
+      el.style.width = lineCell + 'px';
+      el.style.height = lineCell + 'px';
+      el.style.fontSize = '1rem';
+      // Hide labels in line mode — only show value
+      const pLbl = el.querySelector('.p-lbl');
+      const iLbl = el.querySelector('.i-lbl');
+      if (pLbl) pLbl.style.display = 'none';
+      if (iLbl) iLbl.style.display = 'none';
+    }
+  }
+
+  document.getElementById('unfold-info').innerHTML = '<strong>Передаём 16 бит фонариком!</strong> Сигнал летит к другу через озеро. Но в воздухе бушует гроза...';
+  setControls(nextBtn('⚡ В путь →'));
+}
+
+function rSend() {
+  let bits = '<div class="bit-line">';
+  for (let i=0;i<16;i++) {
+    const cls = PARITY_SET.has(i) ? 'cell-parity' : 'cell-data';
+    bits += `<div class="cell ${cls}" style="width:36px;height:36px;font-size:0.9rem">${block[i]}</div>`;
+  }
+  bits += '</div>';
+
+  setContent(`
+    <div class="send-scene">
+      <div class="send-label">отправляем 16 бит</div>
+      ${bits}
+      <div class="send-arrow">↓</div>
+      <div class="send-label send-danger">⚡ зона помех ⚡</div>
+      <div class="send-arrow">↓</div>
+      <div class="send-label">друг принимает...</div>
+    </div>
+  `);
+  setControls(nextBtn('⚡ Молния! →'));
+}
+
+function rLightning() {
+  errorPos = -1;
+  received = [...block];
+
+  setContent(`
+    <div class="bottom-info" id="lightning-info">
+      <strong>⚡ Куда ударит молния?</strong> Нажми на любую ячейку, чтобы «испортить» бит. Или нажми кнопку для случайного удара.
+    </div>
+    <div class="main-area" style="justify-content:center;position:relative">
+      <div class="grid-col" id="lightning-grid">${gridHTMLClickable(block)}</div>
+    </div>
+  `);
+  setControls(`${backBtn()}<button class="btn btn-danger" onclick="randomLightning()" style="gap:0.4rem">⚡ Случайная молния</button>`);
+}
+
+function gridHTMLClickable(data) {
+  let h = '<div class="grid-4x4">';
+  for (let i = 0; i < 16; i++) {
+    const isP = PARITY_SET.has(i);
+    let cls = 'cell clickable';
+    if (isP) cls += i === 0 ? ' cell-empty' : ' cell-parity';
+    else cls += ' cell-data';
+    const lbl = isP ? (i===0?'К0':'К'+i) : 'Д';
+    const lclr = isP ? 'var(--parity-color)' : 'var(--data-color)';
+    h += `<div class="${cls}" id="cell-${i}" onclick="strikeLightning(${i})" style="cursor:pointer"><span class="p-lbl" style="color:${lclr}">${lbl}</span>${data[i]}<span class="i-lbl">${i}</span></div>`;
+  }
+  return h + '</div>';
+}
+
+function randomLightning() {
+  strikeLightning(Math.floor(Math.random() * 15) + 1);
+}
+
+function strikeLightning(pos) {
+  if (errorPos >= 0) return; // already struck
+  errorPos = pos;
+  received = [...block];
+  received[errorPos] ^= 1;
+
+  // Update info
+  const info = document.getElementById('lightning-info');
+  if (info) {
+    info.innerHTML = `<strong>⚡ Молния бьёт в позицию <span class="err">${errorPos}</span>!</strong>
+      Бит переворачивается: ${block[errorPos]} → <span class="err">${received[errorPos]}</span>.
+      Друг не знает где ошибка. Но он прогоняет 4 проверки — считает единицы в каждой половине.`;
+  }
+
+  // Update grid
+  const grid = document.getElementById('lightning-grid');
+  if (grid) {
+    grid.innerHTML = gridHTML(received, {errAt: errorPos});
+
+    // Lightning animation
+    setTimeout(() => {
+      const cell = document.getElementById(`cell-${errorPos}`);
+      if (cell && grid) {
+        const cr = cell.getBoundingClientRect();
+        const gr = grid.getBoundingClientRect();
+        const bolt = document.createElement('div');
+        bolt.className = 'lightning';
+        bolt.textContent = '⚡';
+        bolt.style.left = (cr.left - gr.left + cr.width/2 - 24) + 'px';
+        bolt.style.top = (cr.top - gr.top - 30) + 'px';
+        grid.style.position = 'relative';
+        grid.appendChild(bolt);
+        setTimeout(() => bolt.remove(), 700);
+      }
+    }, 50);
+  }
+
+  setControls(nextBtn('Друг проверяет →'));
+}
+
+function rCheck(idx) {
+  const ck = CK[idx];
+  const positions = groupPositions(ck.bit, false);
+  const vals = positions.map(p => received[p]);
+  const sum = vals.reduce((a,b)=>a+b, 0);
+  const fail = sum % 2 !== 0;
+
+  const {html: stackHtml} = stackHTML(positions, received, ck.css, ck.css);
+  const totalDelay = positions.length * 120;
+
+  // All check results up to and including current
+  const allChecks = [];
+  let prevHtml = '';
+  for (let j = 0; j < idx; j++) {
+    const pc = CK[j];
+    let s = 0; for (let i=0;i<16;i++) { if (i & pc.bit) s += received[i]; }
+    const f = s%2!==0;
+    allChecks.push({bit: pc.bit, fail: f});
+    prevHtml += `<span style="color:var(--${pc.css})">${pc.name}</span>: ${f?'<span class="err">✗</span>':'<span class="ok">✓</span>'} &nbsp; `;
+  }
+
+  let explanation = '';
+  let deductionHtml = '';
+
+  // Compute current narrowing state
+  const allChecksWithCurrent = [...allChecks, {bit: ck.bit, fail}];
+  let suspects = new Set(Array.from({length:16}, (_,i) => i));
+  for (const cr of allChecksWithCurrent) {
+    const inGroup = new Set();
+    for (let i = 0; i < 16; i++) { if (i & cr.bit) inGroup.add(i); }
+    if (cr.fail) {
+      suspects = new Set([...suspects].filter(x => inGroup.has(x)));
+    } else {
+      suspects = new Set([...suspects].filter(x => !inGroup.has(x)));
+    }
+  }
+  const suspectCols = [...new Set([...suspects].map(i => i % 4))].sort();
+  const suspectRows = [...new Set([...suspects].map(i => Math.floor(i / 4)))].sort();
+
+  if (fail) {
+    const prevFails = allChecks.filter(c => c.fail);
+    // Which columns/rows does THIS group cover
+    const thisCols = [...new Set(groupPositions(ck.bit, false).map(i => i % 4))].sort();
+    const thisRows = [...new Set(groupPositions(ck.bit, false).map(i => Math.floor(i / 4)))].sort();
+
+    if (prevFails.length === 0) {
+      // First failing check
+      const colList = thisCols.join(' или ');
+      explanation = `нечётное → сбой!`;
+      deductionHtml = `<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:0.5rem;padding:0.6rem 0.8rem;margin-top:0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.6;animation:pop-in 0.4s var(--ease)">
+        Мы проверили чётность группы и увидели, что она нечётная. Это значит, что ошибка находится в <strong style="color:var(--text)">столбце ${colList}</strong>. Пока не знаем в каком именно — помечаем все как подозрительные.
+      </div>`;
+    } else {
+      // Second (or more) failing check — can deduce intersection
+      const colList = thisCols.join(' или ');
+      const clearedColsList = [...new Set([0,1,2,3].filter(c => !suspectCols.includes(c) && (thisCols.includes(c) || allChecks.some(ac => ac.fail && groupPositions(ac.bit, false).some(p => p % 4 === c)))))].sort();
+
+      explanation = `нечётное → тоже сбой!`;
+      deductionHtml = `<div style="background:rgba(110,231,183,0.08);border:1px solid rgba(110,231,183,0.2);border-radius:0.5rem;padding:0.6rem 0.8rem;margin-top:0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.6;animation:pop-in 0.4s var(--ease)">
+        💡 Мы проверили эту группу и тоже видим сбой. Ошибка может быть в <strong style="color:var(--text)">столбце ${colList}</strong>. Но целых две группы указывают на <strong style="color:var(--text)">столбец ${suspectCols.join(' и ')}</strong>. А так как ошибка может быть всего одна — мы можем откинуть столбцы ${clearedColsList.join(' и ')} и пометить их как <span class="ok">корректные ✓</span>.
+      </div>`;
+    }
+  } else {
+    // Passing check — these cells are clean
+    const thisDesc = ck.desc;
+    explanation = `чётное → ок!`;
+
+    if (suspects.size === 1) {
+      const foundPos = [...suspects][0];
+      deductionHtml = `<div style="background:rgba(110,231,183,0.08);border:1px solid rgba(110,231,183,0.2);border-radius:0.5rem;padding:0.6rem 0.8rem;margin-top:0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.6;animation:pop-in 0.4s var(--ease)">
+        ✅ В <strong style="color:var(--text)">${thisDesc}</strong> ошибок нет — помечаем <span class="ok">✓</span>. Остался <strong style="color:var(--error-color)">один подозреваемый — позиция ${foundPos}</strong>!
+      </div>`;
+    } else {
+      deductionHtml = `<div style="background:rgba(110,231,183,0.08);border:1px solid rgba(110,231,183,0.2);border-radius:0.5rem;padding:0.6rem 0.8rem;margin-top:0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.6;animation:pop-in 0.4s var(--ease)">
+        В <strong style="color:var(--text)">${thisDesc}</strong> ошибок нет — помечаем <span class="ok">✓</span>. Подозреваемых осталось: <strong style="color:var(--text)">${suspects.size}</strong>.
+      </div>`;
+    }
+  }
+
+  const nextLabel = idx < 3 ? `Проверка ${CK[idx+1].name} →` : 'Чиним! →';
+
+  setContent(`
+    <div class="main-area">
+      <div class="grid-col" id="check-grid">${gridHTML(received, {hl: ck.bit, errAt: errorPos, checkResults: allChecks})}</div>
+      <div class="info-col">
+        <div class="calc-panel">
+          <div class="calc-title">
+            <div class="dot" style="background:var(--${ck.css})"></div>
+            <span style="color:var(--${ck.css})">Проверка ${ck.name}</span>
+            <span style="color:var(--muted);font-size:0.8rem;font-weight:400">— ${ck.desc}</span>
+          </div>
+          ${stackHtml}
+          ${sumLineHTML(sum, ck.css, ck.css, totalDelay)}
+          ${resultBitHTML(ck.name, fail?1:0, ck.css, totalDelay + 300, explanation)}
+          ${deductionHtml}
+          ${prevHtml ? `<div style="margin-top:0.75rem;font-size:0.8rem;color:var(--muted)">${prevHtml}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `);
+
+  // After stack animation: highlight suspects, dim cleared cells, animate ✓ on cleared
+  setTimeout(() => {
+    const gridEl = document.getElementById('check-grid');
+    if (!gridEl) return;
+
+    // Re-render with suspects highlighted
+    gridEl.innerHTML = gridHTML(received, {hlSet: suspects, errAt: errorPos});
+
+    // Add ✓ badges to cleared cells (not in suspects, but were checked)
+    const checked = new Set();
+    for (const cr of allChecksWithCurrent) {
+      for (let i = 0; i < 16; i++) { if (i & cr.bit) checked.add(i); }
+    }
+    for (const i of checked) {
+      if (!suspects.has(i)) {
+        const cell = document.getElementById(`cell-${i}`);
+        if (cell && !cell.querySelector('.check-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'check-badge pass';
+          badge.textContent = '✓';
+          badge.style.animation = 'pop-in 0.4s var(--ease)';
+          cell.appendChild(badge);
+        }
+      }
+    }
+    // Add ✗ badges to suspect cells
+    for (const i of suspects) {
+      const cell = document.getElementById(`cell-${i}`);
+      if (cell && !cell.querySelector('.check-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'check-badge fail';
+        badge.textContent = '✗';
+        badge.style.animation = 'pop-in 0.4s var(--ease)';
+        cell.appendChild(badge);
+      }
+    }
+  }, totalDelay + 500);
+
+  setControls(nextBtn(nextLabel));
+}
+
+let intersectPhase = 0;
+
+function rIntersect() {
+  intersectPhase = 0;
+  const results = CK.map(ck => {
+    let s = 0; for (let i=0;i<16;i++) { if (i & ck.bit) s += received[i]; }
+    return {bit: ck.bit, name: ck.name, css: ck.css, desc: ck.desc, fail: s%2!==0};
+  });
+
+  let summaryHtml = results.map(r =>
+    `<span style="color:var(--${r.css})">${r.name}</span>: ${r.fail ? '<span class="err">сбой!</span>' : '<span class="ok">ок</span>'}`
+  ).join(' &nbsp;|&nbsp; ');
+
+  setContent(`
+    <div class="main-area">
+      <div class="grid-col" id="intersect-grid">${gridHTML(received, {errAt: errorPos})}</div>
+      <div class="info-col">
+        <div class="calc-panel" id="intersect-panel">
+          <div class="calc-title"><span style="color:var(--text)">Рассуждаем как детектив</span></div>
+          <p style="color:var(--muted);font-size:0.85rem;line-height:1.6;margin-bottom:0.5rem">${summaryHtml}</p>
+          <p style="color:var(--muted);font-size:0.85rem">У нас 4 улики. Будем применять их по одной и сужать круг подозреваемых.</p>
+        </div>
+      </div>
+    </div>
+  `);
+
+  window._intResults = results;
+  setControls(`${backBtn()}<button class="btn btn-next" onclick="intersectNext()">Улика 1 →</button>`);
+}
+
+// Human-readable column/row descriptions for narrowing
+function describeColumns(suspects) {
+  const cols = new Set([...suspects].map(i => i % 4));
+  if (cols.size === 4) return null;
+  const names = [...cols].sort().map(c => `столбец ${c}`);
+  return names.length === 1 ? names[0] : names.join(' и ');
+}
+function describeRows(suspects) {
+  const rows = new Set([...suspects].map(i => Math.floor(i / 4)));
+  if (rows.size === 4) return null;
+  const names = [...rows].sort().map(r => `строка ${r}`);
+  return names.length === 1 ? names[0] : names.join(' и ');
+}
+
+function narrowDesc(results, phase) {
+  let suspects = new Set(Array.from({length:16}, (_,i) => i));
+  const lines = [];
+
+  for (let j = 0; j < phase; j++) {
+    const r = results[j];
+    const inGroup = new Set();
+    for (let i = 0; i < 16; i++) { if (i & r.bit) inGroup.add(i); }
+
+    if (r.fail) {
+      const prevSuspects = new Set(suspects);
+      suspects = new Set([...suspects].filter(x => inGroup.has(x)));
+      const cleared = [...prevSuspects].filter(x => !inGroup.has(x) && !inGroup.has(x));
+
+      if (j === 0) {
+        lines.push(`<span style="color:var(--${r.css})">${r.name} = сбой</span> → ошибка где-то в <strong>${r.desc}</strong>. Помечаем как подозрительные.`);
+      } else {
+        // Check if previous fails exist — explain intersection
+        const prevFails = results.slice(0, j).filter(rr => rr.fail);
+        if (prevFails.length > 0) {
+          // Find what's common between groups
+          const colDesc = describeColumns(suspects);
+          const rowDesc = describeRows(suspects);
+          const narrowedTo = colDesc || rowDesc || `${suspects.size} ячеек`;
+
+          // Which columns/rows were cleared
+          const prevCols = describeColumns(prevSuspects);
+
+          lines.push(`<span style="color:var(--${r.css})">${r.name} = тоже сбой</span> → <strong>${r.desc}</strong> тоже содержат ошибку. Но ошибка-то одна! Значит она в ячейках, которые попали в обе сбойные группы — это <strong>${narrowedTo}</strong>. Остальные подозрительные ячейки теперь <span class="ok">чистые ✓</span>.`);
+        } else {
+          lines.push(`<span style="color:var(--${r.css})">${r.name} = сбой</span> → ошибка в <strong>${r.desc}</strong>. Сужаем круг.`);
+        }
+      }
+    } else {
+      suspects = new Set([...suspects].filter(x => !inGroup.has(x)));
+      const remaining = suspects.size;
+      const rowDesc = describeRows(suspects);
+      const colDesc = describeColumns(suspects);
+      const whereLeft = rowDesc && colDesc ? `${rowDesc}, ${colDesc}` : rowDesc || colDesc || `${remaining} ячеек`;
+
+      lines.push(`<span style="color:var(--${r.css})">${r.name} = ок</span> → в <strong>${r.desc}</strong> ошибок нет — помечаем <span class="ok">✓</span>. ${remaining === 1 ? 'Остался один подозреваемый!' : `Подозреваемые теперь только в ${whereLeft}.`}`);
+    }
+  }
+
+  return {lines, suspects};
+}
+
+function intersectNext() {
+  intersectPhase++;
+  const results = window._intResults;
+  const {lines, suspects} = narrowDesc(results, intersectPhase);
+
+  // Update grid
+  const gridCol = document.getElementById('intersect-grid');
+  if (gridCol) {
+    gridCol.innerHTML = gridHTML(received, {hlSet: suspects, errAt: errorPos});
+  }
+
+  // Update panel
+  const panel = document.getElementById('intersect-panel');
+  if (panel) {
+    let html = `<div class="calc-title"><span style="color:var(--text)">Улика ${intersectPhase} из 4</span></div>`;
+    lines.forEach((line, i) => {
+      const isLast = i === lines.length - 1;
+      html += `<p style="color:var(--muted);font-size:0.85rem;line-height:1.7;margin-bottom:0.5rem;${isLast ? 'animation:drop-in 0.3s var(--ease)' : ''}">${line}</p>`;
+    });
+    html += `<p style="margin-top:0.75rem;font-size:0.95rem;color:var(--text);font-weight:600">Подозреваемых: <strong>${suspects.size}</strong></p>`;
+    panel.innerHTML = html;
+  }
+
+  if (intersectPhase >= 4) {
+    const syndrome = results.reduce((a,r)=>a+(r.fail?r.bit:0), 0);
+    setControls(nextBtn(`Это позиция ${syndrome}! →`));
+  } else {
+    setControls(`${backBtn()}<button class="btn btn-next" onclick="intersectNext()">Улика ${intersectPhase + 1} →</button>`);
+  }
+}
+
+function rNarrow() {
+  const results = CK.map(ck => {
+    let s = 0; for (let i=0;i<16;i++) { if (i & ck.bit) s += received[i]; }
+    return {bit: ck.bit, name: ck.name, css: ck.css, fail: s%2!==0};
+  });
+  const syndrome = results.reduce((a,r)=>a+(r.fail?r.bit:0), 0);
+  const synBin = syndrome.toString(2).padStart(4,'0');
+
+  // Address display
+  const addrBits = [
+    {label:'К8', val: results[3].fail?1:0, fail: results[3].fail},
+    {label:'К4', val: results[2].fail?1:0, fail: results[2].fail},
+    {label:'К2', val: results[1].fail?1:0, fail: results[1].fail},
+    {label:'К1', val: results[0].fail?1:0, fail: results[0].fail},
+  ];
+
+  let addrHTML = '<div class="addr-display">';
+  addrBits.forEach((ab, i) => {
+    const cls = ab.fail ? 'fail' : 'pass';
+    addrHTML += `<div style="text-align:center"><div class="addr-bit revealed ${cls}" style="animation-delay:${i*200}ms">${ab.val}</div><div class="addr-label">${ab.label}</div></div>`;
+  });
+  addrHTML += `<div style="display:flex;align-items:center;padding:0 0.5rem;font-size:1.2rem;color:var(--dim)">=</div>`;
+  addrHTML += `<div style="text-align:center"><div class="addr-bit revealed" style="animation-delay:900ms;font-size:1rem;width:48px;border-color:var(--error-color);color:var(--error-color);background:var(--error-bg)">${syndrome}</div><div class="addr-label">позиция</div></div>`;
+  addrHTML += '</div>';
+
+  // Which checks failed
+  const failedNames = results.filter(r => r.fail).map(r => r.name);
+  const passedNames = results.filter(r => !r.fail).map(r => r.name);
+
+  setContent(`
+    <div class="main-area">
+      <div class="grid-col">${gridHTML(received, {suspectAt: syndrome, errAt: errorPos})}</div>
+      <div class="info-col">
+        <div class="calc-panel">
+          <div class="calc-title"><span style="color:var(--error-color)">🎯 Вот она, ошибка — позиция ${syndrome}!</span></div>
+          <p style="color:var(--muted);font-size:0.85rem;line-height:1.7;margin-bottom:1rem">
+            Четыре проверки — и мы точно знаем, какой бит испорчен. Переворачиваем его обратно и данные восстановлены.
+          </p>
+          <div style="background:rgba(124,172,248,0.08);border:1px solid rgba(124,172,248,0.2);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:0.75rem">
+            <p style="color:var(--accent);font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">💡 Интересный факт: адрес ошибки можно вычислить ещё проще</p>
+            <p style="color:var(--muted);font-size:0.8rem;line-height:1.7;margin-bottom:0.5rem">
+              Каждая проверка отвечает за один разряд двоичного адреса. Сбой = 1, ок = 0. Запишем результаты:
+            </p>
+            ${addrHTML}
+            <p style="color:var(--muted);font-size:0.8rem;line-height:1.7;margin-top:0.5rem">
+              ${synBin}₂ = <strong style="color:var(--text)">${syndrome}</strong> в десятичной. Номер группы — это степень двойки, а результаты проверок — биты адреса. Не нужно даже рассуждать — достаточно сложить номера сбойных групп: ${failedNames.length > 0 ? failedNames.map(n => n.replace('К','')).join(' + ') + ' = ' + syndrome : '0'}.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+  setControls(nextBtn('Чиним! →'));
+}
+
+function rFix() {
+  const results = CK.map(ck => {
+    let s = 0; for (let i=0;i<16;i++) { if (i & ck.bit) s += received[i]; }
+    return {bit: ck.bit, fail: s%2!==0};
+  });
+  const syndrome = results.reduce((a,r)=>a+(r.fail?r.bit:0), 0);
+
+  const oldVal = received[syndrome];
+  received[syndrome] ^= 1;
+  const correctedData = DATA_POS.map(p => received[p]);
+  const match = correctedData.join('') === dataBits.join('');
+
+  setContent(`
+    <div class="bottom-info">
+      Друг перевернул бит на позиции ${syndrome}: ${oldVal} → <span class="ok">${received[syndrome]}</span><br>
+      Данные из сетки: <strong>${correctedData.join('')}</strong><br>
+      Исходные: <strong>${dataBits.join('')}</strong> — ${match ? '<span class="ok">✓ совпадают!</span>' : '<span class="err">✗ не совпадают</span>'}
+    </div>
+    <div class="main-area" style="justify-content:center">
+      <div class="grid-col">${gridHTML(received, {corrAt: syndrome})}</div>
+    </div>
+  `);
+  setControls(`${backBtn()}<button class="btn btn-next" onclick="step=0;render()">Заново ↺</button>`);
+}
+
+render();
+</script>
+
+</body>
+</html>
