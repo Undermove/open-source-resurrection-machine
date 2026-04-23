@@ -225,7 +225,7 @@
     .send-arrow { font-size: 1.5rem; color: var(--dim); margin: 0.5rem 0; }
     .send-danger { color: var(--error-color); font-weight: 600; }
 
-    /* Lightning */
+    /* Cosmic ray */
     .lightning {
       position: absolute; font-size: 3rem; z-index: 10;
       animation: bolt 0.6s forwards; pointer-events: none;
@@ -836,8 +836,8 @@ function doUnfold() {
     }
   }
 
-  document.getElementById('unfold-info').innerHTML = '<strong>Передаём 16 бит фонариком!</strong> Сигнал летит к другу через озеро. Но в воздухе бушует гроза...';
-  setControls(nextBtn('⚡ В путь →'));
+  document.getElementById('unfold-info').innerHTML = '<strong>Передаём 16 бит!</strong> Сигнал летит по каналу связи. Но на пути — космическое излучение...';
+  setControls(nextBtn('☄️ В путь →'));
 }
 
 function rSend() {
@@ -853,12 +853,12 @@ function rSend() {
       <div class="send-label">отправляем 16 бит</div>
       ${bits}
       <div class="send-arrow">↓</div>
-      <div class="send-label send-danger">⚡ зона помех ⚡</div>
+      <div class="send-label send-danger">☄️ космическое излучение ☄️</div>
       <div class="send-arrow">↓</div>
       <div class="send-label">друг принимает...</div>
     </div>
   `);
-  setControls(nextBtn('⚡ Молния! →'));
+  setControls(nextBtn('☄️ Космический луч! →'));
 }
 
 function rLightning() {
@@ -867,13 +867,13 @@ function rLightning() {
 
   setContent(`
     <div class="bottom-info" id="lightning-info">
-      <strong>⚡ Куда ударит молния?</strong> Нажми на любую ячейку, чтобы «испортить» бит. Или нажми кнопку для случайного удара.
+      <strong>☄️ Куда попадёт космический луч?</strong> Нажми на любую ячейку, чтобы «испортить» бит. Или нажми кнопку для случайного попадания.
     </div>
     <div class="main-area" style="justify-content:center;position:relative">
       <div class="grid-col" id="lightning-grid">${gridHTMLClickable(block)}</div>
     </div>
   `);
-  setControls(`${backBtn()}<button class="btn btn-danger" onclick="randomLightning()" style="gap:0.4rem">⚡ Случайная молния</button>`);
+  setControls(`${backBtn()}<button class="btn btn-danger" onclick="randomLightning()" style="gap:0.4rem">☄️ Случайный луч</button>`);
 }
 
 function gridHTMLClickable(data) {
@@ -903,9 +903,9 @@ function strikeLightning(pos) {
   // Update info
   const info = document.getElementById('lightning-info');
   if (info) {
-    info.innerHTML = `<strong>⚡ Молния бьёт в позицию <span class="err">${errorPos}</span>!</strong>
+    info.innerHTML = `<strong>☄️ Космический луч попал в позицию <span class="err">${errorPos}</span>!</strong>
       Бит переворачивается: ${block[errorPos]} → <span class="err">${received[errorPos]}</span>.
-      Друг не знает где ошибка. Но он прогоняет 4 проверки — считает единицы в каждой половине.`;
+      Получатель не знает где ошибка. Но он прогоняет 4 проверки — считает единицы в каждой половине.`;
   }
 
   // Update grid
@@ -921,7 +921,7 @@ function strikeLightning(pos) {
         const gr = grid.getBoundingClientRect();
         const bolt = document.createElement('div');
         bolt.className = 'lightning';
-        bolt.textContent = '⚡';
+        bolt.textContent = '☄️';
         bolt.style.left = (cr.left - gr.left + cr.width/2 - 24) + 'px';
         bolt.style.top = (cr.top - gr.top - 30) + 'px';
         grid.style.position = 'relative';
