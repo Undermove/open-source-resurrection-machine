@@ -1035,45 +1035,56 @@ function rCheck(idx) {
     </div>
   `);
 
-  // After stack animation: highlight suspects, dim cleared cells, animate ✓ on cleared
+  // After stack animation — show badges on this group's cells
   setTimeout(() => {
-    const gridEl = document.getElementById('check-grid');
-    if (!gridEl) return;
+    const thisGroupCells = groupPositions(ck.bit, false);
+    for (const i of thisGroupCells) {
+      const cell = document.getElementById(`cell-${i}`);
+      if (cell && !cell.querySelector('.check-badge')) {
+        const badge = document.createElement('span');
+        badge.className = `check-badge ${fail ? 'fail' : 'pass'}`;
+        badge.textContent = fail ? '✗' : '✓';
+        badge.style.animation = 'pop-in 0.4s var(--ease)';
+        cell.appendChild(badge);
+      }
+    }
 
-    // Re-render with suspects highlighted
-    gridEl.innerHTML = gridHTML(received, {hlSet: suspects, errAt: errorPos});
-
-    // Add ✓ badges to cleared cells (not in suspects, but were checked)
+    // If we deduced cleared cells — flip their badges from ✗ to ✓ after a pause
+    const cleared = new Set();
     const checked = new Set();
     for (const cr of allChecksWithCurrent) {
       for (let i = 0; i < 16; i++) { if (i & cr.bit) checked.add(i); }
     }
     for (const i of checked) {
-      if (!suspects.has(i)) {
-        const cell = document.getElementById(`cell-${i}`);
-        if (cell && !cell.querySelector('.check-badge')) {
-          const badge = document.createElement('span');
-          badge.className = 'check-badge pass';
-          badge.textContent = '✓';
-          badge.style.animation = 'pop-in 0.4s var(--ease)';
-          cell.appendChild(badge);
-        }
-      }
+      if (!suspects.has(i)) cleared.add(i);
     }
-    // Add ✗ badges to suspect cells
-    for (const i of suspects) {
+    // Find cells that currently have ✗ but should now be ✓
+    const toFlip = [...cleared].filter(i => {
       const cell = document.getElementById(`cell-${i}`);
-      if (cell && !cell.querySelector('.check-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'check-badge fail';
-        badge.textContent = '✗';
-        badge.style.animation = 'pop-in 0.4s var(--ease)';
-        cell.appendChild(badge);
-      }
-    }
-  }, totalDelay + 500);
+      return cell && cell.querySelector('.check-badge.fail');
+    });
 
-  setControls(nextBtn(nextLabel));
+    if (toFlip.length > 0) {
+      setTimeout(() => {
+        for (const i of toFlip) {
+          const cell = document.getElementById(`cell-${i}`);
+          if (!cell) continue;
+          const oldBadge = cell.querySelector('.check-badge.fail');
+          if (oldBadge) oldBadge.remove();
+          const newBadge = document.createElement('span');
+          newBadge.className = 'check-badge pass';
+          newBadge.textContent = '✓';
+          newBadge.style.animation = 'pop-in 0.4s var(--ease)';
+          cell.appendChild(newBadge);
+          // Also dim the cell
+          cell.style.transition = 'opacity 0.4s var(--ease)';
+          cell.style.opacity = '0.35';
+        }
+      }, 600);
+    }
+
+    setControls(nextBtn(nextLabel));
+  }, totalDelay + 500);
 }
 
 let intersectPhase = 0;
