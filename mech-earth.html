@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MECH — EARTHWATCH</title>
+<meta name="description" content="Defend Earth's cities from alien incursion. Pilot the last MECH across the planet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --mech: oklch(0.85 0.2 145);
+    --mech-glow: oklch(0.6 0.2 145 / 0.6);
+    --mech-dim: oklch(0.45 0.08 145);
+    --alien: oklch(0.7 0.3 30);
+    --alien-glow: oklch(0.5 0.3 30 / 0.7);
+    --cmd: oklch(0.85 0.12 200);
+    --cmd-dim: oklch(0.4 0.08 200);
+    --bg: #05060a;
+    --panel: rgba(8, 10, 14, 0.85);
+    --stroke: oklch(0.3 0.04 200 / 0.4);
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--mech);
+  }
+  #map {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 1;
+    cursor: crosshair;
+  }
+  /* Map filter — push OSM dark tiles into the brand palette */
+  .leaflet-container {
+    background: var(--bg);
+    outline: none;
+  }
+  .leaflet-tile-pane {
+    filter: hue-rotate(170deg) saturate(0.65) brightness(0.7) contrast(1.1);
+  }
+  .leaflet-control-attribution {
+    background: rgba(0,0,0,0.5) !important;
+    color: var(--mech-dim) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.55rem !important;
+    border: none !important;
+  }
+  .leaflet-control-attribution a { color: var(--cmd-dim) !important; }
+  .leaflet-control-zoom { display: none; }
+
+  /* Mech marker — fixed at viewport center */
+  #mech-overlay {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 400;
+    pointer-events: none;
+    width: 72px; height: 72px;
+    filter: drop-shadow(0 0 14px var(--mech-glow));
+    animation: mech-pulse 3s ease-in-out infinite;
+  }
+  #mech-overlay svg { width: 100%; height: 100%; }
+  @keyframes mech-pulse {
+    0%, 100% { filter: drop-shadow(0 0 14px var(--mech-glow)); }
+    50% { filter: drop-shadow(0 0 24px var(--mech-glow)) drop-shadow(0 0 6px var(--mech)); }
+  }
+
+  /* HUD top-left */
+  #hud {
+    position: fixed;
+    top: 1.2rem; left: 1.2rem;
+    z-index: 500;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    line-height: 1.8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--mech);
+    text-shadow: 0 0 12px var(--mech-glow);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1.1rem;
+  }
+  #hud .row { display: flex; justify-content: space-between; gap: 1.2rem; }
+  #hud .l { color: var(--mech-dim); }
+  #hud .v { color: var(--mech); font-weight: 700; }
+  #hud .v.warn { color: var(--alien); text-shadow: 0 0 10px var(--alien-glow); }
+  #hud .title {
+    font-size: 0.6rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.4rem;
+    border-bottom: 1px solid var(--stroke);
+    padding-bottom: 0.4rem;
+  }
+
+  /* Alerts panel right */
+  #alerts {
+    position: fixed;
+    top: 1.2rem; right: 1.2rem;
+    z-index: 500;
+    width: min(20rem, 90vw);
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--mech);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1rem;
+    max-height: 70vh;
+    overflow: hidden;
+  }
+  #alerts .title {
+    font-size: 0.6rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--stroke);
+    padding-bottom: 0.4rem;
+  }
+  .alert-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+    border-radius: 0.25rem;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+  .alert-row:hover { background: rgba(255,255,255,0.04); }
+  .alert-row .city {
+    color: var(--alien);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    text-shadow: 0 0 10px var(--alien-glow);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alert-row .timer {
+    color: var(--cmd);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .alert-row .timer.crit { color: var(--alien); }
+  .alert-row.empty { color: var(--mech-dim); pointer-events: none; cursor: default; font-style: italic; }
+
+  /* Mini-status bottom-right */
+  #status {
+    position: fixed;
+    bottom: 1.2rem; right: 1.2rem;
+    z-index: 500;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.6;
+  }
+  #status .live::before {
+    content: '●';
+    color: var(--alien);
+    margin-right: 0.4em;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%, 60%, 100% { opacity: 1; } 80% { opacity: 0.2; } }
+
+  /* Combat HUD bottom-left when in city */
+  #combat {
+    position: fixed;
+    bottom: 1.2rem; left: 1.2rem;
+    z-index: 500;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1.1rem;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s var(--ease);
+  }
+  #combat.show { opacity: 1; transform: translateY(0); }
+  #combat .city-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--mech);
+    text-shadow: 0 0 14px var(--mech-glow);
+    margin-bottom: 0.3rem;
+  }
+  #combat .info {
+    font-size: 0.6rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  #combat .info span { color: var(--mech); font-weight: 700; }
+  #combat .progress {
+    margin-top: 0.6rem;
+    width: 14rem;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #combat .progress-fill {
+    height: 100%;
+    background: var(--alien);
+    box-shadow: 0 0 10px var(--alien-glow);
+    transition: width 0.2s linear;
+  }
+
+  /* City marker (city under attack on the map) */
+  .city-marker {
+    width: 80px; height: 80px;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .city-marker .ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--alien);
+    border-radius: 50%;
+    box-shadow: 0 0 20px var(--alien-glow);
+    animation: city-pulse 1.6s ease-in-out infinite;
+  }
+  .city-marker .ring.r2 { animation-delay: 0.55s; }
+  .city-marker .ring.r3 { animation-delay: 1.1s; }
+  .city-marker .label {
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translate(-50%, 0.4rem);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--alien);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px var(--alien-glow);
+    white-space: nowrap;
+  }
+  @keyframes city-pulse {
+    0%   { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .city-marker.home .ring { border-color: var(--mech); box-shadow: 0 0 22px var(--mech-glow); }
+  .city-marker.home .label { color: var(--mech); text-shadow: 0 0 12px var(--mech-glow); }
+
+  /* Alien marker — appears in zoomed city */
+  .alien-marker {
+    width: 44px; height: 44px;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: crosshair;
+    filter: drop-shadow(0 0 10px var(--alien-glow));
+    transition: transform 0.15s ease;
+  }
+  .alien-marker:hover { transform: translate(-50%, -50%) scale(1.15); }
+  .alien-marker svg { width: 100%; height: 100%; }
+  .alien-marker.dying {
+    animation: die 0.4s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes die {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.6); filter: drop-shadow(0 0 30px var(--alien)); }
+    100% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  }
+
+  /* Overlays */
+  .overlay {
+    position: fixed; inset: 0;
+    z-index: 1000;
+    background: rgba(5, 6, 10, 0.94);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    transition: opacity 0.4s var(--ease);
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay-inner {
+    width: min(40rem, 100%);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--mech);
+    font-size: 0.75rem;
+    line-height: 1.7;
+  }
+  .msg { margin-bottom: 0.7rem; opacity: 0; transform: translateY(8px); transition: all 0.4s var(--ease); }
+  .msg.show { opacity: 1; transform: translateY(0); }
+  .msg .sender {
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+  }
+  .sender.cmd { color: var(--cmd); }
+  .sender.pilot { color: var(--mech); }
+  .sender.alert { color: var(--alien); }
+  .msg .text { padding-left: 0.9rem; border-left: 2px solid var(--stroke); }
+  .msg .text.cmd { color: oklch(0.85 0.08 200); border-left-color: var(--cmd-dim); }
+  .msg .text.pilot { color: var(--mech); border-left-color: var(--mech-dim); }
+  .msg .text.alert { color: var(--alien); border-left-color: oklch(0.4 0.2 30); }
+  .msg em { font-style: normal; font-weight: 700; color: var(--alien); }
+
+  .btn {
+    margin-top: 1.6rem;
+    padding: 0.6rem 1.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mech);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--mech-dim);
+    border-radius: 0.4rem;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+    font-weight: 700;
+  }
+  .btn:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: var(--mech);
+    box-shadow: 0 0 24px var(--mech-glow);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+  .btn.danger { color: var(--alien); border-color: oklch(0.45 0.18 30); }
+  .btn.danger:hover { box-shadow: 0 0 24px var(--alien-glow); border-color: var(--alien); }
+
+  /* Game-over screen */
+  #gameover .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem 2rem;
+    margin: 1.5rem 0;
+    padding: 1.2rem;
+    border: 1px solid var(--stroke);
+    border-radius: 0.5rem;
+    background: rgba(255,255,255,0.02);
+  }
+  #gameover .stat .l {
+    font-size: 0.55rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+  }
+  #gameover .stat .v {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--mech);
+  }
+  #gameover .stat .v.danger { color: var(--alien); }
+  #gameover .title {
+    font-family: 'Inter', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--alien);
+    text-shadow: 0 0 30px var(--alien-glow);
+    margin-bottom: 0.4rem;
+  }
+  #gameover .sub {
+    font-size: 0.65rem;
+    color: var(--cmd-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+
+  /* Toast — kill / save events */
+  #toast {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    z-index: 800;
+    pointer-events: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--mech);
+    text-shadow: 0 0 30px var(--mech-glow);
+    opacity: 0;
+    transition: all 0.3s var(--ease);
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #toast.danger { color: var(--alien); text-shadow: 0 0 30px var(--alien-glow); }
+
+  /* Damage flash (city lost) */
+  #damage-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 30%, oklch(0.4 0.3 30 / 0.5) 100%);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+  #damage-flash.flash { opacity: 1; }
+
+  /* Top alert bar */
+  #alert-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 2px;
+    z-index: 950;
+    background: transparent;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  #alert-bar.on {
+    background: var(--alien);
+    box-shadow: 0 0 24px var(--alien-glow);
+  }
+
+  @media (max-width: 600px) {
+    #hud { font-size: 0.6rem; padding: 0.6rem 0.8rem; }
+    #alerts { width: 14rem; font-size: 0.55rem; padding: 0.6rem; top: 0.6rem; right: 0.6rem; }
+    #combat { padding: 0.6rem 0.8rem; }
+    #combat .progress { width: 10rem; }
+    .overlay-inner { font-size: 0.65rem; }
+    #gameover .stats { grid-template-columns: 1fr; gap: 0.8rem; padding: 0.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="alert-bar"></div>
+<div id="damage-flash"></div>
+
+<div id="mech-overlay" aria-hidden="true">
+  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="mg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="oklch(0.95 0.18 145)"/>
+        <stop offset="100%" stop-color="oklch(0.55 0.15 145)"/>
+      </linearGradient>
+    </defs>
+    <!-- head -->
+    <rect x="20" y="6" width="24" height="14" rx="2" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.8"/>
+    <rect x="24" y="11" width="16" height="3" fill="oklch(0.95 0.25 145)"/>
+    <!-- torso -->
+    <path d="M14 22 L50 22 L46 44 L18 44 Z" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.8"/>
+    <circle cx="32" cy="32" r="4" fill="oklch(0.4 0.05 145)" stroke="oklch(0.95 0.25 145)" stroke-width="1"/>
+    <circle cx="32" cy="32" r="1.5" fill="oklch(0.95 0.25 145)"/>
+    <!-- arms -->
+    <rect x="6" y="24" width="6" height="20" rx="2" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.6"/>
+    <rect x="52" y="24" width="6" height="20" rx="2" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.6"/>
+    <!-- legs -->
+    <rect x="20" y="44" width="8" height="16" rx="1.5" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.6"/>
+    <rect x="36" y="44" width="8" height="16" rx="1.5" fill="url(#mg)" stroke="oklch(0.3 0.08 145)" stroke-width="0.6"/>
+    <!-- antennae -->
+    <line x1="24" y1="6" x2="22" y2="0" stroke="oklch(0.95 0.25 145)" stroke-width="1"/>
+    <line x1="40" y1="6" x2="42" y2="0" stroke="oklch(0.95 0.25 145)" stroke-width="1"/>
+  </svg>
+</div>
+
+<div id="hud">
+  <div class="title">EARTHWATCH // PILOT-7</div>
+  <div class="row"><span class="l">SCORE</span><span class="v" id="hud-score">0</span></div>
+  <div class="row"><span class="l">SAVED</span><span class="v" id="hud-saved">0</span></div>
+  <div class="row"><span class="l">LOST</span><span class="v warn" id="hud-lost">0</span></div>
+  <div class="row"><span class="l">COMBO</span><span class="v" id="hud-combo">x1</span></div>
+</div>
+
+<div id="alerts">
+  <div class="title">ACTIVE INCURSIONS</div>
+  <div id="alerts-list"></div>
+</div>
+
+<div id="combat">
+  <div class="city-name" id="combat-city">—</div>
+  <div class="info">REMAINING <span id="combat-aliens">0</span> · TIMER <span id="combat-timer">0</span>s</div>
+  <div class="progress"><div class="progress-fill" id="combat-progress"></div></div>
+</div>
+
+<div id="status">
+  <div class="live">LINK ACTIVE · 0xWATCH</div>
+  <div id="status-loc">LOCATING…</div>
+</div>
+
+<div id="toast"></div>
+
+<div id="briefing" class="overlay">
+  <div class="overlay-inner">
+    <div class="msg" id="m1"><div class="sender cmd">// COMMAND</div><div class="text cmd">PILOT-7. We have lost contact with three coastal stations. Scans confirm: <em>alien incursion is global</em>.</div></div>
+    <div class="msg" id="m2"><div class="sender cmd">// COMMAND</div><div class="text cmd">You are the last operational MECH. Every red marker on the map is a city under attack.</div></div>
+    <div class="msg" id="m3"><div class="sender pilot">// PILOT-7</div><div class="text pilot">Понял. Сколько у меня времени?</div></div>
+    <div class="msg" id="m4"><div class="sender alert">// ALERT</div><div class="text alert">Each city falls in <em>30 seconds</em> if not defended. Lose <em>5 cities</em> and Earth is gone.</div></div>
+    <div class="msg" id="m5"><div class="sender cmd">// COMMAND</div><div class="text cmd">Click an incursion to deploy. Click aliens on the ground to neutralize. Combos give multiplier. <em>Защити свой город первым.</em></div></div>
+    <div class="msg" id="m6" style="margin-top:1.2rem"><button class="btn" id="deploy-btn">▸ DEPLOY MECH</button></div>
+  </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+  <div class="overlay-inner" style="text-align:center">
+    <div class="title" id="go-title">EARTH FALLEN</div>
+    <div class="sub" id="go-sub">Five cities lost. Incursion complete.</div>
+    <div class="stats">
+      <div class="stat"><div class="l">Score</div><div class="v" id="go-score">0</div></div>
+      <div class="stat"><div class="l">Cities Saved</div><div class="v" id="go-saved">0</div></div>
+      <div class="stat"><div class="l">Cities Lost</div><div class="v danger" id="go-lost">0</div></div>
+      <div class="stat"><div class="l">Best Combo</div><div class="v" id="go-combo">x1</div></div>
+    </div>
+    <div style="margin-bottom:1rem; font-size:0.6rem; color: var(--cmd-dim); letter-spacing:0.1em; text-transform:uppercase;">
+      You patrolled <span id="go-cities" style="color:var(--mech); font-weight:700;">0</span> cities across <span id="go-countries" style="color:var(--mech); font-weight:700;">0</span> countries.
+    </div>
+    <div class="btn-row" style="justify-content:center; display:flex">
+      <button class="btn" id="share-btn">▸ SHARE RESULT</button>
+      <button class="btn danger" id="restart-btn">▸ RESTART</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(() => {
+'use strict';
+
+// ==============
+// CITIES — curated for global coverage + relatable picks
+// [name, lat, lng, country]
+// ==============
+const CITIES = [
+  ['Tokyo', 35.6762, 139.6503, 'JP'],
+  ['Osaka', 34.6937, 135.5023, 'JP'],
+  ['Seoul', 37.5665, 126.9780, 'KR'],
+  ['Beijing', 39.9042, 116.4074, 'CN'],
+  ['Shanghai', 31.2304, 121.4737, 'CN'],
+  ['Hong Kong', 22.3193, 114.1694, 'HK'],
+  ['Taipei', 25.0330, 121.5654, 'TW'],
+  ['Singapore', 1.3521, 103.8198, 'SG'],
+  ['Bangkok', 13.7563, 100.5018, 'TH'],
+  ['Manila', 14.5995, 120.9842, 'PH'],
+  ['Jakarta', -6.2088, 106.8456, 'ID'],
+  ['Kuala Lumpur', 3.1390, 101.6869, 'MY'],
+  ['Mumbai', 19.0760, 72.8777, 'IN'],
+  ['Delhi', 28.7041, 77.1025, 'IN'],
+  ['Bangalore', 12.9716, 77.5946, 'IN'],
+  ['Karachi', 24.8607, 67.0011, 'PK'],
+  ['Tehran', 35.6892, 51.3890, 'IR'],
+  ['Dubai', 25.2048, 55.2708, 'AE'],
+  ['Istanbul', 41.0082, 28.9784, 'TR'],
+  ['Cairo', 30.0444, 31.2357, 'EG'],
+  ['Lagos', 6.5244, 3.3792, 'NG'],
+  ['Cape Town', -33.9249, 18.4241, 'ZA'],
+  ['Nairobi', -1.2921, 36.8219, 'KE'],
+  ['Moscow', 55.7558, 37.6176, 'RU'],
+  ['Saint Petersburg', 59.9311, 30.3609, 'RU'],
+  ['Kyiv', 50.4501, 30.5234, 'UA'],
+  ['Minsk', 53.9006, 27.5590, 'BY'],
+  ['Warsaw', 52.2297, 21.0122, 'PL'],
+  ['Berlin', 52.5200, 13.4050, 'DE'],
+  ['Munich', 48.1351, 11.5820, 'DE'],
+  ['Vienna', 48.2082, 16.3738, 'AT'],
+  ['Prague', 50.0755, 14.4378, 'CZ'],
+  ['Amsterdam', 52.3676, 4.9041, 'NL'],
+  ['Paris', 48.8566, 2.3522, 'FR'],
+  ['London', 51.5074, -0.1278, 'GB'],
+  ['Madrid', 40.4168, -3.7038, 'ES'],
+  ['Barcelona', 41.3851, 2.1734, 'ES'],
+  ['Rome', 41.9028, 12.4964, 'IT'],
+  ['Milan', 45.4642, 9.1900, 'IT'],
+  ['Athens', 37.9838, 23.7275, 'GR'],
+  ['Stockholm', 59.3293, 18.0686, 'SE'],
+  ['Helsinki', 60.1699, 24.9384, 'FI'],
+  ['Reykjavik', 64.1466, -21.9426, 'IS'],
+  ['Tbilisi', 41.7151, 44.8271, 'GE'],
+  ['Batumi', 41.6168, 41.6367, 'GE'],
+  ['Yerevan', 40.1872, 44.5152, 'AM'],
+  ['Baku', 40.4093, 49.8671, 'AZ'],
+  ['Tashkent', 41.2995, 69.2401, 'UZ'],
+  ['Almaty', 43.2220, 76.8512, 'KZ'],
+  ['Bishkek', 42.8746, 74.5698, 'KG'],
+  ['New York', 40.7128, -74.0060, 'US'],
+  ['Los Angeles', 34.0522, -118.2437, 'US'],
+  ['Chicago', 41.8781, -87.6298, 'US'],
+  ['San Francisco', 37.7749, -122.4194, 'US'],
+  ['Seattle', 47.6062, -122.3321, 'US'],
+  ['Toronto', 43.6532, -79.3832, 'CA'],
+  ['Vancouver', 49.2827, -123.1207, 'CA'],
+  ['Mexico City', 19.4326, -99.1332, 'MX'],
+  ['Bogotá', 4.7110, -74.0721, 'CO'],
+  ['Lima', -12.0464, -77.0428, 'PE'],
+  ['São Paulo', -23.5505, -46.6333, 'BR'],
+  ['Rio de Janeiro', -22.9068, -43.1729, 'BR'],
+  ['Buenos Aires', -34.6037, -58.3816, 'AR'],
+  ['Santiago', -33.4489, -70.6693, 'CL'],
+  ['Sydney', -33.8688, 151.2093, 'AU'],
+  ['Melbourne', -37.8136, 144.9631, 'AU'],
+  ['Auckland', -36.8485, 174.7633, 'NZ'],
+  ['Honolulu', 21.3069, -157.8583, 'US'],
+  ['Anchorage', 61.2181, -149.9003, 'US'],
+];
+
+// ==============
+// CONFIG
+// ==============
+const CFG = {
+  cityFallSeconds: 30,
+  alertIntervalMs: 12000, // new alert every ~12s
+  startGracePeriodMs: 8000,
+  maxConcurrentAlerts: 6,
+  lossThreshold: 5,
+  aliensPerCity: () => 4 + Math.floor(Math.random() * 4), // 4-7
+  worldZoom: 2,
+  cityZoom: 12,
+  comboTimeoutMs: 4500,
+};
+
+// ==============
+// STATE
+// ==============
+const state = {
+  score: 0,
+  saved: 0,
+  lost: 0,
+  combo: 1,
+  bestCombo: 1,
+  lastKillAt: 0,
+  comboTimer: null,
+  alerts: new Map(), // cityKey -> { city, marker, deadlineAt, timerHandle }
+  alienMarkers: new Map(), // alienId -> L.marker
+  currentCity: null, // city we are zoomed into
+  homeCity: null,
+  visitedCities: new Set(),
+  visitedCountries: new Set(),
+  combatTimerHandle: null,
+  alertCycleHandle: null,
+  audioCtx: null,
+  audioMaster: null,
+  gameOver: false,
+};
+
+// ==============
+// MAP INIT
+// ==============
+const map = L.map('map', {
+  center: [25, 20],
+  zoom: CFG.worldZoom,
+  worldCopyJump: true,
+  zoomControl: false,
+  attributionControl: true,
+  preferCanvas: true,
+});
+
+// CartoDB Dark Matter — free, no token, dark style fits the brand
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OSM &copy; CARTO · MECH:EARTHWATCH',
+  subdomains: 'abcd',
+  maxZoom: 19,
+  minZoom: 2,
+}).addTo(map);
+
+// Disable interactions that conflict with click-to-deploy
+map.doubleClickZoom.disable();
+map.scrollWheelZoom.disable();
+
+// ==============
+// AUDIO — Web Audio API procedural beeps
+// ==============
+function ensureAudio() {
+  if (state.audioCtx) return;
+  try {
+    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    state.audioMaster = state.audioCtx.createGain();
+    state.audioMaster.gain.value = 0.18;
+    state.audioMaster.connect(state.audioCtx.destination);
+  } catch (e) { /* no audio, no problem */ }
+}
+function tone(freq, durMs, type = 'square', vol = 1, slide = null) {
+  if (!state.audioCtx) return;
+  const ctx = state.audioCtx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  if (slide) osc.frequency.exponentialRampToValueAtTime(slide, ctx.currentTime + durMs / 1000);
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(vol * 0.3, ctx.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durMs / 1000);
+  osc.connect(gain);
+  gain.connect(state.audioMaster);
+  osc.start();
+  osc.stop(ctx.currentTime + durMs / 1000);
+}
+const sfx = {
+  alert:    () => tone(880, 120, 'square', 0.9),
+  deploy:   () => { tone(220, 80, 'sawtooth'); setTimeout(() => tone(440, 100, 'sawtooth'), 60); setTimeout(() => tone(660, 140, 'sawtooth'), 140); },
+  kill:     () => tone(1200, 60, 'square', 0.7, 600),
+  saved:    () => { tone(523, 80, 'triangle'); setTimeout(() => tone(659, 80, 'triangle'), 70); setTimeout(() => tone(784, 140, 'triangle'), 140); },
+  lost:     () => { tone(180, 200, 'sawtooth', 1, 90); setTimeout(() => tone(120, 280, 'sawtooth', 1, 60), 200); },
+  defeat:   () => { tone(220, 600, 'sawtooth', 1, 60); setTimeout(() => tone(110, 800, 'sawtooth', 1, 55), 200); },
+};
+
+// ==============
+// HUD UPDATE
+// ==============
+const $ = (id) => document.getElementById(id);
+function updateHUD() {
+  $('hud-score').textContent = state.score;
+  $('hud-saved').textContent = state.saved;
+  $('hud-lost').textContent = state.lost + ' / ' + CFG.lossThreshold;
+  $('hud-combo').textContent = 'x' + state.combo;
+}
+function setLoc(text) { $('status-loc').textContent = text; }
+function showToast(text, danger = false) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.toggle('danger', danger);
+  t.classList.add('show');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove('show'), 900);
+}
+function flashDamage() {
+  const f = $('damage-flash');
+  f.classList.add('flash');
+  setTimeout(() => f.classList.remove('flash'), 200);
+}
+
+// ==============
+// CITY ALERT — spawn / countdown
+// ==============
+function cityKey(city) { return city[0] + '|' + city[3]; }
+
+function spawnAlert(city, isHome = false) {
+  const key = cityKey(city);
+  if (state.alerts.has(key)) return;
+  if (state.alerts.size >= CFG.maxConcurrentAlerts) return;
+
+  const icon = L.divIcon({
+    className: '',
+    html: `
+      <div class="city-marker ${isHome ? 'home' : ''}">
+        <div class="ring"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="label">${isHome ? '★ ' : ''}${city[0]}</div>
+      </div>`,
+    iconSize: [80, 80],
+    iconAnchor: [40, 40],
+  });
+  const marker = L.marker([city[1], city[2]], { icon }).addTo(map);
+  marker.on('click', () => deployTo(city));
+
+  const deadlineAt = Date.now() + CFG.cityFallSeconds * 1000;
+  const entry = { city, marker, deadlineAt, isHome };
+  state.alerts.set(key, entry);
+
+  // schedule city-fall
+  entry.timerHandle = setTimeout(() => cityFalls(key), CFG.cityFallSeconds * 1000);
+
+  sfx.alert();
+  pulseAlertBar();
+  renderAlertList();
+}
+
+function pulseAlertBar() {
+  const b = $('alert-bar');
+  b.classList.add('on');
+  setTimeout(() => b.classList.remove('on'), 350);
+}
+
+function cityFalls(key) {
+  const entry = state.alerts.get(key);
+  if (!entry) return;
+  state.alerts.delete(key);
+  map.removeLayer(entry.marker);
+
+  state.lost += 1;
+  state.combo = 1;
+  if (state.currentCity && cityKey(state.currentCity) === key) {
+    abandonCombat();
+  }
+  flashDamage();
+  sfx.lost();
+  showToast('CITY LOST: ' + entry.city[0], true);
+  renderAlertList();
+  updateHUD();
+
+  if (state.lost >= CFG.lossThreshold) endGame(false);
+}
+
+function renderAlertList() {
+  const list = $('alerts-list');
+  list.innerHTML = '';
+  if (state.alerts.size === 0) {
+    list.innerHTML = '<div class="alert-row empty">— NO ACTIVE INCURSIONS —</div>';
+    return;
+  }
+  // sort by deadline
+  const entries = [...state.alerts.values()].sort((a, b) => a.deadlineAt - b.deadlineAt);
+  for (const e of entries) {
+    const remaining = Math.max(0, Math.ceil((e.deadlineAt - Date.now()) / 1000));
+    const crit = remaining <= 10;
+    const row = document.createElement('div');
+    row.className = 'alert-row';
+    row.innerHTML = `<span class="city">${e.isHome ? '★ ' : ''}${e.city[0]}</span><span class="timer ${crit ? 'crit' : ''}">${remaining}s</span>`;
+    row.addEventListener('click', () => deployTo(e.city));
+    list.appendChild(row);
+  }
+}
+setInterval(renderAlertList, 1000);
+
+// ==============
+// DEPLOY TO CITY
+// ==============
+function deployTo(city) {
+  if (state.gameOver) return;
+  state.currentCity = city;
+  state.visitedCities.add(city[0]);
+  state.visitedCountries.add(city[3]);
+  setLoc(city[0].toUpperCase() + ' · ' + city[3]);
+  sfx.deploy();
+  map.flyTo([city[1], city[2]], CFG.cityZoom, { duration: 1.6, easeLinearity: 0.4 });
+  // wait for flyTo to land, then spawn aliens
+  setTimeout(() => {
+    if (state.currentCity !== city) return; // user re-clicked elsewhere
+    spawnAliens(city);
+    showCombat(city);
+  }, 1700);
+}
+
+function spawnAliens(city) {
+  clearAliens();
+  const count = CFG.aliensPerCity();
+  for (let i = 0; i < count; i++) {
+    const offset = 0.012; // ~1km at low lat
+    const lat = city[1] + (Math.random() - 0.5) * offset;
+    const lng = city[2] + (Math.random() - 0.5) * offset / Math.cos(city[1] * Math.PI / 180);
+    spawnAlien(lat, lng);
+  }
+  updateCombat();
+}
+
+let alienCounter = 0;
+function spawnAlien(lat, lng) {
+  const id = ++alienCounter;
+  const icon = L.divIcon({
+    className: '',
+    html: `
+      <div class="alien-marker" data-id="${id}">
+        <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+          <defs><radialGradient id="ag${id}"><stop offset="0%" stop-color="oklch(0.85 0.3 30)"/><stop offset="100%" stop-color="oklch(0.4 0.25 30)"/></radialGradient></defs>
+          <ellipse cx="22" cy="18" rx="14" ry="11" fill="url(#ag${id})" stroke="oklch(0.35 0.25 30)" stroke-width="0.8"/>
+          <circle cx="17" cy="16" r="2.5" fill="oklch(0.95 0.05 200)"/>
+          <circle cx="27" cy="16" r="2.5" fill="oklch(0.95 0.05 200)"/>
+          <circle cx="17" cy="16" r="1.2" fill="oklch(0.2 0 0)"/>
+          <circle cx="27" cy="16" r="1.2" fill="oklch(0.2 0 0)"/>
+          <path d="M14 26 Q12 36 10 40" stroke="oklch(0.5 0.25 30)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M22 28 Q22 38 22 42" stroke="oklch(0.5 0.25 30)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M30 26 Q32 36 34 40" stroke="oklch(0.5 0.25 30)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+  });
+  const marker = L.marker([lat, lng], { icon, interactive: true }).addTo(map);
+  marker.on('click', () => killAlien(id));
+  state.alienMarkers.set(id, marker);
+}
+
+function killAlien(id) {
+  const marker = state.alienMarkers.get(id);
+  if (!marker) return;
+  state.alienMarkers.delete(id);
+
+  // animate-then-remove
+  const el = marker.getElement();
+  if (el) {
+    const inner = el.querySelector('.alien-marker');
+    if (inner) inner.classList.add('dying');
+    setTimeout(() => map.removeLayer(marker), 380);
+  } else {
+    map.removeLayer(marker);
+  }
+
+  // combo
+  const now = Date.now();
+  if (now - state.lastKillAt < CFG.comboTimeoutMs) {
+    state.combo += 1;
+  } else {
+    state.combo = 1;
+  }
+  state.lastKillAt = now;
+  if (state.combo > state.bestCombo) state.bestCombo = state.combo;
+  if (state.comboTimer) clearTimeout(state.comboTimer);
+  state.comboTimer = setTimeout(() => { state.combo = 1; updateHUD(); }, CFG.comboTimeoutMs);
+
+  // score
+  const isHome = state.currentCity && state.homeCity && state.currentCity[0] === state.homeCity[0];
+  const base = isHome ? 15 : 10;
+  state.score += base * state.combo;
+  sfx.kill();
+  updateHUD();
+  updateCombat();
+
+  // city cleared?
+  if (state.alienMarkers.size === 0 && state.currentCity) {
+    citySaved();
+  }
+}
+
+function clearAliens() {
+  for (const m of state.alienMarkers.values()) map.removeLayer(m);
+  state.alienMarkers.clear();
+}
+
+function abandonCombat() {
+  clearAliens();
+  state.currentCity = null;
+  $('combat').classList.remove('show');
+}
+
+function citySaved() {
+  if (!state.currentCity) return;
+  const city = state.currentCity;
+  const key = cityKey(city);
+  const entry = state.alerts.get(key);
+  if (entry) {
+    clearTimeout(entry.timerHandle);
+    state.alerts.delete(key);
+    map.removeLayer(entry.marker);
+    renderAlertList();
+  }
+  state.saved += 1;
+  // bonus for time remaining
+  const remaining = entry ? Math.max(0, (entry.deadlineAt - Date.now()) / 1000) : 0;
+  state.score += Math.round(remaining * 5);
+  sfx.saved();
+  showToast('CITY SAVED: ' + city[0], false);
+  updateHUD();
+
+  // pull back to world after 1.2s
+  setTimeout(() => {
+    if (state.currentCity === city) {
+      abandonCombat();
+      map.flyTo([city[1], city[2]], CFG.worldZoom + 1, { duration: 1.4 });
+      setTimeout(() => map.flyTo([city[1] * 0.5, 10], CFG.worldZoom, { duration: 1.4 }), 400);
+      setLoc('IN TRANSIT…');
+    }
+  }, 1200);
+}
+
+function showCombat(city) {
+  $('combat-city').textContent = city[0].toUpperCase();
+  $('combat').classList.add('show');
+  updateCombat();
+}
+function updateCombat() {
+  if (!state.currentCity) return;
+  const key = cityKey(state.currentCity);
+  const entry = state.alerts.get(key);
+  const remaining = entry ? Math.max(0, Math.ceil((entry.deadlineAt - Date.now()) / 1000)) : 0;
+  $('combat-aliens').textContent = state.alienMarkers.size;
+  $('combat-timer').textContent = remaining;
+  const max = CFG.cityFallSeconds;
+  const pct = max > 0 ? (remaining / max) * 100 : 0;
+  $('combat-progress').style.width = pct + '%';
+}
+setInterval(() => { if (state.currentCity) updateCombat(); }, 250);
+
+// ==============
+// ALERT CYCLE
+// ==============
+function startAlertCycle() {
+  const tick = () => {
+    if (state.gameOver) return;
+    // pick a random city not currently under alert
+    const available = CITIES.filter(c => !state.alerts.has(cityKey(c)));
+    if (available.length === 0) {
+      state.alertCycleHandle = setTimeout(tick, CFG.alertIntervalMs);
+      return;
+    }
+    const city = available[Math.floor(Math.random() * available.length)];
+    spawnAlert(city);
+    // accelerate slightly based on saved count (game gets harder)
+    const baseInterval = CFG.alertIntervalMs;
+    const accel = Math.max(0.55, 1 - state.saved * 0.04);
+    state.alertCycleHandle = setTimeout(tick, baseInterval * accel);
+  };
+  state.alertCycleHandle = setTimeout(tick, 1500);
+}
+
+// ==============
+// HOME CITY (geolocation -> nearest known city)
+// ==============
+function findNearestCity(lat, lng) {
+  let best = null, bestDist = Infinity;
+  for (const c of CITIES) {
+    const dLat = c[1] - lat, dLng = c[2] - lng;
+    const d = dLat * dLat + dLng * dLng;
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  return best;
+}
+function detectHome() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const home = findNearestCity(pos.coords.latitude, pos.coords.longitude);
+      if (home) state.homeCity = home;
+    },
+    () => { /* user denied or unavailable, no problem */ },
+    { timeout: 4000, maximumAge: 60000 }
+  );
+}
+
+// ==============
+// GAME START / END
+// ==============
+function startGame() {
+  // staggered briefing reveal
+  const ids = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
+  ids.forEach((id, i) => setTimeout(() => $(id).classList.add('show'), i * 380));
+  detectHome();
+}
+function deployFromBriefing() {
+  ensureAudio();
+  $('briefing').classList.add('hidden');
+  setLoc('STANDING BY');
+  // first alert always in home city if known, else random
+  setTimeout(() => {
+    if (state.homeCity) {
+      spawnAlert(state.homeCity, true);
+    } else {
+      const c = CITIES[Math.floor(Math.random() * CITIES.length)];
+      spawnAlert(c);
+    }
+  }, CFG.startGracePeriodMs * 0.4);
+  startAlertCycle();
+}
+function endGame(victory) {
+  if (state.gameOver) return;
+  state.gameOver = true;
+  if (state.alertCycleHandle) clearTimeout(state.alertCycleHandle);
+  // freeze all alerts
+  for (const e of state.alerts.values()) clearTimeout(e.timerHandle);
+  sfx.defeat();
+  $('go-score').textContent = state.score;
+  $('go-saved').textContent = state.saved;
+  $('go-lost').textContent = state.lost;
+  $('go-combo').textContent = 'x' + state.bestCombo;
+  $('go-cities').textContent = state.visitedCities.size;
+  $('go-countries').textContent = state.visitedCountries.size;
+  if (victory) {
+    $('go-title').textContent = 'EARTH SECURE';
+    $('go-title').style.color = 'var(--mech)';
+    $('go-title').style.textShadow = '0 0 30px var(--mech-glow)';
+    $('go-sub').textContent = 'Incursion repelled. Pilot honored.';
+  }
+  $('gameover').classList.remove('hidden');
+}
+
+// ==============
+// SHARE
+// ==============
+function shareResult() {
+  const text = `🤖 MECH:EARTHWATCH\nScore ${state.score} · Saved ${state.saved} cities · Best combo x${state.bestCombo}\nPatrolled ${state.visitedCities.size} cities across ${state.visitedCountries.size} countries.\n#vibejam`;
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: 'MECH:EARTHWATCH', text, url }).catch(() => fallbackShare(text, url));
+  } else {
+    fallbackShare(text, url);
+  }
+}
+function fallbackShare(text, url) {
+  const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url);
+  window.open(intent, '_blank', 'noopener');
+}
+
+// ==============
+// WIRE UP
+// ==============
+$('deploy-btn').addEventListener('click', deployFromBriefing);
+$('restart-btn').addEventListener('click', () => location.reload());
+$('share-btn').addEventListener('click', shareResult);
+
+// kick off briefing animations
+startGame();
+updateHUD();
+renderAlertList();
+
+})();
+</script>
+</body>
+</html>
