@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LoggerMessage калькулятор — сколько ты теряешь на логах</title>
+<style>
+  :root {
+    --cream: #FBF6EC;
+    --ink: #15100A;
+    --ink-mid: #5A4F42;
+    --navy: #1B5FB0;
+    --ruby: #E01A3C;
+    --gold: #F5B820;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Manrope", "Inter", "SF Pro Display", system-ui, sans-serif;
+    padding: 32px 20px 60px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    color: var(--ink-mid);
+    margin-bottom: 28px;
+    font-size: 15px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    padding: 22px 22px 18px;
+    background: var(--cream);
+  }
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-mid);
+  }
+
+  .row { margin-bottom: 18px; }
+  .row label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+  .row label .v { font-variant-numeric: tabular-nums; color: var(--ruby); }
+  .row input[type=range] { width: 100%; accent-color: var(--ruby); }
+  .row .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-mid); margin-top: 2px; }
+
+  .seg { display: flex; gap: 6px; margin-top: 6px; }
+  .seg button {
+    flex: 1; padding: 8px 10px; font: inherit; font-size: 13px;
+    border: 1.5px solid var(--ink); background: var(--cream); color: var(--ink); cursor: pointer; border-radius: 4px;
+  }
+  .seg button.on { background: var(--ink); color: var(--cream); }
+
+  .out { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .stat {
+    border: 1px dashed var(--ink-mid);
+    border-radius: 6px;
+    padding: 14px;
+    background: var(--cream);
+  }
+  .stat .label { color: var(--ink-mid); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .stat .num { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .unit { font-size: 14px; color: var(--ink-mid); margin-left: 4px; font-weight: 600; }
+
+  .hero {
+    grid-column: 1 / -1;
+    border: 2px solid var(--ruby);
+    border-radius: 8px;
+    padding: 18px 22px;
+    background: var(--cream);
+    margin-bottom: 22px;
+  }
+  .hero .num { font-size: 38px; font-weight: 900; color: var(--ruby); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .hero .ctx { color: var(--ink-mid); font-size: 14px; margin-top: 4px; }
+
+  footer { color: var(--ink-mid); font-size: 12px; margin-top: 32px; text-align: center; }
+  footer code { background: rgba(21,16,10,0.06); padding: 1px 5px; border-radius: 3px; }
+  .badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge.warn { background: var(--ruby); color: var(--cream); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Сколько ты теряешь на ILogger без source-gen</h1>
+  <p class="sub">Калькулятор по бенчмарку из <a href="https://github.com/undermove/csharpshortpostsexamples" style="color:var(--navy);">csharpshortpostsexamples</a> (M4 / .NET 10). Двинь слайдеры под свой сервис и посмотри сколько GC-нагрузки и CPU-секунд утекает в логи, которые даже не пишутся.</p>
+
+  <div class="hero">
+    <div class="num" id="hero-num">— GB</div>
+    <div class="ctx" id="hero-ctx">аллоцируется и собирается GC за год — только на логировании</div>
+  </div>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Параметры твоего сервиса</h2>
+
+      <div class="row">
+        <label>RPS (запросов/сек) <span class="v" id="v-rps">1 000</span></label>
+        <input type="range" id="rps" min="0" max="200" value="100" />
+        <div class="scale"><span>1</span><span>100</span><span>1k</span><span>10k</span><span>100k</span></div>
+      </div>
+
+      <div class="row">
+        <label>Логов на запрос <span class="v" id="v-lpr">10</span></label>
+        <input type="range" id="lpr" min="1" max="50" value="10" />
+        <div class="scale"><span>1</span><span>25</span><span>50</span></div>
+      </div>
+
+      <div class="row">
+        <label>Доля логов уровня Information и ниже (фильтруются в проде) <span class="v" id="v-fp">80%</span></label>
+        <input type="range" id="fp" min="0" max="100" value="80" />
+        <div class="scale"><span>0%</span><span>50%</span><span>100%</span></div>
+      </div>
+
+      <div class="row">
+        <label>Текущий стиль логирования</label>
+        <div class="seg" id="seg-style">
+          <button data-v="templated" class="on">шаблонный «{X}», args</button>
+          <button data-v="interpolated">$&quot;...&quot; интерполяция</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div class="card">
+      <h2>Сколько ты экономишь, перейдя на [LoggerMessage]</h2>
+
+      <div class="out">
+        <div class="stat">
+          <div class="label">за секунду</div>
+          <div><span class="num" id="o-sec-b">—</span><span class="unit" id="o-sec-bu">B</span></div>
+          <div><span class="num" id="o-sec-ns">—</span><span class="unit" id="o-sec-nu">ns</span></div>
+        </div>
+        <div class="stat">
+          <div class="label">за сутки</div>
+          <div><span class="num" id="o-day-b">—</span><span class="unit" id="o-day-bu">B</span></div>
+          <div><span class="num" id="o-day-ns">—</span><span class="unit" id="o-day-nu">сек CPU</span></div>
+        </div>
+        <div class="stat">
+          <div class="label">за год</div>
+          <div><span class="num" id="o-yr-b">—</span><span class="unit" id="o-yr-bu">B</span></div>
+          <div><span class="num" id="o-yr-ns">—</span><span class="unit" id="o-yr-nu">час CPU</span></div>
+        </div>
+        <div class="stat">
+          <div class="label">GC-режим <span id="gc-badge"></span></div>
+          <div><span class="num" id="gc-state" style="font-size:18px;">—</span></div>
+          <div class="unit" id="gc-detail" style="margin-left:0; font-size:12px;">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Цифры из бенчмарка: <code>templated 96 B / 16 ns на отфильтрованный, 224 B / 78 ns на залогированный</code>; <code>sourcegen 0 B / 0 ns и 128 B / 39 ns соответственно</code>. Считаем экономию = current − sourcegen. Год = 365 дней.
+  </footer>
+</div>
+
+<script>
+  // bytes & ns saved per call when migrating CURRENT → sourcegen
+  // values from BenchmarkDotNet on M4 / .NET 10
+  const SAVED = {
+    templated:   { filtered: { B: 96,  ns: 15.7 }, logged: { B: 96,  ns: 38.5 } },
+    interpolated:{ filtered: { B: 128, ns: 29.3 }, logged: { B: 0,   ns: -10  } }, // interpolated is faster when logged but breaks structured logging
+  };
+
+  let style = 'templated';
+
+  function rpsFromSlider(v) {
+    // log scale 1 → 100000
+    const min = Math.log10(1), max = Math.log10(100000);
+    return Math.round(Math.pow(10, min + (v / 200) * (max - min)));
+  }
+
+  function fmt(n, unit) {
+    if (!isFinite(n) || n < 0) return '0';
+    if (unit === 'B') {
+      if (n >= 1e12) return (n / 1e12).toFixed(1) + ' TB';
+      if (n >= 1e9)  return (n / 1e9).toFixed(1)  + ' GB';
+      if (n >= 1e6)  return (n / 1e6).toFixed(1)  + ' MB';
+      if (n >= 1e3)  return (n / 1e3).toFixed(1)  + ' KB';
+      return n.toFixed(0) + ' B';
+    }
+    if (unit === 'ns') {
+      if (n >= 1e9) return (n / 1e9).toFixed(2) + ' с';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + ' мс';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + ' мкс';
+      return n.toFixed(0) + ' нс';
+    }
+    if (unit === 'sec') {
+      if (n >= 86400) return (n / 86400).toFixed(1) + ' сут';
+      if (n >= 3600)  return (n / 3600).toFixed(1)  + ' ч';
+      if (n >= 60)    return (n / 60).toFixed(1)    + ' мин';
+      return n.toFixed(1) + ' с';
+    }
+    if (unit === 'hour') {
+      if (n >= 8760) return (n / 8760).toFixed(2) + ' лет CPU';
+      if (n >= 24)   return (n / 24).toFixed(1)   + ' сут CPU';
+      return n.toFixed(1) + ' ч CPU';
+    }
+    return n.toFixed(0);
+  }
+
+  function compute() {
+    const rps = rpsFromSlider(+document.getElementById('rps').value);
+    const lpr = +document.getElementById('lpr').value;
+    const fp  = +document.getElementById('fp').value / 100;
+
+    document.getElementById('v-rps').textContent = rps.toLocaleString('ru-RU');
+    document.getElementById('v-lpr').textContent = lpr;
+    document.getElementById('v-fp').textContent  = Math.round(fp * 100) + '%';
+
+    const cfg = SAVED[style];
+    const bytesSavedPerCall = fp * cfg.filtered.B + (1 - fp) * cfg.logged.B;
+    const nsSavedPerCall    = fp * cfg.filtered.ns + (1 - fp) * cfg.logged.ns;
+
+    const callsPerSec = rps * lpr;
+    const bSec  = callsPerSec * bytesSavedPerCall;
+    const nsSec = callsPerSec * nsSavedPerCall;
+
+    const bDay  = bSec  * 86400;
+    const nsDay = nsSec * 86400;
+
+    const bYr  = bSec  * 86400 * 365;
+    const nsYr = nsSec * 86400 * 365;
+
+    // setSplit(id, value, unit) — splits formatted "12.3 GB" into number + unit
+    function setSplit(numId, unitId, value, fmtUnit) {
+      const s = fmt(value, fmtUnit);
+      const m = s.match(/^([\d\.\,−\-]+)\s*(.*)$/);
+      document.getElementById(numId).textContent = m ? m[1] : s;
+      document.getElementById(unitId).textContent = m ? m[2] : '';
+    }
+
+    setSplit('o-sec-b',  'o-sec-bu', bSec,  'B');
+    setSplit('o-sec-ns', 'o-sec-nu', nsSec, 'ns');
+    setSplit('o-day-b',  'o-day-bu', bDay,  'B');
+    setSplit('o-day-ns', 'o-day-nu', nsDay / 1e9, 'sec');
+    setSplit('o-yr-b',   'o-yr-bu',  bYr,   'B');
+    setSplit('o-yr-ns',  'o-yr-nu',  nsYr / 3.6e12, 'hour');
+
+    document.getElementById('hero-num').textContent = fmt(bYr, 'B');
+
+    // GC verdict
+    let state, detail, badge = '';
+    const bDayGB = bDay / 1e9;
+    if (bDayGB < 0.1) {
+      state = 'спокойно';
+      detail = 'меньше 100 МБ/сутки — на радаре GC даже не светится';
+    } else if (bDayGB < 10) {
+      state = 'заметно';
+      detail = bDayGB.toFixed(1) + ' ГБ/сутки впустую через Gen0';
+    } else if (bDayGB < 100) {
+      state = 'жжёт Gen0';
+      detail = bDayGB.toFixed(0) + ' ГБ/сутки — Gen0 коллекций ощутимо больше';
+      badge = '<span class="badge">давай уже</span>';
+    } else {
+      state = 'GC орёт';
+      detail = bDayGB.toFixed(0) + ' ГБ/сутки в /dev/null — GC оплачиваешь ты';
+      badge = '<span class="badge warn">срочно</span>';
+    }
+    document.getElementById('gc-state').textContent = state;
+    document.getElementById('gc-detail').textContent = detail;
+    document.getElementById('gc-badge').innerHTML = badge;
+  }
+
+  ['rps', 'lpr', 'fp'].forEach(id =>
+    document.getElementById(id).addEventListener('input', compute));
+
+  document.querySelectorAll('#seg-style button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      style = btn.dataset.v;
+      document.querySelectorAll('#seg-style button').forEach(b => b.classList.toggle('on', b === btn));
+      compute();
+    });
+  });
+
+  compute();
+</script>
+</body>
+</html>
