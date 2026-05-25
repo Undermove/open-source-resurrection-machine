@@ -1,1368 +1,1381 @@
 {
   "claude-opus-4-6-thinking": {
-    "text": 1501.51,
-    "code": 1545.57,
-    "vision": 1300.47
+    "text": 1501.98,
+    "code": 1544.67,
+    "vision": 1299.84
   },
   "claude-opus-4-7-thinking": {
-    "text": 1500.38,
-    "code": 1567.38,
-    "vision": 1305.2
+    "text": 1500.25,
+    "code": 1567.35,
+    "vision": 1306.3
   },
   "claude-opus-4-6": {
-    "text": 1497.75,
-    "code": 1540.85,
-    "vision": 1292.3
+    "text": 1498.06,
+    "code": 1539.92,
+    "vision": 1292.88
   },
   "claude-opus-4-7": {
-    "text": 1492.14,
-    "code": 1559.28,
-    "vision": 1302.74
+    "text": 1492.39,
+    "code": 1559.83,
+    "vision": 1303.75
   },
   "muse-spark": {
-    "text": 1490.06,
-    "code": 1508.7,
-    "vision": 1299.22
+    "text": 1489.49,
+    "code": 1508.73,
+    "vision": 1295.89
   },
   "gemini-3.1-pro-preview": {
-    "text": 1488.86,
-    "code": 1449.51,
-    "vision": 1277.1
+    "text": 1488.18,
+    "code": 1449.81,
+    "vision": 1277.47
   },
   "gemini-3-pro": {
-    "text": 1485.88,
-    "code": 1438.32,
-    "vision": 1289.21
+    "text": 1485.82,
+    "code": 1438.34,
+    "vision": 1289.03
   },
   "gpt-5.5-high": {
-    "text": 1483.94,
-    "vision": 1281.9
+    "text": 1481.32,
+    "vision": 1278.49
+  },
+  "gemini-3.5-flash": {
+    "text": 1480.04,
+    "code": 1507.14
   },
   "gpt-5.4-high": {
-    "text": 1478.84
-  },
-  "grok-4.20-beta1": {
-    "text": 1478.7
-  },
-  "gpt-5.2-chat-latest-20260210": {
-    "text": 1476.92,
-    "vision": 1278.76
+    "text": 1479.6,
+    "vision": 1276.54
   },
   "gpt-5.5": {
-    "text": 1476.3,
-    "vision": 1289.58
+    "text": 1477.99,
+    "vision": 1287.57
+  },
+  "grok-4.20-beta1": {
+    "text": 1477.98
+  },
+  "gpt-5.2-chat-latest-20260210": {
+    "text": 1477.04,
+    "vision": 1280.23
+  },
+  "qwen3.7-max-preview": {
+    "text": 1475.21
   },
   "grok-4.20-beta-0309-reasoning": {
-    "text": 1475.63,
-    "code": 1396.82,
-    "vision": 1251.74
+    "text": 1474.97,
+    "code": 1395.5,
+    "vision": 1251.1
   },
   "grok-4.20-multi-agent-beta-0309": {
-    "text": 1474.82,
-    "vision": 1245.09
+    "text": 1474.23,
+    "vision": 1246.74
   },
   "gemini-3-flash": {
-    "text": 1473.49,
-    "code": 1436.96,
-    "vision": 1270.11
-  },
-  "claude-opus-4-5-20251101-thinking-32k": {
-    "text": 1472.53,
-    "code": 1490.45
+    "text": 1473.32,
+    "code": 1437.0,
+    "vision": 1270.97
   },
   "ernie-5.1": {
-    "text": 1472.44
+    "text": 1473.22
+  },
+  "claude-opus-4-5-20251101-thinking-32k": {
+    "text": 1472.6,
+    "code": 1490.45
   },
   "glm-5.1": {
-    "text": 1472.26,
-    "code": 1531.86
+    "text": 1472.23,
+    "code": 1532.03
   },
   "gpt-5.5-instant": {
-    "text": 1472.08,
-    "vision": 1278.31
+    "text": 1472.07,
+    "vision": 1274.61
   },
   "claude-sonnet-4-6": {
-    "text": 1467.96,
-    "code": 1523.61,
-    "vision": 1274.03
-  },
-  "grok-4.1-thinking": {
-    "text": 1467.59,
-    "code": 1208.33
+    "text": 1468.33,
+    "code": 1523.71,
+    "vision": 1275.25
   },
   "claude-opus-4-5-20251101": {
-    "text": 1467.23,
-    "code": 1467.04
+    "text": 1468.11,
+    "code": 1466.95
   },
   "gpt-5.4": {
-    "text": 1466.79,
-    "code": 1388.34
+    "text": 1467.41,
+    "code": 1386.02,
+    "vision": 1269.43
   },
-  "qwen3.5-max-preview": {
-    "text": 1464.65
+  "grok-4.1-thinking": {
+    "text": 1466.94,
+    "code": 1208.36
   },
   "mimo-v2.5-pro": {
-    "text": 1463.21,
-    "code": 1472.35
+    "text": 1464.89,
+    "code": 1470.9
+  },
+  "qwen3.5-max-preview": {
+    "text": 1464.15
   },
   "gemini-3-flash (thinking-minimal)": {
-    "text": 1462.93,
-    "code": 1388.9,
-    "vision": 1260.12
+    "text": 1462.53,
+    "code": 1388.61,
+    "vision": 1259.98
   },
   "kimi-k2.6": {
-    "text": 1461.12,
-    "code": 1518.51,
-    "vision": 1261.84
+    "text": 1462.24,
+    "code": 1519.02,
+    "vision": 1259.26
   },
   "deepseek-v4-pro-thinking": {
-    "text": 1460.72,
-    "code": 1458.42
+    "text": 1461.41,
+    "code": 1459.33
   },
   "grok-4.1": {
-    "text": 1460.21
+    "text": 1460.2
   },
   "deepseek-v4-pro": {
-    "text": 1459.24
+    "text": 1458.66
   },
   "qwen3.6-max-preview": {
-    "text": 1458.06,
-    "code": 1491.31
+    "text": 1457.13,
+    "code": 1490.83
   },
   "glm-5": {
-    "text": 1456.29,
-    "code": 1435.39
+    "text": 1456.58,
+    "code": 1435.22
   },
   "dola-seed-2.0-pro": {
-    "text": 1456.21,
-    "vision": 1259.66
-  },
-  "gpt-5.4-mini-high": {
-    "text": 1455.06,
-    "code": 1399.09,
-    "vision": 1257.07
+    "text": 1456.14,
+    "vision": 1259.46
   },
   "gpt-5.1-high": {
-    "text": 1454.89,
-    "vision": 1250.51
-  },
-  "grok-4.3": {
-    "text": 1453.98,
-    "code": 1388.54,
-    "vision": 1246.49
+    "text": 1454.86,
+    "vision": 1250.49
   },
   "claude-sonnet-4-5-20250929-thinking-32k": {
-    "text": 1453.57,
-    "code": 1388.2
+    "text": 1453.95,
+    "code": 1388.19
   },
   "claude-sonnet-4-5-20250929": {
-    "text": 1453.39,
+    "text": 1453.92,
     "code": 1386.0
   },
+  "gpt-5.4-mini-high": {
+    "text": 1453.58,
+    "code": 1401.95,
+    "vision": 1254.07
+  },
   "gemma-4-31b": {
-    "text": 1451.28,
-    "code": 1380.38,
-    "vision": 1251.96
+    "text": 1451.36,
+    "code": 1379.97,
+    "vision": 1247.76
+  },
+  "grok-4.3": {
+    "text": 1451.18,
+    "code": 1384.98,
+    "vision": 1246.8
   },
   "ernie-5.0-0110": {
-    "text": 1449.59
-  },
-  "ernie-5.0-preview-1203": {
-    "text": 1449.16
-  },
-  "gpt-5.3-chat-latest": {
-    "text": 1449.04
+    "text": 1449.69
   },
   "kimi-k2.5-thinking": {
-    "text": 1448.83,
-    "code": 1429.45,
-    "vision": 1247.74
+    "text": 1449.2,
+    "code": 1430.38,
+    "vision": 1247.3
+  },
+  "ernie-5.0-preview-1203": {
+    "text": 1449.18
+  },
+  "gpt-5.3-chat-latest": {
+    "text": 1449.15
   },
   "claude-opus-4-1-20250805-thinking-16k": {
-    "text": 1448.8
+    "text": 1448.91
   },
   "mimo-v2-pro": {
-    "text": 1447.1,
-    "code": 1432.88
-  },
-  "gemini-2.5-pro": {
-    "text": 1446.82,
-    "code": 1203.27,
-    "vision": 1246.25
+    "text": 1447.29,
+    "code": 1432.04
   },
   "claude-opus-4-1-20250805": {
-    "text": 1446.79,
-    "code": 1385.42
+    "text": 1446.89,
+    "code": 1385.44
   },
-  "qwen3.6-plus": {
-    "text": 1445.98,
-    "code": 1460.43
+  "gemini-2.5-pro": {
+    "text": 1446.42,
+    "code": 1203.32,
+    "vision": 1245.28
   },
   "qwen3.5-397b-a17b": {
-    "text": 1445.04,
-    "code": 1388.86,
-    "vision": 1241.24
+    "text": 1444.69,
+    "code": 1388.73,
+    "vision": 1243.51
   },
   "gpt-4.5-preview-2025-02-27": {
-    "text": 1444.28,
-    "vision": 1226.04
+    "text": 1444.38,
+    "vision": 1226.15
+  },
+  "qwen3.6-plus": {
+    "text": 1444.05,
+    "code": 1461.29
   },
   "chatgpt-4o-latest-20250326": {
-    "text": 1442.88,
-    "vision": 1241.09
+    "text": 1443.02,
+    "vision": 1241.02
   },
   "glm-4.7": {
-    "text": 1442.58,
+    "text": 1442.57,
     "code": 1440.12
   },
   "deepseek-v4-flash-thinking": {
-    "text": 1440.54
+    "text": 1439.61
   },
   "gpt-5.2-high": {
-    "text": 1440.07,
-    "vision": 1247.38
+    "text": 1439.37,
+    "vision": 1244.54
   },
   "gpt-5.1": {
-    "text": 1439.0,
-    "code": 1339.6,
-    "vision": 1237.51
-  },
-  "gemini-3.1-flash-lite-preview": {
-    "text": 1438.49,
-    "code": 1243.73,
-    "vision": 1238.9
+    "text": 1438.9,
+    "code": 1339.59,
+    "vision": 1237.68
   },
   "gemma-4-26b-a4b": {
-    "text": 1438.24,
-    "code": 1360.7,
-    "vision": 1242.52
+    "text": 1438.42,
+    "code": 1360.94,
+    "vision": 1240.95
+  },
+  "gemini-3.1-flash-lite-preview": {
+    "text": 1435.95,
+    "code": 1244.5,
+    "vision": 1237.71
   },
   "gpt-5.2": {
-    "text": 1436.46,
-    "code": 1404.27,
-    "vision": 1232.64
-  },
-  "qwen3-max-preview": {
-    "text": 1434.81
+    "text": 1435.81,
+    "code": 1404.3,
+    "vision": 1231.82
   },
   "longcat-flash-chat-2602-exp": {
-    "text": 1434.46
+    "text": 1435.32
   },
-  "deepseek-v4-flash": {
-    "text": 1434.42
+  "qwen3-max-preview": {
+    "text": 1434.83
   },
   "gpt-5-high": {
-    "text": 1433.79,
-    "vision": 1211.3
+    "text": 1433.67,
+    "vision": 1211.5
+  },
+  "deepseek-v4-flash": {
+    "text": 1433.35
   },
   "kimi-k2.5-instant": {
-    "text": 1431.88,
-    "code": 1407.76,
-    "vision": 1239.5
+    "text": 1431.78,
+    "code": 1407.81,
+    "vision": 1238.93
   },
   "grok-4-1-fast-reasoning": {
-    "text": 1431.34,
-    "code": 1233.65,
-    "vision": 1190.86
+    "text": 1431.33,
+    "code": 1233.66,
+    "vision": 1191.59
   },
   "o3-2025-04-16": {
-    "text": 1431.13,
-    "vision": 1217.88
+    "text": 1431.01,
+    "vision": 1217.8
   },
   "kimi-k2-thinking-turbo": {
-    "text": 1430.34,
-    "code": 1329.61
-  },
-  "amazon-nova-experimental-chat-26-02-10": {
-    "text": 1428.04
+    "text": 1430.19,
+    "code": 1329.72
   },
   "mimo-v2.5": {
-    "text": 1427.31,
-    "code": 1439.33,
-    "vision": 1222.25
+    "text": 1429.19,
+    "code": 1437.79,
+    "vision": 1230.51
+  },
+  "amazon-nova-experimental-chat-26-02-10": {
+    "text": 1427.01
   },
   "gpt-5-chat": {
-    "text": 1426.51,
-    "vision": 1225.73
+    "text": 1426.56,
+    "vision": 1225.7
   },
   "glm-4.6": {
-    "text": 1425.62,
-    "code": 1355.08
+    "text": 1425.63,
+    "code": 1355.09
   },
   "deepseek-v3.2-exp-thinking": {
-    "text": 1424.57
+    "text": 1424.66
   },
   "qwen3-max-2025-09-23": {
-    "text": 1424.04
+    "text": 1424.11
   },
   "claude-opus-4-20250514-thinking-16k": {
-    "text": 1423.95,
-    "vision": 1206.62
+    "text": 1423.99,
+    "vision": 1206.68
   },
   "deepseek-v3.2": {
-    "text": 1423.87,
-    "code": 1332.14
-  },
-  "deepseek-v3.2-exp": {
-    "text": 1422.82,
-    "code": 1286.57
+    "text": 1423.91,
+    "code": 1332.09
   },
   "qwen3-235b-a22b-instruct-2507": {
-    "text": 1422.55
+    "text": 1422.99
+  },
+  "deepseek-v3.2-exp": {
+    "text": 1422.93,
+    "code": 1286.64
   },
   "deepseek-r1-0528": {
-    "text": 1422.12
+    "text": 1422.26
   },
   "deepseek-v3.2-thinking": {
-    "text": 1421.97,
-    "code": 1368.47
+    "text": 1422.23,
+    "code": 1368.49
   },
   "grok-4-fast-chat": {
-    "text": 1421.01
+    "text": 1420.99
   },
   "ernie-5.0-preview-1022": {
-    "text": 1419.25
-  },
-  "qwen3.5-122b-a10b": {
-    "text": 1418.7,
-    "code": 1363.77,
-    "vision": 1223.77
+    "text": 1419.3
   },
   "kimi-k2-0905-preview": {
-    "text": 1417.77
+    "text": 1417.8
   },
   "deepseek-v3.1": {
-    "text": 1417.68
+    "text": 1417.72
   },
-  "deepseek-v3.1-terminus-thinking": {
-    "text": 1417.28
-  },
-  "kimi-k2-0711-preview": {
-    "text": 1417.14
-  },
-  "deepseek-v3.1-thinking": {
-    "text": 1416.71
+  "qwen3.5-122b-a10b": {
+    "text": 1417.56,
+    "code": 1364.51,
+    "vision": 1222.85
   },
   "hunyuan-hy3-preview": {
-    "text": 1416.48,
-    "code": 1365.57
+    "text": 1417.43,
+    "code": 1365.33
+  },
+  "deepseek-v3.1-terminus-thinking": {
+    "text": 1417.37
+  },
+  "kimi-k2-0711-preview": {
+    "text": 1417.19
+  },
+  "deepseek-v3.1-thinking": {
+    "text": 1416.88
   },
   "deepseek-v3.1-terminus": {
-    "text": 1415.94
-  },
-  "mistral-large-3": {
-    "text": 1415.47,
-    "code": 1222.79
+    "text": 1415.97
   },
   "amazon-nova-experimental-chat-26-01-10": {
-    "text": 1415.45
+    "text": 1415.75
   },
   "qwen3-vl-235b-a22b-instruct": {
-    "text": 1415.36,
-    "vision": 1215.45
+    "text": 1415.38,
+    "vision": 1214.81
+  },
+  "mistral-large-3": {
+    "text": 1415.29,
+    "code": 1222.81
   },
   "gpt-4.1-2025-04-14": {
-    "text": 1413.18,
-    "vision": 1214.48
+    "text": 1413.29,
+    "vision": 1214.37
   },
   "claude-opus-4-20250514": {
-    "text": 1411.99,
-    "vision": 1187.91
+    "text": 1412.03,
+    "vision": 1188.18
   },
   "grok-3-preview-02-24": {
-    "text": 1411.65
+    "text": 1411.71
   },
   "glm-4.5": {
-    "text": 1411.21
+    "text": 1411.19
   },
   "gemini-2.5-flash": {
-    "text": 1410.98,
-    "vision": 1213.79
-  },
-  "grok-4-0709": {
-    "text": 1409.78,
-    "vision": 1182.31
-  },
-  "mistral-medium-2508": {
-    "text": 1409.71,
-    "vision": 1159.01
+    "text": 1410.69,
+    "vision": 1214.15
   },
   "claude-haiku-4-5-20251001": {
-    "text": 1409.59,
-    "code": 1320.29
+    "text": 1409.96,
+    "code": 1320.58
+  },
+  "grok-4-0709": {
+    "text": 1409.86,
+    "vision": 1182.02
+  },
+  "mistral-medium-2508": {
+    "text": 1409.85,
+    "vision": 1158.78
   },
   "minimax-m2.7": {
-    "text": 1408.19,
-    "code": 1407.25
+    "text": 1408.88,
+    "code": 1404.73
   },
   "qwen3.5-27b": {
-    "text": 1408.09,
-    "code": 1354.64,
-    "vision": 1223.75
+    "text": 1408.63,
+    "code": 1355.91,
+    "vision": 1221.49
   },
   "gpt-5.4-nano-high": {
-    "text": 1406.89,
-    "vision": 1200.81
+    "text": 1405.65,
+    "vision": 1199.92
   },
   "gemini-2.5-flash-preview-09-2025": {
-    "text": 1404.58,
-    "vision": 1226.46
+    "text": 1404.63,
+    "vision": 1226.12
   },
   "grok-4-fast-reasoning": {
     "text": 1403.71,
-    "code": 1149.28
+    "code": 1149.32
   },
   "qwen3-235b-a22b-no-thinking": {
-    "text": 1402.83
-  },
-  "o1-2024-12-17": {
-    "text": 1401.68,
-    "vision": 1193.42
+    "text": 1402.97
   },
   "qwen3-next-80b-a3b-instruct": {
-    "text": 1401.62
+    "text": 1401.73
+  },
+  "o1-2024-12-17": {
+    "text": 1401.73,
+    "vision": 1193.53
   },
   "longcat-flash-chat": {
-    "text": 1401.24
+    "text": 1401.39
   },
   "qwen3-235b-a22b-thinking-2507": {
-    "text": 1399.41
+    "text": 1399.48
   },
   "claude-sonnet-4-20250514-thinking-32k": {
-    "text": 1398.82,
-    "vision": 1206.74
-  },
-  "qwen3.5-35b-a3b": {
-    "text": 1397.81,
-    "code": 1249.04
+    "text": 1398.84,
+    "vision": 1206.97
   },
   "deepseek-r1": {
-    "text": 1397.73
+    "text": 1397.82
   },
-  "qwen3.5-flash": {
-    "text": 1396.79,
-    "code": 1236.91
+  "qwen3.5-35b-a3b": {
+    "text": 1397.12,
+    "code": 1249.17
   },
   "hunyuan-vision-1.5-thinking": {
-    "text": 1396.08,
-    "vision": 1162.18
+    "text": 1396.4,
+    "vision": 1161.77
+  },
+  "qwen3.5-flash": {
+    "text": 1396.19,
+    "code": 1237.07
   },
   "qwen3-vl-235b-a22b-thinking": {
-    "text": 1395.56,
-    "vision": 1189.81
+    "text": 1395.71,
+    "vision": 1189.82
   },
   "deepseek-v3-0324": {
-    "text": 1395.09
+    "text": 1395.18
   },
   "step-3.5-flash": {
-    "text": 1395.02
+    "text": 1394.92
   },
   "amazon-nova-experimental-chat-12-10": {
-    "text": 1394.81
+    "text": 1394.71
   },
   "minimax-m2.5": {
-    "text": 1393.56,
-    "code": 1382.13
+    "text": 1393.62,
+    "code": 1382.07
   },
   "mimo-v2-flash (non-thinking)": {
-    "text": 1392.88,
-    "code": 1336.9
+    "text": 1393.18,
+    "code": 1336.81
   },
   "mai-1-preview": {
-    "text": 1392.58
+    "text": 1392.72
   },
   "gpt-5-mini-high": {
-    "text": 1390.14,
-    "vision": 1182.13
+    "text": 1390.02,
+    "vision": 1182.11
   },
   "o4-mini-2025-04-16": {
-    "text": 1389.82,
-    "vision": 1202.03
+    "text": 1389.81,
+    "vision": 1201.92
   },
   "claude-sonnet-4-20250514": {
-    "text": 1388.61,
-    "vision": 1188.59
+    "text": 1388.53,
+    "vision": 1188.68
   },
   "o1-preview": {
-    "text": 1387.91
-  },
-  "mimo-v2-flash (thinking)": {
-    "text": 1387.4,
-    "code": 1300.14
-  },
-  "qwen3-coder-480b-a35b-instruct": {
-    "text": 1387.36,
-    "code": 1281.36
+    "text": 1388.0
   },
   "hunyuan-t1-20250711": {
-    "text": 1387.23
+    "text": 1387.42
+  },
+  "mimo-v2-flash (thinking)": {
+    "text": 1387.42,
+    "code": 1300.17
+  },
+  "qwen3-coder-480b-a35b-instruct": {
+    "text": 1387.39,
+    "code": 1281.36
   },
   "claude-3-7-sonnet-20250219-thinking-32k": {
-    "text": 1386.64,
-    "vision": 1195.44
+    "text": 1386.69,
+    "vision": 1195.49
   },
   "mistral-medium-2505": {
-    "text": 1386.59,
-    "vision": 1156.48
+    "text": 1386.62,
+    "vision": 1156.53
   },
   "minimax-m2.1-preview": {
-    "text": 1384.94,
-    "code": 1391.61
+    "text": 1384.75,
+    "code": 1391.59
   },
   "qwen3-30b-a3b-instruct-2507": {
-    "text": 1383.36
-  },
-  "hunyuan-turbos-20250416": {
-    "text": 1382.34
+    "text": 1383.39
   },
   "gpt-4.1-mini-2025-04-14": {
-    "text": 1382.21,
-    "vision": 1203.1
+    "text": 1382.32,
+    "vision": 1203.05
+  },
+  "hunyuan-turbos-20250416": {
+    "text": 1382.25
   },
   "gemini-2.5-flash-lite-preview-09-2025-no-thinking": {
-    "text": 1379.71,
-    "vision": 1174.79
+    "text": 1379.76,
+    "vision": 1174.57
   },
   "glm-4.6v": {
-    "text": 1377.65,
-    "vision": 1164.63
+    "text": 1377.83,
+    "vision": 1164.56
   },
   "trinity-large-preview": {
-    "text": 1375.72
+    "text": 1375.65
   },
   "qwen3-235b-a22b": {
-    "text": 1374.62
+    "text": 1374.75
   },
   "gemini-2.5-flash-lite-preview-06-17-thinking": {
-    "text": 1374.54,
+    "text": 1374.59,
     "vision": 1188.0
   },
   "qwen2.5-max": {
-    "text": 1374.12
-  },
-  "trinity-large-thinking": {
-    "text": 1373.84,
-    "code": 1244.97
+    "text": 1374.17
   },
   "glm-4.5-air": {
-    "text": 1372.91
+    "text": 1372.96
+  },
+  "trinity-large-thinking": {
+    "text": 1372.64,
+    "code": 1245.74
   },
   "claude-3-5-sonnet-20241022": {
-    "text": 1372.14,
-    "vision": 1161.1
+    "text": 1372.17,
+    "vision": 1161.27
   },
   "claude-3-7-sonnet-20250219": {
     "text": 1370.64,
-    "vision": 1176.11
+    "vision": 1176.18
   },
   "qwen3-next-80b-a3b-thinking": {
-    "text": 1369.43
+    "text": 1369.45
   },
   "glm-4.7-flash": {
-    "text": 1367.98
+    "text": 1367.97
   },
   "amazon-nova-experimental-chat-11-10": {
-    "text": 1367.06
+    "text": 1367.18
   },
   "gemma-3-27b-it": {
-    "text": 1365.74,
-    "vision": 1158.86
+    "text": 1365.75,
+    "vision": 1158.93
   },
   "minimax-m1": {
-    "text": 1363.59
+    "text": 1363.58
   },
   "o3-mini-high": {
-    "text": 1363.25
+    "text": 1363.29
   },
   "grok-3-mini-high": {
-    "text": 1361.94
+    "text": 1361.98
   },
   "nvidia-nemotron-3-super-120b-a12b": {
-    "text": 1361.16
+    "text": 1361.11
   },
   "gemini-2.0-flash-001": {
-    "text": 1360.21,
-    "vision": 1171.28
+    "text": 1360.32,
+    "vision": 1171.44
   },
   "deepseek-v3": {
-    "text": 1358.19
+    "text": 1358.27
   },
   "mistral-small-2506": {
-    "text": 1357.19,
-    "vision": 1141.01
+    "text": 1357.29,
+    "vision": 1140.77
   },
   "grok-3-mini-beta": {
-    "text": 1356.88
+    "text": 1356.87
   },
   "intellect-3": {
-    "text": 1356.6
+    "text": 1356.64
   },
   "command-a-03-2025": {
-    "text": 1353.65
+    "text": 1353.76
   },
   "glm-4.5v": {
-    "text": 1353.23,
-    "vision": 1156.18
+    "text": 1353.34,
+    "vision": 1156.01
   },
   "gemini-2.0-flash-lite-preview-02-05": {
-    "text": 1353.18,
-    "vision": 1135.31
+    "text": 1353.23,
+    "vision": 1135.62
   },
   "gpt-oss-120b": {
-    "text": 1352.91
+    "text": 1352.95
   },
   "gemini-1.5-pro-002": {
-    "text": 1350.81,
-    "vision": 1179.23
+    "text": 1350.84,
+    "vision": 1179.38
   },
   "amazon-nova-experimental-chat-10-20": {
-    "text": 1350.13
+    "text": 1350.26
   },
   "hunyuan-turbos-20250226": {
-    "text": 1348.49
+    "text": 1348.59
   },
   "step-3": {
-    "text": 1348.04,
-    "vision": 1145.59
+    "text": 1348.2,
+    "vision": 1145.42
   },
   "amazon-nova-experimental-chat-10-09": {
-    "text": 1347.47
+    "text": 1347.68
   },
   "o3-mini": {
-    "text": 1347.46
-  },
-  "mercury-2": {
-    "text": 1347.11,
-    "code": 1165.34
-  },
-  "qwen3-32b": {
-    "text": 1347.08
+    "text": 1347.48
   },
   "llama-3.1-nemotron-ultra-253b-v1": {
-    "text": 1347.07
+    "text": 1347.17
+  },
+  "qwen3-32b": {
+    "text": 1347.16
+  },
+  "mercury-2": {
+    "text": 1346.81,
+    "code": 1165.44
   },
   "ling-flash-2.0": {
-    "text": 1346.09
+    "text": 1346.29
   },
   "minimax-m2": {
-    "text": 1346.08,
-    "code": 1304.57
+    "text": 1346.13,
+    "code": 1304.59
   },
   "qwen-plus-0125": {
-    "text": 1345.91
+    "text": 1345.98
   },
   "gpt-4o-2024-05-13": {
-    "text": 1345.31,
-    "vision": 1162.49
+    "text": 1345.36,
+    "vision": 1162.58
   },
   "nvidia-llama-3.3-nemotron-super-49b-v1.5": {
-    "text": 1343.01
+    "text": 1343.11
   },
   "glm-4-plus-0111": {
-    "text": 1342.77
+    "text": 1342.82
   },
   "claude-3-5-sonnet-20240620": {
-    "text": 1341.96,
-    "vision": 1145.74
+    "text": 1341.92,
+    "vision": 1145.83
   },
   "gemma-3-12b-it": {
-    "text": 1341.82
+    "text": 1341.86
   },
   "hunyuan-turbo-0110": {
-    "text": 1340.29
+    "text": 1340.4
   },
   "gpt-5-nano-high": {
-    "text": 1337.42,
-    "vision": 1147.51
+    "text": 1337.25,
+    "vision": 1147.53
   },
   "nova-2-lite": {
-    "text": 1337.18
+    "text": 1337.22
   },
   "o1-mini": {
-    "text": 1336.72
+    "text": 1336.83
   },
   "qwq-32b": {
-    "text": 1335.92
+    "text": 1335.99
   },
   "grok-2-2024-08-13": {
-    "text": 1335.15
+    "text": 1335.25
   },
   "gemini-advanced-0514": {
-    "text": 1334.63
+    "text": 1334.73
   },
   "gpt-4o-2024-08-06": {
-    "text": 1334.54,
-    "vision": 1118.97
+    "text": 1334.6,
+    "vision": 1119.25
   },
   "llama-3.1-405b-instruct-bf16": {
-    "text": 1334.47
+    "text": 1334.45
   },
   "step-2-16k-exp-202412": {
-    "text": 1333.76
+    "text": 1333.84
   },
   "llama-3.1-405b-instruct-fp8": {
-    "text": 1332.63
+    "text": 1332.62
   },
   "olmo-3.1-32b-instruct": {
-    "text": 1330.47
-  },
-  "molmo-2-8b": {
-    "text": 1328.56,
-    "vision": 1107.63
+    "text": 1330.42
   },
   "yi-lightning": {
-    "text": 1328.09
+    "text": 1328.13
+  },
+  "molmo-2-8b": {
+    "text": 1327.91,
+    "vision": 1108.13
   },
   "llama-3.3-nemotron-49b-super-v1": {
-    "text": 1327.59
+    "text": 1327.72
   },
   "qwen3-30b-a3b": {
-    "text": 1327.29
+    "text": 1327.33
   },
   "llama-4-maverick-17b-128e-instruct": {
-    "text": 1326.81,
-    "vision": 1147.43
+    "text": 1326.84,
+    "vision": 1147.47
   },
   "hunyuan-large-2025-02-10": {
-    "text": 1325.75
+    "text": 1325.84
   },
   "gpt-4-turbo-2024-04-09": {
-    "text": 1323.52,
-    "vision": 1112.77
+    "text": 1323.55,
+    "vision": 1112.83
   },
   "deepseek-v2.5-1210": {
-    "text": 1323.11
-  },
-  "claude-3-5-haiku-20241022": {
-    "text": 1323.03,
-    "vision": 1127.0
+    "text": 1323.19
   },
   "gemini-1.5-pro-001": {
-    "text": 1322.94,
-    "vision": 1119.29
+    "text": 1323.05,
+    "vision": 1119.54
+  },
+  "claude-3-5-haiku-20241022": {
+    "text": 1323.05,
+    "vision": 1127.4
   },
   "llama-4-scout-17b-16e-instruct": {
-    "text": 1322.34,
-    "vision": 1128.37
+    "text": 1322.37,
+    "vision": 1128.53
   },
   "gpt-4.1-nano-2025-04-14": {
-    "text": 1321.61,
-    "vision": 1089.53
+    "text": 1321.7,
+    "vision": 1089.62
   },
   "claude-3-opus-20240229": {
-    "text": 1321.07,
-    "vision": 1062.81
+    "text": 1321.01,
+    "vision": 1062.93
   },
   "ring-flash-2.0": {
-    "text": 1320.66
+    "text": 1320.7
   },
   "step-1o-turbo-202506": {
-    "text": 1320.23,
-    "vision": 1158.55
+    "text": 1320.22,
+    "vision": 1157.92
   },
   "glm-4-plus": {
-    "text": 1319.04
+    "text": 1319.11
   },
   "gemma-3n-e4b-it": {
-    "text": 1318.08
+    "text": 1318.1
   },
   "llama-3.3-70b-instruct": {
-    "text": 1318.02
+    "text": 1318.01
   },
   "qwen-max-0919": {
-    "text": 1317.61
+    "text": 1317.66
   },
   "gpt-4o-mini-2024-07-18": {
-    "text": 1317.3,
-    "vision": 1098.2
+    "text": 1317.39,
+    "vision": 1098.3
   },
   "gpt-oss-20b": {
-    "text": 1317.15
+    "text": 1317.18
   },
   "nvidia-nemotron-3-nano-30b-a3b-bf16": {
-    "text": 1316.68
+    "text": 1316.55
   },
   "qwen2.5-plus-1127": {
-    "text": 1314.82
+    "text": 1314.86
   },
   "athene-v2-chat": {
-    "text": 1314.07
+    "text": 1314.13
   },
   "mistral-large-2407": {
-    "text": 1313.55
+    "text": 1313.59
   },
   "gpt-4-0125-preview": {
     "text": 1312.37
   },
   "gpt-4-1106-preview": {
-    "text": 1312.08
+    "text": 1312.03
+  },
+  "granite-4.1-8b": {
+    "text": 1311.05,
+    "code": 1201.04
   },
   "hunyuan-standard-2025-02-10": {
-    "text": 1310.75
+    "text": 1310.82
   },
   "gemini-1.5-flash-002": {
-    "text": 1309.12,
-    "vision": 1140.7
+    "text": 1309.14,
+    "vision": 1140.79
   },
   "grok-2-mini-2024-08-13": {
-    "text": 1308.02
+    "text": 1308.12
   },
   "deepseek-v2.5": {
-    "text": 1306.7
+    "text": 1306.77
   },
   "mercury": {
-    "text": 1306.57
+    "text": 1306.23
   },
   "athene-70b-0725": {
-    "text": 1305.8
+    "text": 1305.89
   },
   "olmo-3-32b-think": {
-    "text": 1305.39
+    "text": 1305.46
   },
   "mistral-large-2411": {
-    "text": 1304.88
+    "text": 1304.93
   },
   "magistral-medium-2506": {
-    "text": 1303.56
+    "text": 1303.59
   },
   "gemma-3-4b-it": {
-    "text": 1303.19
+    "text": 1303.23
   },
   "mistral-small-3.1-24b-instruct-2503": {
-    "text": 1303.15,
-    "vision": 1128.93
+    "text": 1303.14,
+    "vision": 1128.81
   },
   "qwen2.5-72b-instruct": {
-    "text": 1302.45
+    "text": 1302.51
   },
   "llama-3.1-nemotron-70b-instruct": {
-    "text": 1298.69
+    "text": 1298.78
   },
   "hunyuan-large-vision": {
-    "text": 1293.92,
-    "vision": 1147.67
+    "text": 1293.96,
+    "vision": 1148.31
   },
   "llama-3.1-70b-instruct": {
-    "text": 1292.91
+    "text": 1292.95
   },
   "amazon-nova-pro-v1.0": {
-    "text": 1289.72,
-    "vision": 1019.7
+    "text": 1289.77,
+    "vision": 1019.83
   },
   "jamba-1.5-large": {
-    "text": 1288.46
+    "text": 1288.53
   },
   "gemma-2-27b-it": {
-    "text": 1288.1
+    "text": 1288.23
   },
   "reka-core-20240904": {
-    "text": 1287.41
+    "text": 1287.44
   },
   "ibm-granite-h-small": {
-    "text": 1286.63
+    "text": 1286.51
   },
   "gpt-4-0314": {
-    "text": 1286.07
+    "text": 1286.06
   },
   "llama-3.1-tulu-3-70b": {
     "text": 1285.83
   },
   "gemini-1.5-flash-001": {
-    "text": 1285.53,
-    "vision": 1060.06
+    "text": 1285.64,
+    "vision": 1060.34
   },
   "llama-3.1-nemotron-51b-instruct": {
     "text": 1285.49
   },
   "olmo-3.1-32b-think": {
-    "text": 1285.02
+    "text": 1284.89
   },
   "claude-3-sonnet-20240229": {
-    "text": 1280.15,
-    "vision": 1017.75
+    "text": 1280.11,
+    "vision": 1017.81
   },
   "gemma-2-9b-it-simpo": {
-    "text": 1279.18
+    "text": 1279.3
   },
   "nemotron-4-340b-instruct": {
-    "text": 1276.31
+    "text": 1276.26
   },
   "command-r-plus-08-2024": {
-    "text": 1275.59
+    "text": 1275.56
   },
   "llama-3-70b-instruct": {
-    "text": 1275.46
+    "text": 1275.48
   },
   "gpt-4-0613": {
-    "text": 1274.19
+    "text": 1274.2
   },
   "mistral-small-24b-instruct-2501": {
-    "text": 1273.69
+    "text": 1273.74
   },
   "glm-4-0520": {
     "text": 1272.65
   },
   "reka-flash-20240904": {
-    "text": 1271.37
+    "text": 1271.38
   },
   "qwen2.5-coder-32b-instruct": {
-    "text": 1270.03
+    "text": 1270.07
   },
   "c4ai-aya-expanse-32b": {
-    "text": 1266.51
+    "text": 1266.55
   },
   "gemma-2-9b-it": {
-    "text": 1265.59
+    "text": 1265.72
   },
   "deepseek-coder-v2": {
-    "text": 1263.75
-  },
-  "command-r-plus": {
-    "text": 1260.81
+    "text": 1263.81
   },
   "qwen2-72b-instruct": {
-    "text": 1260.78
+    "text": 1260.76
+  },
+  "command-r-plus": {
+    "text": 1260.76
   },
   "claude-3-haiku-20240307": {
-    "text": 1260.33,
-    "vision": 1001.14
+    "text": 1260.3,
+    "vision": 1001.33
   },
   "amazon-nova-lite-v1.0": {
-    "text": 1260.08,
-    "vision": 1019.81
+    "text": 1260.12,
+    "vision": 1019.88
   },
   "gemini-1.5-flash-8b-001": {
-    "text": 1258.32,
-    "vision": 1071.23
+    "text": 1258.36,
+    "vision": 1071.42
   },
   "phi-4": {
-    "text": 1255.66
+    "text": 1255.7
   },
   "olmo-2-0325-32b-instruct": {
-    "text": 1251.24
+    "text": 1251.22
   },
   "command-r-08-2024": {
-    "text": 1249.26
+    "text": 1249.24
   },
   "mistral-large-2402": {
-    "text": 1241.31
+    "text": 1241.27
   },
   "amazon-nova-micro-v1.0": {
-    "text": 1240.35
+    "text": 1240.39
   },
   "jamba-1.5-mini": {
-    "text": 1238.73
+    "text": 1238.81
   },
   "ministral-8b-2410": {
-    "text": 1236.81
+    "text": 1236.87
   },
   "gemini-pro-dev-api": {
-    "text": 1234.7
+    "text": 1234.79
   },
   "qwen1.5-110b-chat": {
-    "text": 1233.09
+    "text": 1233.08
   },
   "hunyuan-standard-256k": {
-    "text": 1232.94
+    "text": 1233.0
   },
   "reka-flash-21b-20240226-online": {
-    "text": 1232.39
+    "text": 1232.35
   },
   "qwen1.5-72b-chat": {
-    "text": 1232.23
+    "text": 1232.21
   },
   "mixtral-8x22b-instruct-v0.1": {
-    "text": 1228.33
+    "text": 1228.29
   },
   "command-r": {
-    "text": 1225.76
+    "text": 1225.7
   },
   "reka-flash-21b-20240226": {
-    "text": 1225.67
+    "text": 1225.63
   },
   "gpt-3.5-turbo-0125": {
-    "text": 1223.22
-  },
-  "llama-3-8b-instruct": {
-    "text": 1222.52
+    "text": 1223.26
   },
   "c4ai-aya-expanse-8b": {
-    "text": 1222.49
+    "text": 1222.53
+  },
+  "llama-3-8b-instruct": {
+    "text": 1222.53
   },
   "mistral-medium": {
-    "text": 1221.8
+    "text": 1221.72
   },
   "gemini-pro": {
-    "text": 1221.37
+    "text": 1221.46
   },
   "llama-3.1-tulu-3-8b": {
-    "text": 1220.34
+    "text": 1220.35
   },
   "yi-1.5-34b-chat": {
-    "text": 1212.4
+    "text": 1212.36
   },
   "zephyr-orpo-141b-A35b-v0.1": {
-    "text": 1211.72
+    "text": 1211.68
   },
   "llama-3.1-8b-instruct": {
-    "text": 1211.09
+    "text": 1211.14
   },
   "granite-3.1-8b-instruct": {
-    "text": 1207.5
+    "text": 1207.46
   },
   "qwen1.5-32b-chat": {
-    "text": 1202.77
+    "text": 1202.73
   },
   "gpt-3.5-turbo-1106": {
-    "text": 1201.6
+    "text": 1201.65
   },
   "gemma-2-2b-it": {
-    "text": 1199.12
+    "text": 1199.25
   },
   "phi-3-medium-4k-instruct": {
-    "text": 1196.89
+    "text": 1196.83
   },
   "mixtral-8x7b-instruct-v0.1": {
-    "text": 1196.0
+    "text": 1195.94
   },
   "dbrx-instruct-preview": {
-    "text": 1193.99
+    "text": 1193.96
   },
   "internlm2_5-20b-chat": {
-    "text": 1190.48
+    "text": 1190.45
   },
   "qwen1.5-14b-chat": {
-    "text": 1189.93
+    "text": 1189.9
   },
   "wizardlm-70b": {
-    "text": 1183.59
+    "text": 1183.53
   },
   "deepseek-llm-67b-chat": {
-    "text": 1183.31
+    "text": 1183.29
   },
   "yi-34b-chat": {
-    "text": 1182.82
+    "text": 1182.79
   },
   "granite-3.0-8b-instruct": {
-    "text": 1181.25
-  },
-  "openchat-3.5-0106": {
-    "text": 1181.24
+    "text": 1181.26
   },
   "openchat-3.5": {
-    "text": 1181.22
+    "text": 1181.21
+  },
+  "openchat-3.5-0106": {
+    "text": 1181.2
   },
   "gemma-1.1-7b-it": {
-    "text": 1180.32
+    "text": 1180.48
   },
   "snowflake-arctic-instruct": {
-    "text": 1178.45
+    "text": 1178.43
   },
   "granite-3.1-2b-instruct": {
-    "text": 1178.08
+    "text": 1178.04
   },
   "tulu-2-dpo-70b": {
-    "text": 1176.8
+    "text": 1176.73
   },
   "openhermes-2.5-mistral-7b": {
-    "text": 1174.21
+    "text": 1174.19
   },
   "vicuna-33b": {
-    "text": 1171.7
+    "text": 1171.65
   },
   "starling-lm-7b-beta": {
-    "text": 1170.63
+    "text": 1170.52
   },
   "phi-3-small-8k-instruct": {
-    "text": 1170.03
+    "text": 1169.99
   },
   "llama-2-70b-chat": {
-    "text": 1169.77
+    "text": 1169.71
   },
   "starling-lm-7b-alpha": {
-    "text": 1166.43
+    "text": 1166.37
   },
   "llama-3.2-3b-instruct": {
-    "text": 1165.82
+    "text": 1165.81
   },
   "nous-hermes-2-mixtral-8x7b-dpo": {
-    "text": 1163.63
+    "text": 1163.56
   },
   "qwq-32b-preview": {
-    "text": 1155.43
+    "text": 1155.28
   },
   "granite-3.0-2b-instruct": {
-    "text": 1155.13
+    "text": 1155.11
   },
   "llama2-70b-steerlm-chat": {
-    "text": 1153.89
+    "text": 1153.8
   },
   "solar-10.7b-instruct-v1.0": {
-    "text": 1151.17
+    "text": 1151.12
   },
   "dolphin-2.2.1-mistral-7b": {
-    "text": 1150.93
+    "text": 1150.89
   },
   "mpt-30b-chat": {
-    "text": 1149.07
+    "text": 1149.06
   },
   "mistral-7b-instruct-v0.2": {
-    "text": 1148.43
+    "text": 1148.36
   },
   "wizardlm-13b": {
-    "text": 1148.14
+    "text": 1148.1
   },
   "falcon-180b-chat": {
     "text": 1146.07
   },
   "qwen1.5-7b-chat": {
-    "text": 1142.81
+    "text": 1142.76
   },
   "phi-3-mini-4k-instruct-june-2024": {
-    "text": 1142.03
+    "text": 1141.99
   },
   "llama-2-13b-chat": {
-    "text": 1140.51
+    "text": 1140.45
   },
   "vicuna-13b": {
-    "text": 1139.84
+    "text": 1139.83
   },
   "qwen-14b-chat": {
     "text": 1137.49
   },
   "palm-2": {
-    "text": 1136.49
+    "text": 1136.56
   },
   "gemma-7b-it": {
-    "text": 1135.79
+    "text": 1135.91
   },
   "codellama-34b-instruct": {
-    "text": 1135.53
+    "text": 1135.48
   },
   "zephyr-7b-beta": {
-    "text": 1129.82
+    "text": 1129.75
   },
   "phi-3-mini-128k-instruct": {
-    "text": 1128.23
+    "text": 1128.22
   },
   "phi-3-mini-4k-instruct": {
-    "text": 1127.29
+    "text": 1127.23
   },
   "guanaco-33b": {
-    "text": 1126.11
+    "text": 1126.07
   },
   "zephyr-7b-alpha": {
-    "text": 1125.72
+    "text": 1125.67
   },
   "stripedhyena-nous-7b": {
-    "text": 1119.92
+    "text": 1119.9
   },
   "codellama-70b-instruct": {
-    "text": 1118.08
+    "text": 1118.06
   },
   "gemma-1.1-2b-it": {
-    "text": 1114.27
+    "text": 1114.42
   },
   "vicuna-7b": {
-    "text": 1113.59
+    "text": 1113.57
   },
   "smollm2-1.7b-instruct": {
-    "text": 1113.34
+    "text": 1113.32
   },
   "llama-3.2-1b-instruct": {
-    "text": 1110.27
+    "text": 1110.25
   },
   "mistral-7b-instruct": {
-    "text": 1108.56
+    "text": 1108.55
   },
   "llama-2-7b-chat": {
-    "text": 1107.12
+    "text": 1107.05
   },
   "gemma-2b-it": {
-    "text": 1091.45
+    "text": 1091.58
   },
   "qwen1.5-4b-chat": {
     "text": 1089.12
   },
   "olmo-7b-instruct": {
-    "text": 1073.28
+    "text": 1073.17
   },
   "koala-13b": {
-    "text": 1069.34
+    "text": 1069.32
   },
   "alpaca-13b": {
-    "text": 1066.79
+    "text": 1066.9
   },
   "gpt4all-13b-snoozy": {
-    "text": 1065.13
+    "text": 1065.17
   },
   "mpt-7b-chat": {
-    "text": 1060.96
+    "text": 1061.0
   },
   "chatglm3-6b": {
-    "text": 1054.89
+    "text": 1054.87
   },
   "RWKV-4-Raven-14B": {
     "text": 1040.35
   },
   "chatglm2-6b": {
-    "text": 1023.04
+    "text": 1023.03
   },
   "oasst-pythia-12b": {
-    "text": 1021.13
+    "text": 1021.16
   },
   "chatglm-6b": {
-    "text": 994.41
+    "text": 994.38
   },
   "fastchat-t5-3b": {
-    "text": 990.47
+    "text": 990.48
   },
   "dolly-v2-12b": {
-    "text": 979.34
+    "text": 979.43
   },
   "llama-13b": {
-    "text": 971.68
+    "text": 971.79
   },
   "stablelm-tuned-alpha-7b": {
-    "text": 951.54
+    "text": 951.52
   },
   "gpt-5.5-xhigh (codex-harness)": {
-    "code": 1500.57
+    "code": 1502.76
   },
   "gpt-5.5-high (codex-harness)": {
-    "code": 1481.33
+    "code": 1479.64
   },
   "gpt-5.4-high (codex-harness)": {
-    "code": 1456.65
+    "code": 1456.75
   },
   "gpt-5.5 (codex-harness)": {
-    "code": 1439.92
+    "code": 1440.47
   },
   "gpt-5.4-medium (codex-harness)": {
-    "code": 1437.06
+    "code": 1437.17
   },
   "gpt-5.3-codex (codex-harness)": {
-    "code": 1406.33
+    "code": 1406.42
   },
   "gpt-5-medium": {
-    "code": 1394.06
+    "code": 1394.1
   },
   "gpt-5.1-medium": {
-    "code": 1391.23
+    "code": 1391.16
   },
   "gpt-5.2-codex": {
-    "code": 1334.41
+    "code": 1334.39
   },
   "gpt-5.1-codex": {
-    "code": 1329.29
+    "code": 1329.3
   },
   "KAT-Coder-Pro-V1": {
-    "code": 1258.3
+    "code": 1258.34
   },
   "gpt-5.1-codex-mini": {
-    "code": 1239.04
-  },
-  "granite-4.1-8b": {
-    "code": 1199.47
+    "code": 1239.08
   },
   "devstral-2": {
     "code": 1199.04
   },
   "grok-code-fast-1": {
-    "code": 1139.48
+    "code": 1139.53
   },
   "devstral-medium-2507": {
-    "code": 1091.85
+    "code": 1091.9
+  },
+  "qwen3.7-plus-preview": {
+    "vision": 1260.35
   },
   "glm-5v-turbo": {
-    "vision": 1229.4
+    "vision": 1227.18
   },
   "ernie-5.0-preview-1220": {
-    "vision": 1218.32
+    "vision": 1218.51
   },
   "mimo-v2-omni": {
-    "vision": 1210.1
+    "vision": 1212.51
   },
   "qwen-vl-max-2025-08-13": {
-    "vision": 1187.76
+    "vision": 1187.53
   },
   "step-1o-vision-32k-highres": {
-    "vision": 1125.97
+    "vision": 1125.8
   },
   "qwen2.5-vl-72b-instruct": {
-    "vision": 1122.42
+    "vision": 1122.38
   },
   "qwen2.5-vl-32b-instruct": {
-    "vision": 1120.94
+    "vision": 1120.51
   },
   "pixtral-large-2411": {
-    "vision": 1095.35
+    "vision": 1095.37
   },
   "qwen-vl-max-1119": {
-    "vision": 1085.66
+    "vision": 1085.73
   },
   "qwen2-vl-72b": {
-    "vision": 1085.5
+    "vision": 1085.66
   },
   "step-1v-32k": {
-    "vision": 1064.5
+    "vision": 1064.57
   },
   "molmo-72b-0924": {
-    "vision": 1046.05
+    "vision": 1046.13
   },
   "hunyuan-standard-vision-2024-12-31": {
-    "vision": 1042.85
+    "vision": 1043.0
   },
   "llama-3.2-vision-90b-instruct": {
-    "vision": 1032.59
+    "vision": 1032.76
   },
   "qwen2-vl-7b-instruct": {
-    "vision": 1031.56
+    "vision": 1031.74
   },
   "pixtral-12b-2409": {
-    "vision": 1025.94
+    "vision": 1025.96
   },
   "internvl2-26b": {
-    "vision": 1025.34
+    "vision": 1025.41
   },
   "yi-vision": {
-    "vision": 1003.19
+    "vision": 1003.25
   },
   "c4ai-aya-vision-32b": {
-    "vision": 1000.74
+    "vision": 1000.71
   },
   "molmo-7b-d-0924": {
-    "vision": 994.89
+    "vision": 994.99
   },
   "llama-3.2-vision-11b-instruct": {
-    "vision": 992.5
+    "vision": 992.69
   },
   "nvila-internal-15b-v1": {
-    "vision": 986.67
+    "vision": 986.81
   },
   "llava-onevision-qwen2-72b-ov": {
-    "vision": 979.49
+    "vision": 979.71
   },
   "llava-v1.6-34b": {
-    "vision": 965.33
+    "vision": 965.39
   },
   "cogvlm2-llama3-chat-19b": {
-    "vision": 964.09
+    "vision": 964.27
   },
   "minicpm-v-2_6": {
-    "vision": 963.88
+    "vision": 964.07
   },
   "internvl2-4b": {
-    "vision": 958.62
+    "vision": 958.67
   },
   "phi-3.5-vision-instruct": {
-    "vision": 920.76
+    "vision": 921.05
   },
   "phi-3-vision-128k-instruct": {
-    "vision": 882.52
+    "vision": 882.8
   },
   "_meta": {
-    "fetched": "2026-05-18T10:10:47.379402+00:00",
+    "fetched": "2026-05-25T10:14:37.902450+00:00",
     "source": "https://arena.ai/leaderboard",
     "categories": [
       "text",
