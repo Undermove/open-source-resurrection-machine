@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TITAN // COLOSSUS PROTOCOL</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+}
+#canvas { display: block; }
+#hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(rgba(0,15,8,0.9), transparent);
+    pointer-events: none;
+    z-index: 10;
+}
+.hud-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #00ff88;
+    font-size: 12px;
+    text-shadow: 0 0 6px #00ff88;
+    white-space: nowrap;
+}
+.hud-label { color: #006633; font-size: 10px; }
+.bar { width: 80px; height: 9px; border: 1px solid currentColor; position: relative; overflow: hidden; }
+.bar-fill { height: 100%; transition: width 0.08s; }
+#hull-fill { background: #00ff88; }
+#heat-fill { background: #ff6600; }
+#hud-weapon { color: #00ccff; text-shadow: 0 0 8px #00ccff; font-size: 13px; }
+#hud-threat { color: #ff4400; text-shadow: 0 0 8px #ff4400; }
+#hud-score { color: #ffcc00; text-shadow: 0 0 6px #ffcc00; }
+#hud-roar { color: #aaffff; }
+#hud-berserk { color: #ff4400; }
+#overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.9);
+    z-index: 20;
+    color: #00ff88;
+}
+#overlay h1 {
+    font-size: clamp(32px, 6vw, 64px);
+    letter-spacing: 12px;
+    text-shadow: 0 0 30px #00ff88, 0 0 60px #00ff44;
+    margin-bottom: 8px;
+}
+#overlay .sub { color: #00aa55; font-size: 14px; margin-bottom: 6px; letter-spacing: 4px; }
+#overlay .lore {
+    color: #447755;
+    font-size: 12px;
+    max-width: 480px;
+    text-align: center;
+    line-height: 1.8;
+    margin: 12px 0 24px;
+}
+#overlay .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+    color: #006633;
+    font-size: 11px;
+    margin-bottom: 20px;
+}
+#overlay .ctrl-key { color: #00ff88; }
+#overlay .start-btn {
+    background: none;
+    border: 2px solid #00ff88;
+    color: #00ff88;
+    font-family: inherit;
+    font-size: 16px;
+    letter-spacing: 4px;
+    padding: 10px 32px;
+    cursor: pointer;
+    text-shadow: 0 0 10px #00ff88;
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+    transition: all 0.2s;
+}
+#overlay .start-btn:hover { background: rgba(0,255,136,0.1); box-shadow: 0 0 40px rgba(0,255,136,0.5); }
+#gameover {
+    position: fixed;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.88);
+    z-index: 20;
+    color: #ff4400;
+}
+#gameover h1 { font-size: 52px; letter-spacing: 8px; text-shadow: 0 0 30px #ff4400; margin-bottom: 16px; }
+#gameover .stats { color: #ffaa44; font-size: 14px; line-height: 2; margin-bottom: 24px; }
+#gameover button {
+    background: none; border: 2px solid #ff4400; color: #ff4400;
+    font-family: inherit; font-size: 14px; letter-spacing: 4px;
+    padding: 10px 28px; cursor: pointer;
+    text-shadow: 0 0 8px #ff4400;
+}
+#gameover button:hover { background: rgba(255,68,0,0.15); }
+#alert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff0000;
+    font-size: 28px;
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px #ff0000;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+}
+#controls-hint {
+    position: fixed;
+    bottom: 8px;
+    left: 0; right: 0;
+    text-align: center;
+    color: #224433;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 10;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+    <div class="hud-item">
+        <span class="hud-label">HULL</span>
+        <div class="bar" style="color:#00ff88"><div class="bar-fill" id="hull-fill" style="width:100%"></div></div>
+        <span id="hull-val">100%</span>
+    </div>
+    <div class="hud-item">
+        <span class="hud-label">HEAT</span>
+        <div class="bar" style="color:#ff6600"><div class="bar-fill" id="heat-fill" style="width:0%"></div></div>
+        <span id="heat-val">0%</span>
+    </div>
+    <div class="hud-item" id="hud-weapon">⚡ LASER</div>
+    <div class="hud-item" id="hud-threat">⚠ THREAT: 1</div>
+    <div class="hud-item" id="hud-score">SCORE: 0</div>
+    <div class="hud-item" id="hud-kills">KILLS: 0</div>
+    <div class="hud-item" id="hud-roar">ROAR: READY</div>
+    <div class="hud-item" id="hud-size">SIZE: 1.0×</div>
+</div>
+
+<div id="overlay">
+    <h1>T I T A N</h1>
+    <div class="sub">COLOSSUS PROTOCOL</div>
+    <div class="lore">
+        Project TITAN — a 58-meter war machine buried beneath the city for 40 years.<br>
+        Reactivated. Containment failed. The military has been notified.<br>
+        You are the last of your kind. Make them remember.
+    </div>
+    <div class="controls">
+        <div><span class="ctrl-key">W/S</span> — Move forward/back</div>
+        <div><span class="ctrl-key">Q/E</span> — Rotate</div>
+        <div><span class="ctrl-key">A/D</span> — Strafe</div>
+        <div><span class="ctrl-key">SPACE</span> — Fire weapon</div>
+        <div><span class="ctrl-key">1</span> — Laser beam (hold)</div>
+        <div><span class="ctrl-key">2</span> — Homing missiles</div>
+        <div><span class="ctrl-key">3</span> — Plasma stomp (AOE)</div>
+        <div><span class="ctrl-key">R</span> — ROAR (stun + push)</div>
+        <div><span class="ctrl-key">TAB</span> — Berserker mode</div>
+        <div><span class="ctrl-key">F</span> — Absorb rubble (heal)</div>
+    </div>
+    <button class="start-btn" onclick="startGame()">ACTIVATE TITAN</button>
+</div>
+
+<div id="gameover">
+    <h1>TITAN OFFLINE</h1>
+    <div class="stats" id="gameover-stats"></div>
+    <button onclick="startGame()">REACTIVATE</button>
+</div>
+
+<div id="alert"></div>
+<div id="controls-hint">WASD: Move | Q/E: Rotate | SPACE: Fire | 1/2/3: Weapons | R: ROAR | TAB: Berserk | F: Absorb</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let CW, CH;
+function resize() {
+    CW = canvas.width = Math.min(window.innerWidth, 1280);
+    CH = canvas.height = Math.min(window.innerHeight, 800);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const WORLD = { w: 6000, h: 6000 };
+const ROBOT_BASE_W = 68;
+const ROBOT_BASE_H = 96;
+const BASE_SPEED = 2.2;
+const ROT_SPEED = 0.043;
+
+const WEAPON_DEFS = [
+    { name: '⚡ LASER',   heatRate: 0.9, cooldown: 0,  color: '#00eeff', range: 620, projSpd: 0 },
+    { name: '🚀 MISSILES', heatRate: 2.2, cooldown: 22, color: '#ff8800', range: 560, projSpd: 5.5 },
+    { name: '💥 PLASMA',   heatRate: 6,   cooldown: 55, color: '#aa00ff', range: 200, projSpd: 0 },
+];
+
+const BTYPES = [
+    { t: 'res', c: '#4a5560', w:[15,32], h:[15,32], hp: 28,  val: 10,  freq: 0.44 },
+    { t: 'com', c: '#3a4870', w:[20,38], h:[24,52], hp: 48,  val: 20,  freq: 0.24 },
+    { t: 'ind', c: '#604030', w:[28,48], h:[28,48], hp: 85,  val: 35,  freq: 0.13 },
+    { t: 'pow', c: '#806010', w:[24,38], h:[24,38], hp: 60,  val: 55,  freq: 0.07 },
+    { t: 'mil', c: '#284828', w:[32,52], h:[32,52], hp: 130, val: 65,  freq: 0.07 },
+    { t: 'lab', c: '#186858', w:[24,38], h:[24,38], hp: 55,  val: 110, freq: 0.05 },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let gameState = 'menu';
+let score = 0, kills = 0, threatLevel = 1;
+let spawnCooldown = 0, frameCount = 0;
+let bossAlive = false, bossSpawned = false;
+
+const cam = { x: 0, y: 0 };
+
+let robot, buildings, enemies, projectiles, particles, pickups, shockwaves, alertTimer;
+
+function initRobot() {
+    robot = {
+        x: 3000, y: 3000,
+        angle: -Math.PI / 2,
+        vx: 0, vy: 0,
+        hp: 100, maxHp: 100,
+        heat: 0, maxHeat: 100,
+        weaponIdx: 0,
+        wcd: 0,
+        overheated: false,
+        berserker: false, berserkTimer: 0,
+        roarCd: 0,
+        iFrames: 0,
+        legDmg: 0, armDmg: 0,
+        walkPhase: 0,
+        stompTimer: 0,
+        sizeScale: 1.0,
+        absorbCd: 0,
+        absorbParticleTimer: 0,
+    };
+}
+
+// ─── WORLD GENERATION ────────────────────────────────────────────────────────
+function generateWorld() {
+    buildings = [];
+    const CELL = 68;
+    for (let gx = 1; gx * CELL < WORLD.w - CELL; gx++) {
+        for (let gy = 1; gy * CELL < WORLD.h - CELL; gy++) {
+            const wx = gx * CELL + 8 + Math.random() * 18;
+            const wy = gy * CELL + 8 + Math.random() * 18;
+            const dx = wx - 3000, dy = wy - 3000;
+            if (dx*dx + dy*dy < 380*380) continue;
+            if (Math.random() > 0.50) continue;
+
+            // Pick type
+            let r = Math.random(), bt = BTYPES[0];
+            let cum = 0;
+            for (const bt2 of BTYPES) { cum += bt2.freq; if (r <= cum) { bt = bt2; break; } }
+
+            const w = bt.w[0] + Math.random() * (bt.w[1] - bt.w[0]);
+            const h = bt.h[0] + Math.random() * (bt.h[1] - bt.h[0]);
+            const hp = bt.hp * (0.75 + Math.random() * 0.5);
+            buildings.push({
+                x: wx, y: wy, w, h,
+                type: bt.t, color: bt.c,
+                hp, maxHp: hp, val: bt.val,
+                destroyed: false, rubble: false,
+                smokeTimer: Math.random() * 60,
+            });
+        }
+    }
+}
+
+// ─── SPAWN HELPERS ───────────────────────────────────────────────────────────
+function getEdgePos() {
+    const margin = Math.max(CW, CH) * 0.6 + 100;
+    const side = Math.floor(Math.random() * 4);
+    const cx = robot.x, cy = robot.y;
+    switch (side) {
+        case 0: return { x: cx + (Math.random()-0.5)*margin*1.5, y: cy - margin };
+        case 1: return { x: cx + (Math.random()-0.5)*margin*1.5, y: cy + margin };
+        case 2: return { x: cx - margin, y: cy + (Math.random()-0.5)*margin*1.5 };
+        case 3: return { x: cx + margin, y: cy + (Math.random()-0.5)*margin*1.5 };
+    }
+}
+
+const ENEMY_DEFS = {
+    tank:      { hp:45,   spd:0.80, sz:11, val:25,  col:'#446644', rate:90,  pspd:3.8, dmg:9,  rng:380 },
+    heli:      { hp:28,   spd:1.80, sz:10, val:35,  col:'#558855', rate:55,  pspd:5.0, dmg:6,  rng:430 },
+    jet:       { hp:18,   spd:3.60, sz:8,  val:50,  col:'#88aa77', rate:40,  pspd:7.0, dmg:11, rng:520 },
+    artillery: { hp:70,   spd:0.25, sz:14, val:45,  col:'#556644', rate:160, pspd:3.2, dmg:20, rng:700 },
+    titan_mk2: { hp:1200, spd:0.55, sz:52, val:600, col:'#cc3300', rate:42,  pspd:5.2, dmg:14, rng:460 },
+};
+
+function spawnEnemy(type, x, y) {
+    const d = ENEMY_DEFS[type];
+    enemies.push({
+        type, x, y,
+        hp: d.hp, maxHp: d.hp,
+        spd: d.spd, sz: d.sz, val: d.val, col: d.col,
+        rate: d.rate, shootCd: Math.floor(Math.random() * d.rate),
+        pspd: d.pspd, dmg: d.dmg, rng: d.rng,
+        angle: Math.random() * Math.PI * 2,
+        vx: 0, vy: 0,
+        dead: false, stunTimer: 0,
+        legDmg: 0,
+        phaseTimer: 0,
+        phase: 'approach',
+        orbitDir: Math.random() < 0.5 ? 1 : -1,
+    });
+}
+
+// ─── PARTICLE SYSTEM ─────────────────────────────────────────────────────────
+function spawnParticles(x, y, count, color, spd=3, life=40, sz=3, grav=0) {
+    for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = spd * (0.4 + Math.random() * 0.8);
+        particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life, maxLife: life, color, sz: sz*(0.5+Math.random()*0.7), grav });
+    }
+}
+
+function spawnExplosion(x, y, scale=1) {
+    spawnParticles(x, y, Math.ceil(14*scale), '#ff8800', 5.5*scale, 55, 4.5*scale);
+    spawnParticles(x, y, Math.ceil(9*scale),  '#ffcc00', 3.5*scale, 38, 3*scale);
+    spawnParticles(x, y, Math.ceil(6*scale),  '#ffffff', 2.5*scale, 22, 2*scale);
+    spawnParticles(x, y, Math.ceil(5*scale),  '#333333', 2*scale,   70, 5*scale, 0.04);
+    shockwaves.push({ x, y, r: 8, maxR: 70*scale, life: 18, alpha: 0.7, color: '#ff8800' });
+}
+
+// ─── ALERT SYSTEM ────────────────────────────────────────────────────────────
+function showAlert(msg, color='#ff0000') {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.style.color = color;
+    el.style.textShadow = `0 0 20px ${color}`;
+    el.style.opacity = '1';
+    if (alertTimer) clearTimeout(alertTimer);
+    alertTimer = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+// ─── BUILDING DESTRUCTION ────────────────────────────────────────────────────
+function destroyBuilding(b) {
+    if (b.destroyed) return;
+    b.destroyed = true;
+    score += Math.round(b.val * (robot.sizeScale * 0.8 + 0.2));
+    const sc = b.w / 30;
+    spawnExplosion(b.x, b.y, sc);
+
+    switch (b.type) {
+        case 'pow':
+            spawnExplosion(b.x, b.y, sc * 2);
+            spawnParticles(b.x, b.y, 18, '#ffff00', 5, 65, 4, -0.02);
+            pickups.push({ x: b.x, y: b.y, type: 'energy', life: 700 });
+            break;
+        case 'mil':
+            for (let i = 0; i < 3; i++) {
+                spawnEnemy('tank', b.x + (Math.random()-0.5)*70, b.y + (Math.random()-0.5)*70);
+            }
+            break;
+        case 'lab':
+            pickups.push({ x: b.x, y: b.y, type: 'upgrade', life: 700 });
+            break;
+        case 'res':
+        case 'com':
+            if (Math.random() < 0.12) pickups.push({ x: b.x, y: b.y, type: 'repair', life: 700 });
+            break;
+    }
+
+    // Growth mechanic: robot grows as it destroys
+    if (score % 1000 < b.val && robot.sizeScale < 2.5) {
+        robot.sizeScale = Math.min(2.5, robot.sizeScale + 0.04);
+    }
+}
+
+// ─── ENEMY DAMAGE / KILL ─────────────────────────────────────────────────────
+function damageEnemy(e, dmg) {
+    if (e.dead) return;
+    const mult = robot.berserker ? 1.6 : 1;
+    e.hp -= dmg * mult;
+    spawnParticles(e.x, e.y, 3, '#ffaa00', 2.5, 22, 2.5);
+    if (e.hp <= 0) killEnemy(e);
+}
+
+function killEnemy(e) {
+    if (e.dead) return;
+    e.dead = true;
+    kills++;
+    const s = Math.round(e.val * threatLevel * robot.sizeScale);
+    score += s;
+    spawnExplosion(e.x, e.y, e.type === 'titan_mk2' ? 5 : (e.sz / 11));
+    if (e.type === 'titan_mk2') {
+        bossAlive = false;
+        showAlert('TITAN MK.II DESTROYED', '#00ff88');
+    }
+    if (Math.random() < 0.28) {
+        pickups.push({ x: e.x, y: e.y, type: Math.random() < 0.55 ? 'repair' : 'energy', life: 650 });
+    }
+    // Grow on boss kill
+    if (e.type === 'titan_mk2') robot.sizeScale = Math.min(2.5, robot.sizeScale + 0.15);
+}
+
+// ─── WEAPON FIRE ─────────────────────────────────────────────────────────────
+function fireWeapon() {
+    const w = WEAPON_DEFS[robot.weaponIdx];
+    const armMult = 1 - robot.armDmg / 160;
+
+    switch (robot.weaponIdx) {
+        case 0: { // Laser — continuous, handle each frame
+            robot.heat += w.heatRate;
+            const lx = Math.cos(robot.angle), ly = Math.sin(robot.angle);
+            // Enemies
+            for (const e of enemies) {
+                if (e.dead) continue;
+                const ex = e.x - robot.x, ey = e.y - robot.y;
+                const dot = ex*lx + ey*ly;
+                if (dot < 0 || dot > w.range) continue;
+                const cross = Math.abs(ex*ly - ey*lx);
+                if (cross < e.sz + 7) {
+                    damageEnemy(e, 0.65 * armMult);
+                    if (frameCount % 4 === 0) spawnParticles(e.x, e.y, 2, '#00ffff', 2, 12, 1.5);
+                }
+            }
+            // Buildings
+            for (const b of buildings) {
+                if (b.destroyed) continue;
+                const bx = b.x - robot.x, by = b.y - robot.y;
+                const dot = bx*lx + by*ly;
+                if (dot < 10 || dot > w.range) continue;
+                const cross = Math.abs(bx*ly - by*lx);
+                if (cross < b.w * 0.55 + 4) {
+                    b.hp -= 0.7 * armMult;
+                    if (b.hp <= 0) destroyBuilding(b);
+                    if (frameCount % 6 === 0) spawnParticles(b.x, b.y, 1, '#ff8800', 2, 14, 2);
+                }
+            }
+            break;
+        }
+        case 1: { // Missiles — burst of 3
+            robot.heat += w.heatRate;
+            robot.wcd = w.cooldown;
+            let best = null, bd = Infinity;
+            for (const e of enemies) {
+                if (e.dead) continue;
+                const d = Math.hypot(e.x-robot.x, e.y-robot.y);
+                if (d < w.range && d < bd) { bd = d; best = e; }
+            }
+            for (let i = 0; i < 3; i++) {
+                const spread = (i - 1) * 0.18;
+                const fa = robot.angle + spread;
+                const RW = ROBOT_BASE_W * robot.sizeScale;
+                const RH = ROBOT_BASE_H * robot.sizeScale;
+                const ox = Math.cos(robot.angle) * (RH * 0.5 + 8);
+                const oy = Math.sin(robot.angle) * (RH * 0.5 + 8);
+                projectiles.push({
+                    type: 'missile', x: robot.x+ox, y: robot.y+oy,
+                    vx: Math.cos(fa)*w.projSpd, vy: Math.sin(fa)*w.projSpd,
+                    target: best, life: 130,
+                    dmg: 28 * armMult, color: w.color, sz: 4, fromPlayer: true,
+                    trail: [],
+                });
+            }
+            break;
+        }
+        case 2: { // Plasma stomp
+            robot.heat += w.heatRate;
+            robot.wcd = w.cooldown;
+            robot.stompTimer = 18;
+            const R2 = w.range * robot.sizeScale;
+            // Enemies
+            for (const e of enemies) {
+                if (e.dead) continue;
+                const d = Math.hypot(e.x-robot.x, e.y-robot.y);
+                if (d < R2) {
+                    const pct = 1 - d/R2;
+                    damageEnemy(e, 90 * pct * armMult);
+                    const ka = Math.atan2(e.y-robot.y, e.x-robot.x);
+                    e.vx = Math.cos(ka) * 10 * pct;
+                    e.vy = Math.sin(ka) * 10 * pct;
+                }
+            }
+            // Buildings
+            for (const b of buildings) {
+                if (b.destroyed) continue;
+                const d = Math.hypot(b.x-robot.x, b.y-robot.y);
+                if (d < R2) {
+                    b.hp -= 55 * (1 - d/R2) * armMult;
+                    if (b.hp <= 0) destroyBuilding(b);
+                }
+            }
+            spawnExplosion(robot.x, robot.y, 3.5 * robot.sizeScale);
+            shockwaves.push({ x: robot.x, y: robot.y, r: 20, maxR: R2, life: 28, alpha: 0.9, color: '#aa00ff' });
+            spawnParticles(robot.x, robot.y, 25, '#aa00ff', 7*robot.sizeScale, 45, 4);
+            break;
+        }
+    }
+}
+
+// ─── ROAR ────────────────────────────────────────────────────────────────────
+function doRoar() {
+    robot.roarCd = 600;
+    const R2 = 380 * robot.sizeScale;
+    for (const e of enemies) {
+        if (e.dead) continue;
+        const d = Math.hypot(e.x-robot.x, e.y-robot.y);
+        if (d < R2) {
+            e.stunTimer = 140;
+            const ka = Math.atan2(e.y-robot.y, e.x-robot.x);
+            e.vx = Math.cos(ka) * 6;
+            e.vy = Math.sin(ka) * 6;
+        }
+    }
+    shockwaves.push({ x: robot.x, y: robot.y, r: 40, maxR: R2, life: 45, alpha: 1.0, color: '#ffffff' });
+    shockwaves.push({ x: robot.x, y: robot.y, r: 20, maxR: R2*0.65, life: 38, alpha: 0.7, color: '#aaffff' });
+    spawnParticles(robot.x, robot.y, 35, '#ffffff', 7, 65, 4);
+    score += 150;
+    showAlert('ROAR!', '#aaffff');
+}
+
+// ─── UPDATE ROBOT ────────────────────────────────────────────────────────────
+function updateRobot() {
+    if (robot.stompTimer > 0) robot.stompTimer--;
+    if (robot.absorbCd > 0) robot.absorbCd--;
+
+    const RW = ROBOT_BASE_W * robot.sizeScale;
+    const RH = ROBOT_BASE_H * robot.sizeScale;
+    const speedMult = (1 - robot.legDmg/200) * (robot.berserker ? 1.85 : 1) * robot.sizeScale * 0.7 + 0.3;
+    const speed = BASE_SPEED * speedMult;
+
+    if (keys['q'] || keys['arrowleft'])  robot.angle -= ROT_SPEED;
+    if (keys['e'] || keys['arrowright']) robot.angle += ROT_SPEED;
+
+    let dx = 0, dy = 0;
+    if (keys['w'] || keys['arrowup'])   { dx += Math.cos(robot.angle); dy += Math.sin(robot.angle); }
+    if (keys['s'] || keys['arrowdown']) { dx -= Math.cos(robot.angle); dy -= Math.sin(robot.angle); }
+    if (keys['a']) { dx += Math.cos(robot.angle - Math.PI/2); dy += Math.sin(robot.angle - Math.PI/2); }
+    if (keys['d']) { dx += Math.cos(robot.angle + Math.PI/2); dy += Math.sin(robot.angle + Math.PI/2); }
+
+    const moving = dx !== 0 || dy !== 0;
+    if (moving) {
+        const len = Math.sqrt(dx*dx + dy*dy);
+        robot.vx = dx/len * speed;
+        robot.vy = dy/len * speed;
+        robot.walkPhase += 0.14 * speedMult;
+        if (frameCount % 18 === 0) {
+            const fa = robot.angle + Math.PI/2;
+            const side = Math.sin(robot.walkPhase) > 0 ? 1 : -1;
+            const fx = robot.x + Math.cos(robot.angle + Math.PI/2 * side) * RW * 0.45;
+            const fy = robot.y + Math.sin(robot.angle + Math.PI/2 * side) * RW * 0.45;
+            spawnParticles(fx, fy + RH*0.55, 5, '#443322', 1.5*robot.sizeScale, 40, 6*robot.sizeScale, 0);
+        }
+    } else {
+        robot.vx *= 0.75;
+        robot.vy *= 0.75;
+    }
+
+    robot.x = Math.max(RW, Math.min(WORLD.w-RW, robot.x + robot.vx));
+    robot.y = Math.max(RH, Math.min(WORLD.h-RH, robot.y + robot.vy));
+
+    // Collide with buildings
+    for (const b of buildings) {
+        if (b.destroyed) continue;
+        const bx1 = b.x - b.w/2, by1 = b.y - b.h/2;
+        const bx2 = b.x + b.w/2, by2 = b.y + b.h/2;
+        if (robot.x + RW*0.45 > bx1 && robot.x - RW*0.45 < bx2 &&
+            robot.y + RH*0.45 > by1 && robot.y - RH*0.45 < by2) {
+            b.hp -= 3.5 * robot.sizeScale;
+            if (b.hp <= 0) {
+                destroyBuilding(b);
+            } else {
+                // Push robot
+                const ovX = Math.min(robot.x + RW*0.45 - bx1, bx2 - (robot.x - RW*0.45));
+                const ovY = Math.min(robot.y + RH*0.45 - by1, by2 - (robot.y - RH*0.45));
+                if (ovX < ovY) { if (robot.x < b.x) robot.x -= ovX; else robot.x += ovX; }
+                else           { if (robot.y < b.y) robot.y -= ovY; else robot.y += ovY; }
+            }
+        }
+    }
+
+    // Absorb rubble (F key)
+    if (keys['f'] && robot.absorbCd <= 0) {
+        let absorbed = false;
+        for (const b of buildings) {
+            if (!b.destroyed || b.rubble === 'used') continue;
+            if (Math.hypot(b.x-robot.x, b.y-robot.y) < RW * 1.6) {
+                robot.hp = Math.min(robot.maxHp, robot.hp + 3);
+                robot.legDmg = Math.max(0, robot.legDmg - 3);
+                robot.armDmg = Math.max(0, robot.armDmg - 3);
+                b.rubble = 'used';
+                spawnParticles(b.x, b.y, 8, '#00ff88', 3, 35, 3, -0.03);
+                absorbed = true;
+                robot.absorbCd = 8;
+                break;
+            }
+        }
+    }
+
+    // Heat
+    if (robot.overheated) {
+        robot.heat -= 1.8;
+        if (robot.heat <= 0) { robot.heat = 0; robot.overheated = false; showAlert('SYSTEMS RESTORED', '#00ff88'); }
+    } else {
+        robot.heat = Math.max(0, robot.heat - 0.35);
+        if (robot.heat >= robot.maxHeat) {
+            robot.overheated = true;
+            showAlert('OVERHEAT — SYSTEMS COOLING', '#ff4400');
+            spawnParticles(robot.x, robot.y, 25, '#ff4400', 5, 50, 5, -0.04);
+        }
+    }
+
+    if (robot.wcd > 0) robot.wcd--;
+
+    if (keys[' '] && !robot.overheated && robot.wcd <= 0) fireWeapon();
+
+    if (robot.roarCd > 0) robot.roarCd--;
+    if (keys['r'] && robot.roarCd <= 0) doRoar();
+
+    // Berserker
+    if (robot.berserker && robot.berserkTimer > 0) {
+        robot.berserkTimer--;
+        robot.hp = Math.max(1, robot.hp - 0.04);
+        if (robot.berserkTimer <= 0) {
+            robot.berserker = false;
+            showAlert('BERSERKER OFF', '#ff8800');
+        }
+    }
+    if (robot.iFrames > 0) robot.iFrames--;
+
+    // Camera
+    cam.x = robot.x - CW/2;
+    cam.y = robot.y - CH/2;
+
+    if (robot.hp <= 0) {
+        spawnExplosion(robot.x, robot.y, 6);
+        endGame();
+    }
+}
+
+// ─── UPDATE ENEMIES ───────────────────────────────────────────────────────────
+function updateEnemies() {
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (e.dead) { enemies.splice(i, 1); continue; }
+        if (e.stunTimer > 0) { e.stunTimer--; e.vx *= 0.85; e.vy *= 0.85; e.x += e.vx; e.y += e.vy; continue; }
+
+        const dx = robot.x - e.x, dy = robot.y - e.y;
+        const dist = Math.hypot(dx, dy);
+        const eAngle = Math.atan2(dy, dx);
+        const spd = e.spd * (1 - (e.legDmg||0)/100);
+
+        // State machine
+        e.phaseTimer--;
+        if (e.phaseTimer <= 0) {
+            if (e.type === 'jet') {
+                e.phase = e.phase === 'approach' ? 'strafe' : 'approach';
+                e.phaseTimer = 100 + Math.random() * 80;
+            } else if (e.type === 'heli') {
+                e.phase = e.phase === 'approach' ? 'orbit' : 'approach';
+                e.phaseTimer = 150 + Math.random() * 100;
+            } else {
+                e.phaseTimer = 200;
+            }
+        }
+
+        let ax = 0, ay = 0;
+        const targetDist = e.rng * 0.7;
+
+        if (e.phase === 'orbit' && dist < e.rng) {
+            // Perpendicular orbit
+            const perpAngle = eAngle + Math.PI/2 * e.orbitDir;
+            ax = Math.cos(perpAngle) * spd;
+            ay = Math.sin(perpAngle) * spd;
+        } else if (dist > targetDist) {
+            ax = Math.cos(eAngle) * spd;
+            ay = Math.sin(eAngle) * spd;
+        } else if (dist < targetDist * 0.5 && e.type !== 'tank') {
+            ax = -Math.cos(eAngle) * spd * 0.5;
+            ay = -Math.sin(eAngle) * spd * 0.5;
+        }
+
+        e.vx = e.vx * 0.88 + ax * 0.12;
+        e.vy = e.vy * 0.88 + ay * 0.12;
+
+        // Jet — fast passes
+        if (e.type === 'jet' && e.phase === 'approach') {
+            e.vx = Math.cos(eAngle) * e.spd * 1.5;
+            e.vy = Math.sin(eAngle) * e.spd * 1.5;
+        }
+
+        e.x += e.vx;
+        e.y += e.vy;
+        e.angle = Math.atan2(e.vy, e.vx) || eAngle;
+
+        // Bounds
+        e.x = Math.max(10, Math.min(WORLD.w-10, e.x));
+        e.y = Math.max(10, Math.min(WORLD.h-10, e.y));
+
+        // Shoot
+        if (e.shootCd > 0) { e.shootCd--; }
+        else if (dist < e.rng) {
+            e.shootCd = e.rate;
+            const lead = dist / (e.pspd * 2);
+            const tx = robot.x + robot.vx * lead;
+            const ty = robot.y + robot.vy * lead;
+            const sa = Math.atan2(ty - e.y, tx - e.x);
+            const spread = e.type === 'titan_mk2' ? 3 : 1;
+            for (let s = 0; s < spread; s++) {
+                const angleOff = spread > 1 ? (s - 1) * 0.15 : 0;
+                projectiles.push({
+                    type: 'enemy', x: e.x, y: e.y,
+                    vx: Math.cos(sa+angleOff) * e.pspd,
+                    vy: Math.sin(sa+angleOff) * e.pspd,
+                    life: 200, dmg: e.dmg,
+                    color: e.type === 'titan_mk2' ? '#ff0000' : '#ffaa00',
+                    sz: e.type === 'titan_mk2' ? 9 : 4,
+                    fromPlayer: false,
+                });
+            }
+        }
+    }
+}
+
+// ─── UPDATE PROJECTILES ──────────────────────────────────────────────────────
+function updateProjectiles() {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.life--;
+
+        // Missile homing
+        if (p.type === 'missile' && p.target && !p.target.dead) {
+            const dx = p.target.x - p.x, dy = p.target.y - p.y;
+            const ta = Math.atan2(dy, dx);
+            const ca = Math.atan2(p.vy, p.vx);
+            let da = ta - ca;
+            while (da > Math.PI) da -= Math.PI*2;
+            while (da < -Math.PI) da += Math.PI*2;
+            const turn = 0.09;
+            const na = ca + Math.sign(da) * Math.min(Math.abs(da), turn);
+            const spd = Math.hypot(p.vx, p.vy);
+            p.vx = Math.cos(na) * spd;
+            p.vy = Math.sin(na) * spd;
+        }
+
+        // Trail
+        if (p.trail) {
+            p.trail.push({ x: p.x, y: p.y });
+            if (p.trail.length > 9) p.trail.shift();
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        let hit = false;
+        if (p.life <= 0) { hit = true; }
+
+        if (!hit && p.fromPlayer) {
+            for (const e of enemies) {
+                if (e.dead) continue;
+                if (Math.hypot(e.x-p.x, e.y-p.y) < e.sz + p.sz) {
+                    damageEnemy(e, p.dmg);
+                    spawnExplosion(p.x, p.y, 0.6);
+                    hit = true; break;
+                }
+            }
+            if (!hit) {
+                for (const b of buildings) {
+                    if (b.destroyed) continue;
+                    if (p.x > b.x-b.w/2 && p.x < b.x+b.w/2 && p.y > b.y-b.h/2 && p.y < b.y+b.h/2) {
+                        b.hp -= p.dmg * 0.25;
+                        if (b.hp <= 0) destroyBuilding(b);
+                        spawnParticles(p.x, p.y, 4, '#ff8800', 2.5, 20, 2);
+                        hit = true; break;
+                    }
+                }
+            }
+        } else if (!hit) {
+            // Enemy proj hits robot
+            const RW = ROBOT_BASE_W * robot.sizeScale;
+            if (robot.iFrames <= 0 && Math.hypot(robot.x-p.x, robot.y-p.y) < RW * 0.55 + p.sz) {
+                robot.hp -= p.dmg * (robot.berserker ? 0.45 : 1);
+                robot.iFrames = 14;
+                spawnParticles(p.x, p.y, 6, '#ff4400', 3.5, 30, 3);
+                if (Math.random() < 0.12) {
+                    if (Math.random() < 0.5) robot.legDmg = Math.min(80, robot.legDmg + 12);
+                    else robot.armDmg = Math.min(80, robot.armDmg + 12);
+                }
+                hit = true;
+            }
+        }
+
+        if (hit) projectiles.splice(i, 1);
+    }
+}
+
+// ─── UPDATE PICKUPS ──────────────────────────────────────────────────────────
+function updatePickups() {
+    const RW = ROBOT_BASE_W * robot.sizeScale;
+    for (let i = pickups.length - 1; i >= 0; i--) {
+        const p = pickups[i];
+        p.life--;
+        if (p.life <= 0) { pickups.splice(i, 1); continue; }
+        if (Math.hypot(p.x-robot.x, p.y-robot.y) < RW * 0.65 + 16) {
+            switch (p.type) {
+                case 'repair':
+                    robot.hp = Math.min(robot.maxHp, robot.hp + 22);
+                    robot.legDmg = Math.max(0, robot.legDmg - 25);
+                    robot.armDmg = Math.max(0, robot.armDmg - 25);
+                    spawnParticles(robot.x, robot.y, 18, '#00ff88', 3.5, 45, 3.5);
+                    showAlert('HULL REPAIRED', '#00ff88');
+                    break;
+                case 'energy':
+                    robot.heat = Math.max(0, robot.heat - 45);
+                    if (robot.overheated && robot.heat < 25) { robot.overheated = false; }
+                    spawnParticles(robot.x, robot.y, 18, '#ffff00', 3.5, 45, 3.5);
+                    showAlert('ENERGY ABSORBED', '#ffff00');
+                    break;
+                case 'upgrade':
+                    robot.berserker = true;
+                    robot.berserkTimer = 360;
+                    spawnParticles(robot.x, robot.y, 22, '#aa00ff', 4.5, 55, 4);
+                    showAlert('BERSERKER MODE', '#ff4400');
+                    break;
+            }
+            score += 60;
+            pickups.splice(i, 1);
+        }
+    }
+}
+
+// ─── UPDATE THREAT ───────────────────────────────────────────────────────────
+function updateThreat() {
+    const thresholds = [0, 600, 2200, 6000, 14000];
+    let newThreat = 1;
+    for (let t = thresholds.length - 1; t >= 0; t--) {
+        if (score >= thresholds[t]) { newThreat = t + 1; break; }
+    }
+    if (newThreat > threatLevel) {
+        threatLevel = newThreat;
+        showAlert(`⚠ THREAT LEVEL ${threatLevel} ⚠`, '#ff4400');
+        spawnParticles(robot.x, robot.y, 30, '#ff0000', 6, 70, 4.5);
+    }
+
+    if (spawnCooldown > 0) { spawnCooldown--; return; }
+    const rates = [150, 105, 75, 52, 36];
+    spawnCooldown = Math.round(rates[Math.min(threatLevel-1, 4)] / robot.sizeScale * 0.7 + rates[Math.min(threatLevel-1,4)] * 0.3);
+
+    const pos = getEdgePos();
+    const x = Math.max(10, Math.min(WORLD.w-10, pos.x));
+    const y = Math.max(10, Math.min(WORLD.h-10, pos.y));
+
+    const pools = [
+        ['tank'],
+        ['tank','tank','artillery'],
+        ['tank','heli','heli','artillery'],
+        ['tank','heli','jet','artillery'],
+        ['heli','jet','tank','artillery'],
+    ];
+    const pool = pools[Math.min(threatLevel-1, 4)];
+    spawnEnemy(pool[Math.floor(Math.random()*pool.length)], x, y);
+
+    // Boss at threat 5
+    if (threatLevel >= 5 && !bossSpawned) {
+        bossSpawned = true;
+        bossAlive = true;
+        spawnEnemy('titan_mk2', x, y);
+        showAlert('TITAN MK.II ONLINE — ENEMY COLOSSUS DETECTED', '#ff0000');
+    }
+
+    // Cap enemies
+    if (enemies.length > 50) enemies.splice(0, enemies.length - 50);
+}
+
+// ─── DRAW HELPERS ─────────────────────────────────────────────────────────────
+function ws(x, y) { return [x - cam.x, y - cam.y]; }
+function visible(x, y, m=120) {
+    const sx = x-cam.x, sy = y-cam.y;
+    return sx > -m && sx < CW+m && sy > -m && sy < CH+m;
+}
+
+function drawGround() {
+    ctx.fillStyle = '#0a0e0a';
+    ctx.fillRect(0, 0, CW, CH);
+
+    // Grid
+    const G = 80;
+    const ox = -(cam.x % G), oy = -(cam.y % G);
+    ctx.strokeStyle = 'rgba(20,35,20,0.7)';
+    ctx.lineWidth = 1;
+    for (let x = ox; x < CW + G; x += G) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CH); ctx.stroke();
+    }
+    for (let y = oy; y < CH + G; y += G) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CW, y); ctx.stroke();
+    }
+    // Major grid
+    const G2 = 400;
+    const ox2 = -(cam.x % G2), oy2 = -(cam.y % G2);
+    ctx.strokeStyle = 'rgba(20,50,20,0.4)';
+    for (let x = ox2; x < CW + G2; x += G2) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CH); ctx.stroke();
+    }
+    for (let y = oy2; y < CH + G2; y += G2) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CW, y); ctx.stroke();
+    }
+}
+
+function drawBuildings() {
+    for (const b of buildings) {
+        if (!visible(b.x, b.y, b.w + 30)) continue;
+        const [sx, sy] = ws(b.x, b.y);
+
+        if (b.destroyed) {
+            if (b.rubble === 'used') {
+                ctx.fillStyle = '#1a1208';
+            } else {
+                ctx.fillStyle = '#2e2018';
+                // Rubble chunks
+                ctx.fillRect(sx - b.w/2, sy - b.h/2, b.w, b.h);
+                ctx.fillStyle = '#3a2a18';
+                for (let i = 0; i < 5; i++) {
+                    const rx = Math.sin(i*2.3 + b.x*0.01) * b.w*0.38;
+                    const ry = Math.cos(i*1.7 + b.y*0.01) * b.h*0.38;
+                    ctx.fillRect(sx+rx-3, sy+ry-3, 6+i, 6+i);
+                }
+            }
+            ctx.fillRect(sx - b.w/2, sy - b.h/2, b.w, b.h);
+        } else {
+            const hpPct = b.hp / b.maxHp;
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(sx - b.w/2 + 3, sy - b.h/2 + 3, b.w, b.h);
+            // Body
+            ctx.fillStyle = b.color;
+            ctx.fillRect(sx - b.w/2, sy - b.h/2, b.w, b.h);
+            // Roof detail
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.fillRect(sx - b.w/2 + 2, sy - b.h/2 + 2, b.w - 4, 4);
+            // Windows (stable — no random per-frame)
+            ctx.fillStyle = `rgba(255,255,180,${0.25 * hpPct})`;
+            const wStep = 7;
+            for (let wx = sx - b.w/2 + 4; wx < sx + b.w/2 - 4; wx += wStep) {
+                for (let wy = sy - b.h/2 + 4; wy < sy + b.h/2 - 4; wy += wStep) {
+                    const seed = Math.sin(wx * 0.37 + wy * 0.19 + b.x) > 0.2;
+                    if (seed) ctx.fillRect(wx, wy, 3, 3);
+                }
+            }
+            // Damage cracks
+            if (hpPct < 0.5) {
+                ctx.strokeStyle = `rgba(255,80,0,${(0.5-hpPct)*1.6})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(sx - b.w*0.2, sy - b.h*0.3);
+                ctx.lineTo(sx + b.w*0.1, sy);
+                ctx.lineTo(sx - b.w*0.05, sy + b.h*0.25);
+                ctx.stroke();
+            }
+            // Special indicators
+            if (b.type === 'pow') {
+                ctx.fillStyle = `rgba(255,220,0,${0.5 + Math.sin(frameCount*0.08)*0.3})`;
+                ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI*2); ctx.fill();
+            }
+            if (b.type === 'mil') {
+                ctx.strokeStyle = '#446644';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(sx - b.w/2 - 3, sy - b.h/2 - 3, b.w + 6, b.h + 6);
+            }
+            if (b.type === 'lab') {
+                ctx.fillStyle = `rgba(0,200,200,${0.3 + Math.sin(frameCount*0.07)*0.2})`;
+                ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI*2); ctx.fill();
+            }
+            // Industrial smoke
+            if (b.type === 'ind' && !b.destroyed) {
+                b.smokeTimer++;
+                if (b.smokeTimer % 30 < 5) {
+                    spawnParticles(b.x, b.y - b.h/2, 1, '#556655', 0.5, 80, 4, -0.05);
+                }
+            }
+        }
+    }
+}
+
+function drawPickups() {
+    for (const p of pickups) {
+        if (!visible(p.x, p.y)) continue;
+        const [sx, sy] = ws(p.x, p.y);
+        const bob = Math.sin(frameCount * 0.09 + p.x) * 3;
+        const colors = { repair:'#00ff88', energy:'#ffff00', upgrade:'#aa44ff' };
+        const labels = { repair:'HP', energy:'⚡', upgrade:'▲' };
+        const col = colors[p.type];
+        ctx.shadowColor = col; ctx.shadowBlur = 14;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(sx, sy + bob, 11, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(labels[p.type], sx, sy + bob);
+    }
+}
+
+// Enemy drawing
+function drawTank(e, sx, sy) {
+    const s = e.sz;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(e.angle);
+    ctx.fillStyle = e.stunTimer > 0 ? '#888844' : e.col;
+    ctx.fillRect(-s, -s*0.7, s*2, s*1.4);
+    ctx.fillStyle = '#222'; ctx.fillRect(-s, -s*0.9, s*2, s*0.25); ctx.fillRect(-s, s*0.65, s*2, s*0.25);
+    ctx.fillStyle = '#5a7a5a'; ctx.beginPath(); ctx.arc(0, 0, s*0.55, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#334'; ctx.fillRect(0, -s*0.18, s*1.6, s*0.36);
+    ctx.restore();
+}
+
+function drawHeli(e, sx, sy) {
+    const s = e.sz;
+    ctx.save(); ctx.translate(sx, sy);
+    ctx.fillStyle = e.stunTimer > 0 ? '#888' : e.col;
+    ctx.beginPath(); ctx.ellipse(0, 0, s*0.75, s*1.25, 0, 0, Math.PI*2); ctx.fill();
+    // Rotors
+    const ra = frameCount * 0.28;
+    ctx.strokeStyle = 'rgba(200,220,200,0.55)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 2; i++) {
+        const a = ra + i * Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*s*1.9, Math.sin(a)*s*1.9);
+        ctx.lineTo(-Math.cos(a)*s*1.9, -Math.sin(a)*s*1.9);
+        ctx.stroke();
+    }
+    // Shadow
+    ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(s*0.3, s*0.3, s*0.6, s*0.9, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+}
+
+function drawJet(e, sx, sy) {
+    const s = e.sz;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(e.angle);
+    ctx.fillStyle = e.stunTimer > 0 ? '#888' : e.col;
+    ctx.beginPath();
+    ctx.moveTo(s*2.2, 0); ctx.lineTo(-s, -s*0.4); ctx.lineTo(-s*1.5, 0); ctx.lineTo(-s, s*0.4); ctx.closePath();
+    ctx.fill();
+    // Wings
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-s, -s*1.6); ctx.lineTo(-s*1.5, -s*0.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-s, s*1.6); ctx.lineTo(-s*1.5, s*0.5); ctx.closePath(); ctx.fill();
+    // Afterburner
+    ctx.fillStyle = `rgba(255,${100+Math.random()*100},0,0.9)`;
+    ctx.beginPath(); ctx.ellipse(-s*1.55, 0, s*0.5+Math.random()*s*0.3, s*0.18, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+
+function drawArtillery(e, sx, sy) {
+    const s = e.sz;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(e.angle);
+    ctx.fillStyle = e.stunTimer > 0 ? '#666' : e.col;
+    ctx.fillRect(-s, -s*0.7, s*2, s*1.4);
+    // Big barrel pointing at robot
+    ctx.fillStyle = '#334';
+    ctx.fillRect(0, -s*0.28, s*2.8, s*0.56);
+    // Support legs
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-s*1.1, s*0.5, s*0.35, s*0.8);
+    ctx.fillRect(s*0.75, s*0.5, s*0.35, s*0.8);
+    ctx.restore();
+}
+
+function drawBoss(e, sx, sy) {
+    const s = e.sz;
+    const hp = e.hp / e.maxHp;
+    const pulse = Math.sin(frameCount * 0.12) * 0.2;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(e.angle + Math.PI/2);
+    // Glow aura
+    ctx.globalAlpha = 0.2 + pulse;
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath(); ctx.arc(0, 0, s*1.3, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Legs
+    ctx.fillStyle = '#882200';
+    ctx.fillRect(-s*0.45, s*0.4, s*0.3, s*0.7);
+    ctx.fillRect(s*0.15, s*0.4, s*0.3, s*0.7);
+    // Torso
+    ctx.fillStyle = e.stunTimer > 0 ? '#884422' : '#aa3300';
+    ctx.fillRect(-s*0.55, -s*0.5, s*1.1, s);
+    // Chest armor
+    ctx.fillStyle = '#cc4400';
+    ctx.fillRect(-s*0.45, -s*0.4, s*0.9, s*0.8);
+    // Arms
+    ctx.fillStyle = '#882200';
+    ctx.fillRect(-s*0.9, -s*0.4, s*0.38, s*0.7);
+    ctx.fillRect(s*0.52, -s*0.4, s*0.38, s*0.7);
+    // Head
+    ctx.fillStyle = '#992200';
+    ctx.fillRect(-s*0.38, -s*0.92, s*0.76, s*0.48);
+    // Visor
+    ctx.fillStyle = `rgba(255,0,0,${0.7+pulse})`;
+    ctx.fillRect(-s*0.28, -s*0.88, s*0.56, s*0.2);
+    // Shoulder pylons
+    ctx.fillStyle = '#cc3300';
+    ctx.beginPath(); ctx.arc(-s*0.7, -s*0.35, s*0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s*0.7, -s*0.35, s*0.2, 0, Math.PI*2); ctx.fill();
+    // Core reactor
+    ctx.fillStyle = `hsl(${frameCount*3 % 360}, 100%, 50%)`;
+    ctx.beginPath(); ctx.arc(0, 0, s*0.18, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Boss HP bar (always visible, large)
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(sx - s*1.8, sy - s*1.3, s*3.6, 10);
+    ctx.fillStyle = hp > 0.5 ? '#ff4400' : '#ff0000';
+    ctx.fillRect(sx - s*1.8, sy - s*1.3, s*3.6*hp, 10);
+    ctx.strokeStyle = '#880000'; ctx.lineWidth = 1;
+    ctx.strokeRect(sx - s*1.8, sy - s*1.3, s*3.6, 10);
+    ctx.fillStyle = '#ffaaaa'; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`TITAN MK.II — ${Math.round(hp*100)}%`, sx, sy - s*1.5);
+}
+
+function drawEnemies() {
+    for (const e of enemies) {
+        if (e.dead || !visible(e.x, e.y, e.sz*2+20)) continue;
+        const [sx, sy] = ws(e.x, e.y);
+
+        switch(e.type) {
+            case 'tank':      drawTank(e, sx, sy); break;
+            case 'heli':      drawHeli(e, sx, sy); break;
+            case 'jet':       drawJet(e, sx, sy); break;
+            case 'artillery': drawArtillery(e, sx, sy); break;
+            case 'titan_mk2': drawBoss(e, sx, sy); break;
+        }
+
+        // HP bar for damaged non-boss
+        if (e.type !== 'titan_mk2' && e.hp < e.maxHp * 0.9) {
+            const bw = e.sz * 2.4;
+            ctx.fillStyle = '#300';
+            ctx.fillRect(sx - bw/2, sy - e.sz - 10, bw, 4);
+            ctx.fillStyle = e.hp/e.maxHp > 0.5 ? '#00ff44' : '#ff4400';
+            ctx.fillRect(sx - bw/2, sy - e.sz - 10, bw * (e.hp/e.maxHp), 4);
+        }
+
+        // Stun indicator
+        if (e.stunTimer > 0) {
+            ctx.fillStyle = `rgba(255,255,100,${0.5 + Math.sin(frameCount*0.3)*0.3})`;
+            ctx.font = '14px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('★', sx, sy - e.sz - 14);
+        }
+    }
+}
+
+function drawProjectiles() {
+    for (const p of projectiles) {
+        if (!visible(p.x, p.y, 20)) continue;
+        const [sx, sy] = ws(p.x, p.y);
+
+        // Trail
+        if (p.trail && p.trail.length > 1) {
+            ctx.strokeStyle = p.color; ctx.lineWidth = p.sz * 0.5; ctx.globalAlpha = 0.35;
+            ctx.beginPath();
+            const [tsx, tsy] = ws(p.trail[0].x, p.trail[0].y);
+            ctx.moveTo(tsx, tsy);
+            for (let i = 1; i < p.trail.length; i++) {
+                const [tx2, ty2] = ws(p.trail[i].x, p.trail[i].y);
+                ctx.lineTo(tx2, ty2);
+            }
+            ctx.stroke(); ctx.globalAlpha = 1;
+        }
+
+        ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(sx, sy, p.sz, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+function drawLaser() {
+    if (robot.overheated || robot.weaponIdx !== 0 || !keys[' ']) return;
+    const [sx, sy] = ws(robot.x, robot.y);
+    const range = WEAPONS[0].range * robot.sizeScale;
+    const ex = robot.x + Math.cos(robot.angle) * range;
+    const ey = robot.y + Math.sin(robot.angle) * range;
+    const [esx, esy] = ws(ex, ey);
+
+    const flicker = 0.75 + Math.sin(frameCount * 0.5) * 0.25;
+    ctx.globalAlpha = flicker;
+
+    // Outer glow
+    ctx.strokeStyle = 'rgba(0,200,255,0.3)'; ctx.lineWidth = 18;
+    ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 25;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(esx, esy); ctx.stroke();
+
+    // Core beam
+    ctx.strokeStyle = '#00eeff'; ctx.lineWidth = 5; ctx.shadowBlur = 15;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(esx, esy); ctx.stroke();
+
+    // Inner white
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(esx, esy); ctx.stroke();
+
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+    // Sparkles along beam
+    if (frameCount % 4 === 0) {
+        const t = Math.random();
+        const bx = robot.x + Math.cos(robot.angle) * range * t;
+        const by = robot.y + Math.sin(robot.angle) * range * t;
+        spawnParticles(bx, by, 1, '#00ffff', 1.5, 10, 1.5);
+    }
+}
+
+function drawRobotBody() {
+    const RW = ROBOT_BASE_W * robot.sizeScale;
+    const RH = ROBOT_BASE_H * robot.sizeScale;
+    const [sx, sy] = ws(robot.x, robot.y);
+    const hpPct = robot.hp / robot.maxHp;
+    const ib = robot.iFrames > 0 && robot.iFrames % 3 < 2; // flash when hit
+    const berserk = robot.berserker;
+    const overheat = robot.overheated;
+
+    if (ib) { ctx.globalAlpha = 0.5; }
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(robot.angle + Math.PI / 2);
+
+    const scale = robot.sizeScale;
+    ctx.scale(scale, scale); // draw at base size, scale via transform
+
+    const base = ROBOT_BASE_W, baseH = ROBOT_BASE_H;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(4, 6, base*0.5, base*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+    // Walk bob
+    const walkBob = Math.sin(robot.walkPhase) * 2.5;
+
+    // Leg group
+    const legCol = berserk ? '#cc2200' : '#334455';
+    const legCol2 = berserk ? '#aa1800' : '#223344';
+    ctx.translate(0, walkBob);
+
+    // Left leg
+    ctx.fillStyle = legCol;
+    ctx.fillRect(-base*0.42, baseH*0.25, base*0.22, baseH*0.4);
+    ctx.fillStyle = legCol2;
+    ctx.fillRect(-base*0.47, baseH*0.5, base*0.18, baseH*0.22);
+
+    // Right leg
+    ctx.fillStyle = legCol;
+    ctx.fillRect(base*0.20, baseH*0.25, base*0.22, baseH*0.4);
+    ctx.fillStyle = legCol2;
+    ctx.fillRect(base*0.29, baseH*0.5, base*0.18, baseH*0.22);
+
+    // Alternate walk
+    const lOffset = Math.sin(robot.walkPhase) * 4;
+    ctx.fillStyle = legCol2;
+    ctx.fillRect(-base*0.44, baseH*0.65 + lOffset, base*0.16, 6);
+    ctx.fillRect(base*0.28, baseH*0.65 - lOffset, base*0.16, 6);
+
+    // Torso
+    const torsoCol = berserk ? '#cc2000' : '#344556';
+    ctx.fillStyle = torsoCol;
+    ctx.fillRect(-base*0.48, -baseH*0.28, base*0.96, baseH*0.55);
+
+    // Chest plate
+    ctx.fillStyle = berserk ? '#ee3300' : '#445566';
+    ctx.fillRect(-base*0.38, -baseH*0.22, base*0.76, baseH*0.42);
+
+    // Chest stripe / detail
+    ctx.fillStyle = berserk ? '#ff4400' : '#556677';
+    ctx.fillRect(-base*0.1, -baseH*0.18, base*0.2, baseH*0.34);
+
+    // CORE REACTOR
+    const coreColor = overheat ? '#ff4400' :
+                      berserk  ? `hsl(${frameCount*6 % 360}, 100%, 55%)` :
+                      `hsl(${120 - (1-hpPct)*120}, 90%, 48%)`;
+    ctx.fillStyle = coreColor;
+    ctx.shadowColor = coreColor; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.ellipse(0, -baseH*0.04, base*0.16, base*0.22, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.beginPath(); ctx.ellipse(-base*0.04, -baseH*0.1, base*0.07, base*0.1, 0, 0, Math.PI*2); ctx.fill();
+
+    // Left arm
+    ctx.fillStyle = legCol;
+    ctx.fillRect(-base*0.70, -baseH*0.28, base*0.24, base*0.18);
+    ctx.fillRect(-base*0.72, -baseH*0.13, base*0.20, baseH*0.3);
+
+    // Left weapon
+    switch (robot.weaponIdx) {
+        case 0: // Laser barrel
+            ctx.fillStyle = '#558899';
+            ctx.fillRect(-base*0.78, -baseH*0.08, base*0.12, baseH*0.5);
+            ctx.fillStyle = '#00ccdd';
+            ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 8;
+            ctx.fillRect(-base*0.76, -baseH*0.06, base*0.08, base*0.06);
+            ctx.shadowBlur = 0;
+            break;
+        case 1: // Missile pod
+            ctx.fillStyle = '#667788';
+            ctx.fillRect(-base*0.82, -baseH*0.12, base*0.28, baseH*0.38);
+            // Missile tubes
+            ctx.fillStyle = '#334455';
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 2; col++) {
+                    ctx.fillRect(-base*0.78 + col*base*0.1, -baseH*0.1 + row*base*0.12, base*0.08, base*0.1);
+                }
+            }
+            break;
+        case 2: // Plasma fist
+            ctx.fillStyle = '#6622aa';
+            ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(-base*0.66, baseH*0.12, base*0.2, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Sparks
+            if (frameCount % 3 < 2) {
+                ctx.fillStyle = '#cc88ff';
+                for (let i = 0; i < 3; i++) {
+                    const sa = (frameCount * 0.3 + i * 2.1) % (Math.PI*2);
+                    ctx.beginPath(); ctx.arc(-base*0.66 + Math.cos(sa)*base*0.22, baseH*0.12 + Math.sin(sa)*base*0.22, 2, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            break;
+    }
+
+    // Right arm (mirrored)
+    ctx.fillStyle = legCol;
+    ctx.fillRect(base*0.46, -baseH*0.28, base*0.24, base*0.18);
+    ctx.fillRect(base*0.52, -baseH*0.13, base*0.20, baseH*0.3);
+
+    // Right weapon (same as left but mirrored)
+    switch (robot.weaponIdx) {
+        case 0:
+            ctx.fillStyle = '#558899';
+            ctx.fillRect(base*0.66, -baseH*0.08, base*0.12, baseH*0.5);
+            ctx.fillStyle = '#00ccdd';
+            ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 8;
+            ctx.fillRect(base*0.68, -baseH*0.06, base*0.08, base*0.06);
+            ctx.shadowBlur = 0;
+            break;
+        case 1:
+            ctx.fillStyle = '#667788';
+            ctx.fillRect(base*0.54, -baseH*0.12, base*0.28, baseH*0.38);
+            ctx.fillStyle = '#334455';
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 2; col++) {
+                    ctx.fillRect(base*0.58 + col*base*0.1, -baseH*0.1 + row*base*0.12, base*0.08, base*0.1);
+                }
+            }
+            break;
+        case 2:
+            ctx.fillStyle = '#6622aa';
+            ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(base*0.66, baseH*0.12, base*0.2, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            break;
+    }
+
+    // Shoulders
+    ctx.fillStyle = berserk ? '#dd2200' : '#445566';
+    ctx.fillRect(-base*0.5, -baseH*0.32, base*0.22, base*0.2);
+    ctx.fillRect(base*0.28, -baseH*0.32, base*0.22, base*0.2);
+
+    // Head
+    const headCol = berserk ? '#bb1800' : '#445566';
+    ctx.fillStyle = headCol;
+    ctx.fillRect(-base*0.32, -baseH*0.52, base*0.64, baseH*0.28);
+
+    // Visor
+    const visorCol = overheat ? '#ff4400' : berserk ? '#ff2200' : '#00ccff';
+    ctx.fillStyle = visorCol;
+    ctx.shadowColor = visorCol; ctx.shadowBlur = 10;
+    if (berserk) {
+        // Split angry visor
+        ctx.fillRect(-base*0.28, -baseH*0.5, base*0.22, base*0.12);
+        ctx.fillRect(base*0.06, -baseH*0.5, base*0.22, base*0.12);
+    } else {
+        ctx.fillRect(-base*0.27, -baseH*0.5, base*0.54, base*0.13);
+    }
+    ctx.shadowBlur = 0;
+
+    // Antenna
+    ctx.fillStyle = berserk ? '#ff4400' : '#aabbcc';
+    ctx.fillRect(-base*0.05, -baseH*0.66, base*0.1, baseH*0.16);
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, -baseH*0.67, base*0.07, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Damage overlays
+    if (hpPct < 0.5) {
+        ctx.strokeStyle = `rgba(255,80,0,${(0.5-hpPct)*2.5})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-base*0.25, -baseH*0.15); ctx.lineTo(-base*0.05, baseH*0.05);
+        ctx.lineTo(-base*0.18, baseH*0.18);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(base*0.2, -baseH*0.2); ctx.lineTo(base*0.3, baseH*0.02);
+        ctx.stroke();
+    }
+
+    // Stomp effect glow
+    if (robot.stompTimer > 0) {
+        const stompAlpha = robot.stompTimer / 18;
+        ctx.fillStyle = `rgba(170,0,255,${stompAlpha * 0.4})`;
+        ctx.beginPath(); ctx.ellipse(0, 0, base*0.7, base, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
+
+    // Berserker / overheat outer glow
+    if (berserk || overheat) {
+        const gCol = overheat ? '#ff4400' : '#ff0000';
+        const glowR = RW * (0.9 + Math.sin(frameCount*0.15)*0.1);
+        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
+        grad.addColorStop(0, `rgba(${overheat?'255,68,0':'255,0,0'},0.15)`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(sx, sy, glowR, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function drawParticles() {
+    for (const p of particles) {
+        if (!visible(p.x, p.y, 12)) continue;
+        const [sx, sy] = ws(p.x, p.y);
+        const alpha = p.life / p.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.5, p.sz * alpha), 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawShockwaves() {
+    for (const s of shockwaves) {
+        const [sx, sy] = ws(s.x, s.y);
+        ctx.strokeStyle = s.color || '#ff8800';
+        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = s.alpha;
+        ctx.shadowColor = s.color || '#ff8800'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(sx, sy, s.r, 0, Math.PI*2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+    const hpPct = robot.hp / robot.maxHp;
+    const heatPct = robot.heat / robot.maxHeat;
+
+    document.getElementById('hull-fill').style.width = `${hpPct*100}%`;
+    document.getElementById('hull-fill').style.background = hpPct > 0.5 ? '#00ff88' : hpPct > 0.25 ? '#ffaa00' : '#ff2200';
+    document.getElementById('hull-val').textContent = `${Math.round(hpPct*100)}%`;
+
+    document.getElementById('heat-fill').style.width = `${heatPct*100}%`;
+    document.getElementById('heat-fill').style.background = heatPct < 0.6 ? '#ff8800' : '#ff2200';
+    document.getElementById('heat-val').textContent = `${Math.round(heatPct*100)}%`;
+    document.getElementById('heat-val').style.color = robot.overheated ? '#ff2200' : '#ff8800';
+
+    document.getElementById('hud-weapon').textContent = WEAPON_DEFS[robot.weaponIdx].name +
+        (robot.wcd > 0 ? ` [${Math.ceil(robot.wcd/60*10)/10}s]` : '');
+
+    document.getElementById('hud-threat').textContent = `⚠ THREAT: ${threatLevel}`;
+    document.getElementById('hud-score').textContent = `SCORE: ${score.toLocaleString()}`;
+    document.getElementById('hud-kills').textContent = `KILLS: ${kills}`;
+
+    const roarReady = robot.roarCd <= 0;
+    document.getElementById('hud-roar').textContent = roarReady ? 'ROAR: READY' : `ROAR: ${Math.ceil(robot.roarCd/60)}s`;
+    document.getElementById('hud-roar').style.color = roarReady ? '#aaffff' : '#447777';
+
+    document.getElementById('hud-size').textContent = `SIZE: ${robot.sizeScale.toFixed(2)}×`;
+    document.getElementById('hud-size').style.color = `hsl(${100 + robot.sizeScale*30}, 80%, 60%)`;
+
+    // Subsystem damage indicators
+    const bel = document.getElementById('hud');
+    const existingDmg = bel.querySelector('.dmg-info');
+    if (existingDmg) existingDmg.remove();
+    if (robot.legDmg > 10 || robot.armDmg > 10) {
+        const dmgDiv = document.createElement('div');
+        dmgDiv.className = 'hud-item dmg-info';
+        dmgDiv.style.color = '#ff8800';
+        dmgDiv.textContent = (robot.legDmg > 10 ? `LEG-DMG:${Math.round(robot.legDmg)}% ` : '') +
+                             (robot.armDmg > 10 ? `ARM-DMG:${Math.round(robot.armDmg)}%` : '');
+        bel.appendChild(dmgDiv);
+    }
+}
+
+// ─── PARTICLES UPDATE ────────────────────────────────────────────────────────
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.94; p.vy = p.vy * 0.94 + (p.grav || 0);
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function updateShockwaves() {
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const s = shockwaves[i];
+        s.r += (s.maxR - s.r) * 0.14;
+        s.alpha *= 0.87;
+        s.life--;
+        if (s.life <= 0 || s.alpha < 0.015) shockwaves.splice(i, 1);
+    }
+}
+
+// ─── GAME LOOP ───────────────────────────────────────────────────────────────
+function update() {
+    if (gameState !== 'play') return;
+    frameCount++;
+
+    updateRobot();
+    updateEnemies();
+    updateProjectiles();
+    updatePickups();
+    updateParticles();
+    updateShockwaves();
+    updateThreat();
+}
+
+function render() {
+    ctx.clearRect(0, 0, CW, CH);
+    if (gameState !== 'play' && gameState !== 'dead') return;
+
+    drawGround();
+    drawBuildings();
+    drawPickups();
+    drawEnemies();
+    drawProjectiles();
+    drawLaser();
+    drawShockwaves();
+    drawParticles();
+    drawRobotBody();
+    drawHUD();
+
+    // Mini-map
+    drawMinimap();
+}
+
+function drawMinimap() {
+    const MW = 120, MH = 90, MX = CW - MW - 10, MY = CH - MH - 30;
+    ctx.fillStyle = 'rgba(0,15,8,0.75)';
+    ctx.fillRect(MX, MY, MW, MH);
+    ctx.strokeStyle = '#006633'; ctx.lineWidth = 1;
+    ctx.strokeRect(MX, MY, MW, MH);
+
+    const sx = MW / WORLD.w, sy = MH / WORLD.h;
+
+    // Buildings (dots)
+    ctx.fillStyle = '#224422';
+    for (const b of buildings) {
+        if (b.destroyed) continue;
+        ctx.fillRect(MX + b.x*sx, MY + b.y*sy, 1, 1);
+    }
+
+    // Enemies
+    for (const e of enemies) {
+        if (e.dead) continue;
+        ctx.fillStyle = e.type === 'titan_mk2' ? '#ff0000' : '#ff8800';
+        ctx.fillRect(MX + e.x*sx - 1, MY + e.y*sy - 1, 2, 2);
+    }
+
+    // Robot
+    const rx = MX + robot.x*sx, ry = MY + robot.y*sy;
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 4;
+    ctx.fillRect(rx - 2, ry - 2, 4, 4);
+    ctx.shadowBlur = 0;
+
+    // Camera view rect
+    ctx.strokeStyle = 'rgba(0,255,136,0.25)'; ctx.lineWidth = 0.5;
+    ctx.strokeRect(MX + cam.x*sx, MY + cam.y*sy, CW*sx, CH*sy);
+
+    ctx.fillStyle = '#003322'; ctx.font = '8px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('MAP', MX + 3, MY + 9);
+}
+
+function gameLoop() {
+    update();
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+// ─── INIT / RESTART ──────────────────────────────────────────────────────────
+function startGame() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('gameover').style.display = 'none';
+    gameState = 'play';
+    score = 0; kills = 0; threatLevel = 1;
+    spawnCooldown = 0; frameCount = 0;
+    bossSpawned = false; bossAlive = false;
+    initRobot();
+    generateWorld();
+    enemies = []; projectiles = []; particles = []; pickups = []; shockwaves = [];
+    cam.x = robot.x - CW/2;
+    cam.y = robot.y - CH/2;
+    showAlert('TITAN ONLINE', '#00ff88');
+}
+
+function endGame() {
+    gameState = 'dead';
+    const el = document.getElementById('gameover');
+    el.style.display = 'flex';
+    document.getElementById('gameover-stats').innerHTML =
+        `FINAL SCORE: ${score.toLocaleString()}<br>` +
+        `ENEMIES DESTROYED: ${kills}<br>` +
+        `THREAT LEVEL REACHED: ${threatLevel}<br>` +
+        `TITAN SIZE: ${robot.sizeScale.toFixed(2)}×<br>` +
+        `BUILDINGS DEMOLISHED: ${buildings.filter(b=>b.destroyed).length}`;
+}
+
+// ─── INPUT ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (!keys[k]) {
+        keys[k] = true;
+        if (k === '1') robot.weaponIdx = 0;
+        if (k === '2') robot.weaponIdx = 1;
+        if (k === '3') robot.weaponIdx = 2;
+        if (k === 'tab') {
+            e.preventDefault();
+            if (!robot.berserker) {
+                robot.berserker = true;
+                robot.berserkTimer = 480;
+                showAlert('BERSERKER ENGAGED', '#ff4400');
+            } else {
+                robot.berserker = false;
+                robot.berserkTimer = 0;
+            }
+        }
+        if ((k === 'enter' || k === ' ') && gameState === 'menu') {
+            e.preventDefault();
+            startGame();
+        }
+    }
+    if (k === ' ') e.preventDefault();
+    if (k === 'arrowup' || k === 'arrowdown' || k === 'arrowleft' || k === 'arrowright') e.preventDefault();
+});
+
+document.addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+// ─── START ───────────────────────────────────────────────────────────────────
+gameLoop();
+</script>
+</body>
+</html>

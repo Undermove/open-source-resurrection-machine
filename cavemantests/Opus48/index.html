@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>COLOSSUS · Giant Robot</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="bar-block">
+          <span class="label">HULL</span>
+          <div class="bar"><div id="hpFill" class="fill hp"></div></div>
+        </div>
+        <div class="bar-block">
+          <span class="label">REACTOR</span>
+          <div class="bar"><div id="coreFill" class="fill core"></div></div>
+        </div>
+        <div class="bar-block">
+          <span class="label">HEAT</span>
+          <div class="bar"><div id="heatFill" class="fill heat"></div></div>
+        </div>
+      </div>
+      <div class="hud-stats">
+        <div class="stat"><span id="tier">MK.I</span><small>SCALE</small></div>
+        <div class="stat"><span id="score">0</span><small>DESTRUCTION</small></div>
+        <div class="stat"><span id="wave">1</span><small>WAVE</small></div>
+        <div class="stat"><span id="enemiesLeft">0</span><small>HOSTILES</small></div>
+      </div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="start" class="overlay">
+      <h1>COLOSSUS</h1>
+      <p class="tag">You are a kilometer-tall war machine. The city is a toy. <br/>Crush it to feed your reactor — and grow.</p>
+      <div class="controls">
+        <div><b>WASD / Arrows</b> — thrust the colossus (it is heavy; lead your turns)</div>
+        <div><b>Mouse</b> — aim · <b>Left click / hold</b> — plasma lance</div>
+        <div><b>Space</b> — seismic STOMP (shockwave, flattens everything near)</div>
+        <div><b>Shift</b> — overcharge burst (drains reactor)</div>
+      </div>
+      <p class="hint">Walk over buildings to flatten them. Bigger you get, the more you can crush — but heat and turning fight back.</p>
+      <button id="startBtn">ENGAGE</button>
+    </div>
+
+    <!-- Game over -->
+    <div id="over" class="overlay hidden">
+      <h1 id="overTitle">SYSTEMS OFFLINE</h1>
+      <p id="overStats" class="tag"></p>
+      <button id="restartBtn">REBOOT</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
