@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Война и мир — доска расследования</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Neucha&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --board-bg: #fdfdf8;
+    --board-grid: rgba(90, 120, 160, 0.10);
+    --ink: #2b2b33;
+    --ink-soft: #55555f;
+    --marker-red: #c93a3a;
+    --marker-blue: #2f6fba;
+    --marker-green: #3a8f5d;
+    --marker-orange: #d07b2c;
+    --sticky: #fff5a8;
+    --sticky-shadow: rgba(120, 100, 20, 0.25);
+    --card-paper: #ffffff;
+    --card-border: #2b2b33;
+    --locked-paper: #ecece4;
+    --pin: #d23b3b;
+    --modal-bg: rgba(30, 30, 40, 0.45);
+    --tray-bg: rgba(253, 253, 248, 0.92);
+  }
+  [data-theme="dark"] {
+    --board-bg: #22312b;
+    --board-grid: rgba(255, 255, 255, 0.05);
+    --ink: #f0ead8;
+    --ink-soft: #c9c2ad;
+    --marker-red: #ff8f7e;
+    --marker-blue: #8ec1ff;
+    --marker-green: #93d9ae;
+    --marker-orange: #ffc177;
+    --sticky: #4a4632;
+    --sticky-shadow: rgba(0, 0, 0, 0.5);
+    --card-paper: #2d3d36;
+    --card-border: #f0ead8;
+    --locked-paper: #283530;
+    --pin: #ff6f5e;
+    --modal-bg: rgba(0, 0, 0, 0.6);
+    --tray-bg: rgba(34, 49, 43, 0.92);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; overscroll-behavior: none; }
+
+  body {
+    font-family: 'Neucha', 'Comic Sans MS', cursive;
+    color: var(--ink);
+    background: var(--board-bg);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ─────────────────────────────── */
+  .topbar {
+    position: fixed; inset: 0 0 auto 0; z-index: 40;
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--tray-bg);
+    backdrop-filter: blur(6px);
+    border-bottom: 2px solid var(--ink);
+  }
+  .topbar h1 {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(1.25rem, 4vw, 1.8rem);
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .topbar .progress {
+    font-size: 0.85rem; color: var(--ink-soft); white-space: nowrap;
+  }
+  .topbar .spacer { flex: 1; }
+  .tool-btn {
+    font-family: 'Neucha', cursive;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--card-paper);
+    border: 2px solid var(--ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 0.15rem 0.65rem;
+    cursor: pointer;
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tool-btn:hover { transform: scale(1.06) rotate(-1deg); }
+  .tool-btn:active { transform: scale(0.95); }
+  .tool-btn:focus-visible { outline: 3px dashed var(--marker-blue); outline-offset: 2px; }
+
+  /* ── Board viewport ──────────────────────── */
+  .viewport {
+    position: fixed; inset: 0;
+    overflow: auto;
+    cursor: grab;
+    -webkit-overflow-scrolling: touch;
+  }
+  .viewport.dragging { cursor: grabbing; }
+  .zoomwrap { transform-origin: 0 0; }
+  .board {
+    position: relative;
+    width: 3400px; height: 2560px;
+    background:
+      linear-gradient(var(--board-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--board-grid) 1px, transparent 1px),
+      var(--board-bg);
+    background-size: 40px 40px, 40px 40px, auto;
+    padding-top: 70px;
+  }
+
+  svg.strings {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── Cluster labels ──────────────────────── */
+  .cluster-label {
+    position: absolute; z-index: 2;
+    font-family: 'Caveat', cursive;
+    font-size: 2.2rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    transform: rotate(-2deg);
+    border-bottom: 4px solid var(--marker-blue);
+    padding: 0 0.4rem 0.1rem;
+    pointer-events: none;
+  }
+  .cluster-label.small { font-size: 1.5rem; border-bottom-width: 3px; }
+
+  /* ── Character cards ─────────────────────── */
+  .char {
+    position: absolute; z-index: 3;
+    width: 156px;
+    background: var(--card-paper);
+    border: 2.5px solid var(--card-border);
+    border-radius: 12px 255px 15px 225px / 225px 15px 255px 12px;
+    padding: 10px 8px 8px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 3px 4px 0 var(--sticky-shadow);
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+  }
+  .char:hover { transform: scale(1.05) rotate(1deg); z-index: 6; }
+  .char:focus-visible { outline: 3px dashed var(--marker-blue); outline-offset: 3px; }
+  .char::before { /* канцелярская кнопка */
+    content: "";
+    position: absolute; top: -9px; left: 50%;
+    width: 14px; height: 14px; margin-left: -7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff8f80, var(--pin) 65%);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.35);
+  }
+  .char .avatar { width: 92px; height: 92px; margin: 0 auto; }
+  .char .avatar svg { width: 100%; height: 100%; }
+  .char .name {
+    font-size: 1.02rem; line-height: 1.1; margin-top: 4px;
+  }
+  .char .hint { font-size: 0.72rem; color: var(--ink-soft); line-height: 1.15; }
+  .char.spotlit { transform: scale(1.1); z-index: 7; box-shadow: 0 0 0 4px var(--marker-orange), 3px 4px 0 var(--sticky-shadow); }
+  .char.dimmed { opacity: 0.25; }
+  .char.pop-in { animation: pop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1); }
+  @keyframes pop { from { transform: scale(0.2) rotate(-8deg); opacity: 0; } }
+
+  /* ── Story cards (стикеры) ───────────────── */
+  .story {
+    position: absolute; z-index: 3;
+    width: 400px; min-height: 200px;
+    background: var(--sticky);
+    padding: 14px 16px 12px;
+    box-shadow: 4px 6px 8px var(--sticky-shadow);
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 2px;
+  }
+  .story:nth-child(odd) { transform: rotate(-1.2deg); }
+  .story:nth-child(even) { transform: rotate(1deg); }
+  .story:hover { transform: rotate(0deg) scale(1.04); z-index: 6; }
+  .story:focus-visible { outline: 3px dashed var(--marker-blue); outline-offset: 3px; }
+  .story::before {
+    content: "";
+    position: absolute; top: -10px; left: 24px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #9fc7ff, var(--marker-blue) 65%);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.35);
+  }
+  .story .step {
+    position: absolute; top: -16px; right: -14px;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Caveat', cursive; font-size: 1.5rem; font-weight: 700;
+    color: var(--marker-red);
+    border: 3px solid var(--marker-red);
+    border-radius: 50% 45% 55% 48% / 48% 55% 45% 52%;
+    background: var(--card-paper);
+    transform: rotate(6deg);
+  }
+  .story .where {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-soft);
+  }
+  .story h3 {
+    font-family: 'Caveat', cursive;
+    font-size: 1.7rem; font-weight: 700; line-height: 1.05;
+    margin: 2px 0 6px;
+  }
+  .story .teaser { font-size: 0.98rem; line-height: 1.3; }
+  .story .more {
+    margin-top: 8px; font-size: 0.85rem; color: var(--marker-blue);
+  }
+  .story.locked {
+    background: var(--locked-paper);
+    color: var(--ink-soft);
+    box-shadow: 2px 3px 5px var(--sticky-shadow);
+  }
+  .story.locked h3 { color: var(--ink-soft); font-size: 1.45rem; }
+  .story.locked .lockface {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 2rem; margin-top: 10px;
+  }
+  .story.locked .lockface span { font-size: 0.92rem; line-height: 1.25; }
+  .story.frontier { outline: 4px dashed var(--marker-red); outline-offset: 5px; }
+  .story .listen-here {
+    position: absolute; bottom: -18px; right: 10px;
+    font-family: 'Caveat', cursive; font-size: 1.25rem; font-weight: 700;
+    color: var(--marker-red);
+    transform: rotate(-3deg);
+  }
+  .unlock-btn {
+    margin-top: 10px;
+    font-family: 'Caveat', cursive; font-size: 1.25rem; font-weight: 700;
+    color: var(--board-bg);
+    background: var(--marker-red);
+    border: none; border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 0.25rem 0.9rem;
+    cursor: pointer;
+    transition: transform 0.12s;
+  }
+  .unlock-btn:hover { transform: scale(1.06); }
+
+  /* ── Legend ──────────────────────────────── */
+  .legend {
+    position: fixed; left: 0.9rem; bottom: 0.9rem; z-index: 40;
+    background: var(--tray-bg);
+    backdrop-filter: blur(6px);
+    border: 2px solid var(--ink);
+    border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+    display: grid; gap: 0.15rem;
+  }
+  .legend .row { display: flex; align-items: center; gap: 0.5rem; }
+  .legend .swatch { width: 34px; height: 0; border-top: 3px solid; border-radius: 2px; }
+  .legend .swatch.dash { border-top-style: dashed; }
+  .legend .fam { border-color: var(--marker-green); }
+  .legend .lov { border-color: var(--marker-red); }
+  .legend .fri { border-color: var(--marker-blue); }
+  .legend .intr { border-color: var(--marker-orange); }
+  .legend.collapsed .row { display: none; }
+  .legend .legend-title { font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.1rem; cursor: pointer; }
+
+  .zoombar {
+    position: fixed; right: 0.9rem; bottom: 0.9rem; z-index: 40;
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .zoombar .tool-btn { font-size: 1.2rem; width: 2.4rem; }
+
+  /* ── Modals ──────────────────────────────── */
+  .modal-veil {
+    position: fixed; inset: 0; z-index: 50;
+    background: var(--modal-bg);
+    display: none;
+    align-items: flex-start; justify-content: center;
+    overflow-y: auto;
+    padding: 4.5rem 1rem 2rem;
+  }
+  .modal-veil.open { display: flex; }
+  .modal {
+    background: var(--card-paper);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    border-radius: 12px 255px 15px 225px / 125px 15px 255px 12px;
+    width: min(680px, 100%);
+    padding: 1.5rem 1.6rem 1.4rem;
+    position: relative;
+    box-shadow: 6px 8px 0 var(--sticky-shadow);
+    animation: modal-in 0.25s cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  @keyframes modal-in { from { transform: translateY(20px) scale(0.95); opacity: 0; } }
+  .modal .close {
+    position: absolute; top: 0.5rem; right: 0.8rem;
+    font-family: 'Caveat', cursive; font-size: 1.8rem; font-weight: 700;
+    background: none; border: none; color: var(--marker-red); cursor: pointer;
+  }
+  .modal .where { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-soft); }
+  .modal h2 { font-family: 'Caveat', cursive; font-size: 2.2rem; font-weight: 700; line-height: 1.05; margin: 0.1rem 0 0.7rem; }
+  .modal ul { list-style: none; display: grid; gap: 0.55rem; margin-bottom: 0.9rem; }
+  .modal ul li { padding-left: 1.4rem; position: relative; line-height: 1.35; }
+  .modal ul li::before { content: "✦"; position: absolute; left: 0.1rem; color: var(--marker-red); }
+  .modal .section-label {
+    font-family: 'Caveat', cursive; font-size: 1.35rem; font-weight: 700;
+    border-bottom: 3px solid var(--marker-blue); display: inline-block; margin-bottom: 0.5rem;
+  }
+  .cast-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+  .chip {
+    font-family: 'Neucha', cursive; font-size: 0.92rem;
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    background: var(--board-bg);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding: 0.1rem 0.6rem;
+    cursor: pointer;
+  }
+  .chip.new { border-color: var(--marker-red); color: var(--marker-red); }
+  .chip.new::after { content: " ★"; }
+  .modal .char-head { display: flex; gap: 1rem; align-items: center; margin-bottom: 0.8rem; }
+  .modal .char-head .avatar { width: 110px; height: 110px; flex: none; }
+  .modal .char-head .avatar svg { width: 100%; height: 100%; }
+  .modal .bio { line-height: 1.4; margin-bottom: 0.9rem; }
+  .motive { border-left: 4px solid var(--marker-orange); padding: 0.15rem 0 0.15rem 0.8rem; margin-bottom: 0.6rem; }
+  .motive .at { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  .motive.latest { border-left-color: var(--marker-red); background: color-mix(in srgb, var(--marker-red) 8%, transparent); }
+  .modal .foot-note { font-size: 0.85rem; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 640px) {
+    .topbar .progress { display: none; }
+    .legend { font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>«Война и мир» · доска расследования</h1>
+  <span class="progress" id="progressLabel"></span>
+  <span class="spacer"></span>
+  <button class="tool-btn" id="helpBtn" title="Как пользоваться">?</button>
+  <button class="tool-btn" id="themeBtn" title="Тема">🌙</button>
+  <button class="tool-btn" id="resetBtn" title="Сбросить прогресс">↺</button>
+</header>
+
+<div class="viewport" id="viewport">
+  <div class="zoomwrap" id="zoomwrap">
+    <div class="board" id="board">
+      <svg class="strings" id="strings" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="wobble">
+            <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="7" result="n"/>
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+          </filter>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round"/>
+          </marker>
+        </defs>
+        <g id="routeLayer"></g>
+        <g id="relLayer"></g>
+        <g id="castLayer"></g>
+      </svg>
+      <!-- cards are rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<aside class="legend" id="legend">
+  <div class="legend-title" id="legendTitle">Ниточки ▾</div>
+  <div class="row"><span class="swatch fam"></span> семья</div>
+  <div class="row"><span class="swatch lov"></span> любовь</div>
+  <div class="row"><span class="swatch fri"></span> дружба</div>
+  <div class="row"><span class="swatch intr dash"></span> интриги и вражда</div>
+</aside>
+
+<div class="zoombar">
+  <button class="tool-btn" id="zoomIn" title="Приблизить">+</button>
+  <button class="tool-btn" id="zoomOut" title="Отдалить">−</button>
+</div>
+
+<div class="modal-veil" id="veil">
+  <div class="modal" id="modalBox" role="dialog" aria-modal="true"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ═════════════ ДАННЫЕ ═════════════ */
+
+/* Портреты-дудлы: параметры для генератора */
+const CHARACTERS = {
+  sherer:   { name: "Анна Павловна Шерер", group: "Свет", intro: "n1",
+    doodle: { face: "oval", hair: "curly", mouth: "smile", extras: ["fan"] },
+    bio: "Хозяйка петербургского салона, фрейлина. ≈40 лет. Её вечер — «прядильная мастерская»: рассаживает гостей по кружкам и следит за беседой.",
+    motives: [ { node: "n1", text: "Чтобы вечер удался: подать виконта гостям, как повар подаёт редкое блюдо." } ] },
+
+  vasily:   { name: "Князь Василий Курагин", group: "Курагины", intro: "n1",
+    doodle: { face: "round", hair: "bald", mouth: "flat", extras: ["star"] },
+    bio: "Тот самый «лысый мужик» с блестящей лысиной и звёздами. ≈55–60. Важный сановник, говорит лениво, как актёр старой пьесы. Холоден и расчётлив.",
+    motives: [
+      { node: "n1", text: "Пристроить детей: Анатоля — выгодно женить, Ипполита — по службе." },
+      { node: "n4", text: "Урвать наследство умирающего графа Безухова — он тоже родня." },
+      { node: "n5", text: "Портфель уплыл. Мгновенно меняет тактику: теперь надо дружить с Пьером." },
+      { node: "n9", text: "План сработал: Пьер женат на Элен, деньги Безуховых — в семье." },
+      { node: "n10", text: "Теперь Анатоля — на богатой княжне Марье. Не вышло." } ] },
+
+  helen:    { name: "Элен Курагина", group: "Курагины", intro: "n1",
+    doodle: { face: "oval", hair: "updo", mouth: "smile", extras: ["pearls"] },
+    bio: "Ослепительная красавица: мраморные плечи и неизменная спокойная улыбка. ≈20. Красивая, холодная, пустая.",
+    motives: [
+      { node: "n1", text: "Красота — её капитал. Улыбаться и ждать выгодной партии." },
+      { node: "n9", text: "Стала графиней Безуховой — богатейшей женщиной Петербурга." },
+      { node: "n12", text: "После дуэли свет — на её стороне: она держит блестящий салон, Пьер «чудак»." },
+      { node: "n16", text: "Помогает брату Анатолю подобраться к Наташе." },
+      { node: "n19", text: "Задумала развод при живом муже: выбирает между вельможей и принцем." } ] },
+
+  anatole:  { name: "Анатоль Курагин", group: "Курагины", intro: "n1",
+    doodle: { face: "oval", hair: "wavy", mouth: "smirk", extras: [] },
+    bio: "Красавец и кутила, дорого обходится отцу. ≈20–22. Живёт как «благородное животное»: ни секунды сомнений в себе.",
+    motives: [
+      { node: "n1", text: "Его самого в салоне нет — но отец уже ищет, на ком бы его выгодно женить." },
+      { node: "n2", text: "Кутить. Ром, медведь, актрисы — остальное неважно." },
+      { node: "n10", text: "Отец повёз женить на богатой княжне. Ему всё равно на ком — кокетничает с компаньонкой." },
+      { node: "n16", text: "Увезти Наташу — просто потому что хочется. То, что он уже тайно женат, его не смущает." },
+      { node: "n18", text: "На перевязочном пункте Бородина. Потерял ногу — и получил прощение Андрея." } ] },
+
+  ippolit:  { name: "Ипполит Курагин", group: "Курагины", intro: "n1",
+    doodle: { face: "oval", hair: "wavy", mouth: "o", extras: ["monocle"] },
+    bio: "Старший сын. Лицом похож на красавицу-сестру, но «лицо затуманено идиотизмом». ≈24–25.",
+    motives: [ { node: "n1", text: "Рассказывать несмешные анекдоты и волочиться за маленькой княгиней." } ] },
+
+  pierre:   { name: "Пьер Безухов", group: "Безуховы", intro: "n1",
+    doodle: { face: "round", hair: "short", mouth: "smile", extras: ["glasses"] },
+    bio: "Массивный, толстый, в очках. ≈20. Незаконный сын графа Безухова, только из-за границы. Умный, робкий, естественный — сразу видно: не светский.",
+    motives: [
+      { node: "n1", text: "Найти своё место. Пока — спорить о Наполеоне и делать всё невпопад." },
+      { node: "n5", text: "Внезапно — граф и богатейший наследник России. Совершенно к этому не готов." },
+      { node: "n9", text: "Женился на Элен, сам не понял как. «Je vous aime» — потому что так было надо." },
+      { node: "n12", text: "После дуэли: «что дурно? что хорошо? зачем жить?» — уезжает из дома." },
+      { node: "n13", text: "Нашёл ответ в масонстве: хочет делать добро. Получается плохо, но искренне." },
+      { node: "n16", text: "Утешая Наташу, понял: он её любит. «Если б я был не я…»" },
+      { node: "n17", text: "Вычислил «число зверя»: убить Наполеона — его судьба." },
+      { node: "n20", text: "Плен отнял всё — и Каратаев научил: жизнь сама по себе и есть счастье." },
+      { node: "n22", text: "Просто счастлив. И это взаимно." },
+      { node: "n23", text: "Отец семейства и — тайное общество. Что-то декабристское зреет…" } ] },
+
+  old_bezukhov: { name: "Граф Кирилл Безухов", group: "Безуховы", intro: "n4",
+    doodle: { face: "round", hair: "mane", mouth: "flat", eyes: "closed", extras: [] },
+    bio: "Екатерининский вельможа, один из богатейших людей России. Отец Пьера. Умирает после шестого удара.",
+    motives: [ { node: "n4", text: "Успеть последнее: письмо императору — узаконить Пьера и оставить всё ему." } ] },
+
+  katish:   { name: "Княжна Катишь", group: "Безуховы", intro: "n4",
+    doodle: { face: "long", hair: "bun", mouth: "frown", extras: [] },
+    bio: "Катерина Семёновна Мамонтова — старшая из трёх княжон-племянниц графа. Сухая, холодная. Не графиня — княжна!",
+    motives: [
+      { node: "n4", text: "Наследство должно достаться ей: она годами жила при дяде. Пьер — «незаконный»." },
+      { node: "n5", text: "Выкрасть мозаиковый портфель с завещанием. Не вышло — Друбецкая вцепилась намертво." } ] },
+
+  anna_m:   { name: "Анна Михайловна Друбецкая", group: "Ростовы", intro: "n1",
+    doodle: { face: "long", hair: "cap", mouth: "flat", eyes: "sad", extras: [] },
+    bio: "Обедневшая, но цепкая знатная дама со «скорбным» лицом. ≈40–45. Подруга графини Ростовой.",
+    motives: [
+      { node: "n1", text: "Всё для сына: выпросить Борису место в гвардии — хоть унижаясь перед Василием." },
+      { node: "n5", text: "Отбить портфель у Катишь. Не бескорыстно (граф — крёстный Бориса), но Пьера она спасла." } ] },
+
+  boris:    { name: "Борис Друбецкой", group: "Ростовы", intro: "n3",
+    doodle: { face: "oval", hair: "neat", mouth: "smile", extras: [] },
+    bio: "Сын Анны Михайловны, вырос у Ростовых. ≈20. Красивый, спокойный, расчётливее всех Ростовых вместе взятых.",
+    motives: [
+      { node: "n3", text: "Выбраться из бедности наверх. Наташа — детская нежность, но карьера важнее." },
+      { node: "n13", text: "Карьера через связи: теперь он «свой» в салоне Элен." } ] },
+
+  ilya:     { name: "Граф Илья Ростов", group: "Ростовы", intro: "n3",
+    doodle: { face: "round", hair: "sides", mouth: "bigsmile", extras: ["whiskers"] },
+    bio: "Отец семейства, добродушный хлебосол. ≈55–60. Обожает гостей и лихо танцует «Данилу Купора».",
+    motives: [
+      { node: "n3", text: "Чтобы всем было весело и сытно. Про деньги думать не хочется." },
+      { node: "n15", text: "Долги растут, имение трещит — а отказать себе в размахе он не умеет." },
+      { node: "n19", text: "«Берите всё, подводы — раненым». Разоряется окончательно и легко." } ] },
+
+  natalia_r: { name: "Графиня Наталья Ростова", group: "Ростовы", intro: "n3",
+    doodle: { face: "long", hair: "cap", mouth: "smile", extras: [] },
+    bio: "Мать семейства с «восточным типом худого лица», измождена дюжиной детей. ≈45. Сердце дома.",
+    motives: [
+      { node: "n3", text: "Держать дом и деликатно помогать бедной подруге Друбецкой." },
+      { node: "n21", text: "Гибель Пети ломает её. Наташа месяц не отходит от её постели." } ] },
+
+  vera:     { name: "Вера Ростова", group: "Ростовы", intro: "n3",
+    doodle: { face: "oval", hair: "bun", mouth: "flat", extras: [] },
+    bio: "Старшая дочь: красивая, правильная — и от её замечаний всем неловко. Мать признаёт: «с ней я что-то намудрила».",
+    motives: [
+      { node: "n3", text: "Быть правильной. Получается холодно." },
+      { node: "n14", text: "Вышла за карьериста Берга — идеальная пара, от которой сводит зубы." } ] },
+
+  nikolai:  { name: "Николай Ростов", group: "Ростовы", intro: "n3",
+    doodle: { face: "oval", hair: "curly", mouth: "smile", extras: ["mustache", "epaulettes"] },
+    bio: "Старший сын. ≈20. Открытый, честный, восторженный. Бросает университет ради гусарского полка.",
+    motives: [
+      { node: "n3", text: "В гусары! Война — это красиво, государь — это святое." },
+      { node: "n7", text: "Скандал с ворованным кошельком: честь дороже спокойствия — хоть весь полк против." },
+      { node: "n8", text: "Первый бой: «зачем меня убивать? меня же все любят». Война оказалась не парадом." },
+      { node: "n12", text: "Проиграл Долохову 43 000 — и отцовское «бывает» жжёт хуже пули." },
+      { node: "n15", text: "Решил твёрдо: женюсь на Соне, хоть мать против." },
+      { node: "n18", text: "Спас княжну Марью из бунтующего Богучарова — и что-то дрогнуло." },
+      { node: "n23", text: "Хозяин Лысых Гор: выплатил долги, крепко стоит на земле." } ] },
+
+  natasha:  { name: "Наташа Ростова", group: "Ростовы", intro: "n3",
+    doodle: { face: "round", hair: "girl", mouth: "bigsmile", eyes: "big", extras: ["bow"] },
+    bio: "13 лет: черноглазая, с большим ртом, некрасивая — но живая как огонь. Будущая главная героиня.",
+    motives: [
+      { node: "n3", text: "Влюблена во всех сразу, но поцелуй в цветочной — Борису." },
+      { node: "n14", text: "Первый бал. Андрей. «Неужели это я — та девочка?»" },
+      { node: "n16", text: "Год ожидания сломал: Анатоль показался «настоящей» страстью. Катастрофа." },
+      { node: "n17", text: "После яда и позора медленно оживает — через пост и причастие." },
+      { node: "n19", text: "Подводы — раненым! А среди раненых в их обозе — Андрей…" },
+      { node: "n22", text: "Пьер. Всё оттаивает." },
+      { node: "n23", text: "Мать четверых, «сильная и плодовитая самка» — Толстой не щадит романтиков." } ] },
+
+  petya:    { name: "Петя Ростов", group: "Ростовы", intro: "n3",
+    doodle: { face: "round", hair: "kid", mouth: "bigsmile", extras: ["freckles"] },
+    bio: "Младший Ростов. ≈9 лет в начале романа. Любимец всех.",
+    motives: [
+      { node: "n3", text: "Быть рядом со старшими и чтобы заметили." },
+      { node: "n17", text: "15 лет: «пустите на войну!» — прорывается к царю с толпой на Красном крыльце." },
+      { node: "n21", text: "В отряде Денисова. Всем раздаёт изюм. Убит в первой же атаке." } ] },
+
+  sonya:    { name: "Соня", group: "Ростовы", intro: "n3",
+    doodle: { face: "oval", hair: "braid", mouth: "smile", eyes: "cat", extras: [] },
+    bio: "Племянница-сирота, живёт у Ростовых. 15 лет. Тоненькая, с кошачьей грацией.",
+    motives: [
+      { node: "n3", text: "Любит Николая — тихо, преданно и ревниво." },
+      { node: "n12", text: "Отказала Долохову: сердце занято." },
+      { node: "n15", text: "Святки: Николай сказал «женюсь» — счастье!" },
+      { node: "n20", text: "Письмо Николаю: «ты свободен». Вынудила графиня — а у Сони выбора никогда и не было." },
+      { node: "n23", text: "«Пустоцвет»: живёт при чужом счастье, нужная и незамечаемая." } ] },
+
+  ahrosimova: { name: "Марья Дм. Ахросимова", group: "Ростовы", intro: "n3",
+    doodle: { face: "round", hair: "cap", mouth: "frown", eyes: "stern", extras: [] },
+    bio: "Московская «гроза» по прозвищу le terrible dragon. ≈50–60. Говорит всем правду в лицо и всех зовёт на «ты».",
+    motives: [
+      { node: "n3", text: "Подарить Наташе серьги и построить всех, включая графа." },
+      { node: "n16", text: "Перехватить ночной побег Наташи с Анатолем. Успела." } ] },
+
+  andrei:   { name: "Князь Андрей Болконский", group: "Болконские", intro: "n1",
+    doodle: { face: "thin", hair: "neat", mouth: "flat", eyes: "tired", extras: [] },
+    bio: "Небольшого роста, очень красивый, с усталым скучающим взглядом. ≈27. В свете ему всё надоело — включая хорошенькую жену.",
+    motives: [
+      { node: "n1", text: "Задыхается в гостиных. Война — выход." },
+      { node: "n6", text: "Оставляет беременную жену отцу и едет искать «свой Тулон» — свою славу." },
+      { node: "n11", text: "Небо Аустерлица: слава — пустое, кумир Наполеон — мелок." },
+      { node: "n12", text: "Лиза умерла с укором на лице. Вина, которую не искупить." },
+      { node: "n13", text: "«Жить для себя, не мешая другим» — говорит он Пьеру на пароме. Пьер не верит." },
+      { node: "n14", text: "Дуб зазеленел: жизнь не кончена в 31 год. Наташа." },
+      { node: "n16", text: "Предан. Ледяное презрение — и жажда найти Анатоля для дуэли." },
+      { node: "n18", text: "Смертельно ранен. На соседнем столе — Анатоль без ноги. И вместо ненависти — прощение и жалость ко всем." },
+      { node: "n20", text: "«Проснулся от жизни»: любовь — это Бог, а смерть — возвращение." } ] },
+
+  liza:     { name: "Лиза Болконская", group: "Болконские", intro: "n1",
+    doodle: { face: "round", hair: "curly", mouth: "smile", extras: ["lipfuzz"] },
+    bio: "«Маленькая княгиня», всеобщая любимица. ≈18–20, беременна. Примета: короткая губка с тёмным пушком — «усики».",
+    motives: [
+      { node: "n1", text: "Щебетать и нравиться. И не понимать, за что муж стал так холоден." },
+      { node: "n6", text: "Оставлена в деревне со свёкром, которого боится до слёз." },
+      { node: "n12", text: "Умерла родами в ночь возвращения Андрея. На лице — «за что вы меня оставили?»" } ] },
+
+  old_bolk: { name: "Старый князь Болконский", group: "Болконские", intro: "n6",
+    doodle: { face: "thin", hair: "wig", mouth: "frown", eyes: "stern", extras: ["star"] },
+    bio: "Николай Андреевич, «прусский король». Отставной генерал-аншеф, живёт в Лысых Горах по расписанию до минуты. Деспот, умница, отец Андрея и Марьи.",
+    motives: [
+      { node: "n6", text: "Порядок и деятельность: даже дочь мучает геометрией — «чтоб не была дура, как все барышни»." },
+      { node: "n14", text: "Свадьба Андрея с «девчонкой Ростовой»? Год отсрочки — авось рассосётся." },
+      { node: "n18", text: "Второй удар при бегстве из Лысых Гор. Последнее — «душенька… прости» Марье." } ] },
+
+  marya:    { name: "Княжна Марья", group: "Болконские", intro: "n6",
+    doodle: { face: "long", hair: "plain", mouth: "smile", eyes: "radiant", extras: ["cross"] },
+    bio: "Дочь старого князя. Некрасивая, с тяжёлой походкой — и лучистыми глазами, которые всё меняют. Глубоко верующая, кроткая.",
+    motives: [
+      { node: "n6", text: "Терпеть отца, любить всех и мечтать не сметь." },
+      { node: "n10", text: "Жених приехал! Но застав Анатоля с Bourienne — отказала: «моё призвание — другое»." },
+      { node: "n18", text: "Смерть отца, бунт мужиков — и офицер Ростов, явившийся как из романа." },
+      { node: "n20", text: "У постели умирающего брата, рядом с Наташей." },
+      { node: "n23", text: "Графиня Ростова: тёплый дом, дневники о детях, тихая святость." } ] },
+
+  bourienne: { name: "M-lle Bourienne", group: "Болконские", intro: "n6",
+    doodle: { face: "oval", hair: "curly", mouth: "smirk", extras: [] },
+    bio: "Француженка-компаньонка Марьи. Хорошенькая, услужливая — и всегда готова к «своему шансу».",
+    motives: [
+      { node: "n6", text: "Нравиться всем в доме." },
+      { node: "n10", text: "Шанс! Вдруг русский князь увезёт её — Анатоль хотя бы целуется охотно." } ] },
+
+  kutuzov:  { name: "Кутузов", group: "Война", intro: "n7",
+    doodle: { face: "round", hair: "grey", mouth: "flat", eyes: "one", extras: ["epaulettes"] },
+    bio: "Михаил Илларионович. Старый, грузный, одноглазый — и видит войну насквозь. У Толстого — воплощение народной мудрости: не мешать событиям.",
+    motives: [
+      { node: "n7", text: "Сберечь армию: тянуть, отступать, не дать втянуть себя в генеральное сражение." },
+      { node: "n18", text: "«Терпение и время». Бородино — победа духа, что бы ни писали диспозиции." },
+      { node: "n19", text: "В Филях: «Приказываю отступление». Потерять Москву — не потерять Россию." } ] },
+
+  napoleon: { name: "Наполеон", group: "Война", intro: "n11",
+    doodle: { face: "round", hair: "short", mouth: "flat", extras: ["bicorne", "handvest"] },
+    bio: "Император французов. У Толстого — маленький человек, уверенный, что двигает историю, пока история двигает его.",
+    motives: [
+      { node: "n11", text: "На вершине: Аустерлиц — его солнце. «Voilà une belle mort» — о живом Андрее." },
+      { node: "n17", text: "Через Неман: «фаталист на троне» ведёт полмиллиона в Россию." },
+      { node: "n18", text: "Под Бородином у него насморк. История делается без него." },
+      { node: "n21", text: "Бросает армию и бежит. Величие сдулось." } ] },
+
+  dolokhov: { name: "Долохов", group: "Война", intro: "n2",
+    doodle: { face: "oval", hair: "curly", mouth: "smirk", eyes: "cold", extras: [] },
+    bio: "Фёдор Долохов, 25 лет: семёновский офицер, игрок, бретёр. Светлые холодные глаза. Небогат — но держит себя хозяином любой компании. С матерью нежен, со всеми прочими — беспощаден.",
+    motives: [
+      { node: "n2", text: "Бутылка рома на карнизе третьего этажа — потому что может." },
+      { node: "n7", text: "Разжалован в солдаты за медведя. Цель — выслужиться обратно." },
+      { node: "n8", text: "«Взял в плен офицера! Прошу запомнить, ваше превосходительство»." },
+      { node: "n12", text: "Отвергнут Соней — мстит Николаю за карточным столом: ровно 43 000." },
+      { node: "n21", text: "Партизанит без жалости. Над телом Пети — короткое «готов»." } ] },
+
+  denisov:  { name: "Денисов", group: "Война", intro: "n7",
+    doodle: { face: "round", hair: "messy", mouth: "smile", extras: ["bigmustache", "epaulettes"] },
+    bio: "Васька Денисов: маленький, чёрные усы, не выговаривает «р» — «гхе». Эскадронный командир Николая и его лучший друг.",
+    motives: [
+      { node: "n7", text: "Служить лихо и держать эскадрон в кулаке." },
+      { node: "n12", text: "Сделал предложение пятнадцатилетней Наташе. Отказ — уехал с достоинством." },
+      { node: "n21", text: "Командует партизанами. Гибель Пети — его личное горе." } ] },
+
+  tushin:   { name: "Капитан Тушин", group: "Война", intro: "n8",
+    doodle: { face: "round", hair: "messy", mouth: "smile", eyes: "big", extras: ["pipe"] },
+    bio: "Маленький, неловкий артиллерист с большими умными глазами. Герой без единой геройской позы.",
+    motives: [ { node: "n8", text: "Просто делать дело: его забытая батарея держит центр при Шёнграбене." } ] },
+
+  karataev: { name: "Платон Каратаев", group: "Война", intro: "n20",
+    doodle: { face: "round", hair: "peasant", mouth: "bigsmile", extras: ["beard"] },
+    bio: "Солдат-крестьянин, «круглый» весь: лицо, речь, жизнь. Встречает Пьера в плену.",
+    motives: [
+      { node: "n20", text: "Жить как дышать: без вопросов «зачем». Именно этому у него учится Пьер." },
+      { node: "n21", text: "Отстал на марше — пристрелен конвоем. Пьер не смог оглянуться." } ] }
+};
+
+/* ── Сюжетные узлы (стикеры) ── */
+const NODES = [
+  { id: "n1", part: "Том 1 · Часть 1 · гл. 1–5", title: "Салон Анны Шерер",
+    teaser: "Июль 1805, Петербург. Весь высший свет — в одной гостиной.",
+    bullets: [
+      "Все говорят по-французски и обсуждают Наполеона: он взял Геную и Лукку, Европа в тревоге.",
+      "Князь Василий между делом решает дела: Шерер подкидывает идею — женить Анатоля на богатой княжне Болконской.",
+      "Анна Михайловна Друбецкая выпрашивает у Василия место в гвардии для сына Бориса.",
+      "Пьер ляпает невпопад и защищает Наполеона — Шерер в ужасе.",
+      "Андрей задыхается среди этих людей; единственный, кому он рад, — Пьер." ],
+    cast: ["sherer", "vasily", "helen", "anatole", "ippolit", "pierre", "andrei", "liza", "anna_m"],
+    rels: [
+      ["vasily", "helen", "fam", "отец"], ["vasily", "anatole", "fam", "отец"], ["vasily", "ippolit", "fam", "отец"],
+      ["andrei", "liza", "fam", "муж и жена"], ["pierre", "andrei", "fri", "друзья"],
+      ["vasily", "anna_m", "intr", "просительница"] ] },
+
+  { id: "n2", part: "Том 1 · Часть 1 · гл. 6", title: "Ночь у Анатоля",
+    teaser: "Пьер обещал Андрею не кутить. И сразу поехал кутить.",
+    bullets: [
+      "У Анатоля — карты, ром и медведь.",
+      "Долохов на спор выпивает бутылку рома, сидя на карнизе третьего этажа, не держась руками.",
+      "Скоро вся Москва узнает: компания привязала квартального к медведю и пустила плавать.",
+      "Расплата: Пьера высылают в Москву, Долохова разжалуют в солдаты." ],
+    cast: ["pierre", "anatole", "dolokhov"],
+    rels: [ ["dolokhov", "anatole", "fri", "собутыльники"] ] },
+
+  { id: "n3", part: "Том 1 · Часть 1 · гл. 7–17", title: "Именины у Ростовых",
+    teaser: "Москва. Двойные именины — и вторая, тёплая семья романа.",
+    bullets: [
+      "Именины у матери-графини и у Наташи. Дом Ростовых — полная противоположность холодным Курагиным.",
+      "Наташа (13 лет) целует Бориса в цветочной; Соня ревнует Николая; Вера всех бесит нравоучениями.",
+      "Гости смакуют скандал с медведем; грозная Ахросимова строит всех и дарит Наташе серьги.",
+      "Графиня отдаёт подруге Друбецкой деньги на обмундирование Бориса — у Ростовых это просто.",
+      "Финал вечера: граф Илья лихо пляшет «Данилу Купора»." ],
+    cast: ["ilya", "natalia_r", "natasha", "nikolai", "vera", "petya", "sonya", "boris", "anna_m", "ahrosimova"],
+    rels: [
+      ["ilya", "natalia_r", "fam", "муж и жена"], ["natasha", "boris", "lov", "детская любовь"],
+      ["sonya", "nikolai", "lov", "любовь"], ["anna_m", "boris", "fam", "мать"],
+      ["anna_m", "natalia_r", "fri", "подруги"], ["ilya", "sonya", "fam", "племянница"] ] },
+
+  { id: "n4", part: "Том 1 · Часть 1 · гл. 12–13, 18–20", title: "У постели умирающего",
+    teaser: "Граф Безухов при смерти. Вокруг наследства сжимается кольцо.",
+    bullets: [
+      "У графа Безухова — шестой удар. Москва съезжается «на последний акт».",
+      "Анна Михайловна привозит Пьера к отцу: без неё его бы и на порог не пустили.",
+      "Князь Василий и княжна Катишь шепчутся: есть письмо императору с просьбой узаконить Пьера — и завещание.",
+      "Соборование. Последний взгляд отца на сына — сказать он уже ничего не может.",
+      "Ставка сделана: бумаги лежат в мозаиковом портфеле под подушкой графа." ],
+    cast: ["pierre", "old_bezukhov", "katish", "vasily", "anna_m"],
+    rels: [
+      ["pierre", "old_bezukhov", "fam", "незаконный сын"], ["katish", "old_bezukhov", "fam", "племянница"],
+      ["vasily", "katish", "intr", "заговор"] ] },
+
+  { id: "n5", part: "Том 1 · Часть 1 · гл. 21", title: "Мозаиковый портфель",
+    teaser: "Та самая сцена: битва за портфель «с плиточками».",
+    bullets: [
+      "Ночью Катишь и Василий пробираются за портфелем — если письмо дойдёт до императора, всё уйдёт Пьеру.",
+      "Анна Михайловна перехватывает их и вцепляется в портфель: «Я не позволю!». Дерутся — буквально.",
+      "В этот момент граф умирает.",
+      "Бумаги целы: Пьер узаконен, он — граф Безухов и наследник гигантского состояния.",
+      "Князь Василий мгновенно меняет тон: теперь Пьер — «милый друг семьи»." ],
+    cast: ["pierre", "katish", "vasily", "anna_m", "old_bezukhov"],
+    rels: [ ["anna_m", "katish", "intr", "битва за портфель"], ["vasily", "pierre", "intr", "новый интерес"] ] },
+
+  { id: "n6", part: "Том 1 · Часть 1 · гл. 22–25", title: "Лысые Горы",
+    teaser: "Имение Болконских: расписание, геометрия и прощание.",
+    bullets: [
+      "Знакомство со старым князем Болконским: жизнь по минутам, сам учит дочь геометрии, слёз не признаёт.",
+      "Княжна Марья: некрасивая, кроткая, с лучистыми глазами. Письмо подруги Жюли: Пьер — наследник, а к Марье прочат Анатоля.",
+      "Андрей привозит беременную Лизу — оставляет её у отца и уезжает на войну.",
+      "Марья вешает брату на шею образок: «против воли Он спасёт и помилует тебя».",
+      "Старик-отец на прощание: «помни одно — коли убьют, старику больно… а коли поведёшь себя не как сын Болконского — стыдно!»" ],
+    cast: ["andrei", "liza", "old_bolk", "marya", "bourienne"],
+    rels: [
+      ["old_bolk", "andrei", "fam", "отец"], ["old_bolk", "marya", "fam", "отец"],
+      ["marya", "andrei", "fam", "брат и сестра"] ] },
+
+  { id: "n7", part: "Том 1 · Часть 2 · гл. 1–8", title: "Смотр под Браунау",
+    teaser: "Осень 1805, Австрия. Война начинается — с сапог и кошелька.",
+    bullets: [
+      "Армия Кутузова в Австрии. Кутузов нарочно показывает австрийцам полк в рванье: воевать он не спешит.",
+      "В строю — разжалованный Долохов; Кутузов его помнит.",
+      "Николай — юнкер в Павлоградском гусарском, рядом эскадронный Денисов («гхе!»).",
+      "Скандал: офицер Телянин крадёт кошелёк Денисова, Николай уличает его при всех — и оказывается «виноват», что вынес сор из избы. Чести не сдаёт.",
+      "Союзники-австрийцы разбиты: Мак сдал армию под Ульмом. Теперь драться придётся русским.",
+      "Андрей — адъютант Кутузова: здесь его ценят, здесь он другой человек." ],
+    cast: ["nikolai", "denisov", "dolokhov", "kutuzov", "andrei"],
+    rels: [ ["denisov", "nikolai", "fri", "командир и друг"], ["andrei", "kutuzov", "fri", "адъютант"] ] },
+
+  { id: "n8", part: "Том 1 · Часть 2 · гл. 9–21", title: "Шёнграбен",
+    teaser: "Первый настоящий бой — у каждого свой.",
+    bullets: [
+      "Отряд Багратиона прикрывает отход армии: 4 тысячи против 30.",
+      "Николай под огнём: лошадь убита, рука контужена — «зачем меня убивать? меня же все любят!» Война — не парад.",
+      "Забытая батарея капитана Тушина держит центр боя; сам Тушин — маленький, неловкий, без всякой позы.",
+      "На разборе Тушина делают виноватым за брошенные пушки — Андрей один вступается: «мы обязаны успехом дня этой батарее».",
+      "Долохов суёт под нос начальству пленного офицера: «прошу запомнить!» — выслуживается из солдат.",
+      "Андрей мрачно понимает: настоящая война совсем не похожа на «свой Тулон»." ],
+    cast: ["nikolai", "tushin", "andrei", "dolokhov", "denisov", "kutuzov"],
+    rels: [ ["andrei", "tushin", "fri", "заступился"] ] },
+
+  { id: "n9", part: "Том 1 · Часть 3 · гл. 1–2", title: "Женитьба Пьера",
+    teaser: "Князь Василий «помогает» наследнику. Очень целенаправленно.",
+    bullets: [
+      "Василий берёт Пьера под опеку: устраивает в камер-юнкеры, селит у себя — и подводит к Элен.",
+      "Пьер видит, что его женят, чувствует, что это как-то нечестно… и не может остановиться.",
+      "Именины Элен: все ждут. Василий буднично благословляет: «слава богу!»",
+      "«Je vous aime», — говорит Пьер, потому что так было надо. Через полтора месяца он женат.",
+      "Богатейший наследник России пристроен. Партия Василия сыграна безупречно." ],
+    cast: ["pierre", "helen", "vasily"],
+    rels: [ ["pierre", "helen", "lov", "брак-ловушка"] ] },
+
+  { id: "n10", part: "Том 1 · Часть 3 · гл. 3–5", title: "Сватовство Анатоля",
+    teaser: "Вторая партия Василия — в Лысых Горах. Осечка.",
+    bullets: [
+      "Василий везёт Анатоля свататься к Марье. Старый князь взбешён, но дочь не неволит.",
+      "Марья, замирая, мечтает: семья, дети… Её нарядили — «изуродовали», по мнению отца.",
+      "Анатолю всё равно, на ком жениться — он от скуки кокетничает с Bourienne.",
+      "Марья застаёт их в саду в объятиях.",
+      "Отказ: «моё желание — никогда не покидать отца». Bourienne она прощает. Василий уезжает ни с чем." ],
+    cast: ["vasily", "anatole", "marya", "old_bolk", "bourienne"],
+    rels: [ ["anatole", "marya", "intr", "сорванное сватовство"], ["anatole", "bourienne", "lov", "интрижка"] ] },
+
+  { id: "n11", part: "Том 1 · Часть 3 · гл. 8–19", title: "Аустерлиц",
+    teaser: "«Своё Тулон» Андрея — и небо над ним.",
+    bullets: [
+      "Николай видит императора Александра — и влюблён, как мальчик: умереть за него — счастье.",
+      "Молодые генералы рвутся в бой; Кутузов один против сражения — его не слушают.",
+      "Туман, путаница, разгром союзной армии.",
+      "Андрей со знаменем в руках останавливает бегущий батальон — и падает: над ним только «высокое, бесконечное небо».",
+      "Наполеон над раненым: «Voilà une belle mort». Кумир оказывается «маленьким и ничтожным» рядом с этим небом.",
+      "Пленного Андрея с образком Марьи оставляют жителям — жив ли он, дома не знают." ],
+    cast: ["andrei", "napoleon", "kutuzov", "nikolai"],
+    rels: [ ["andrei", "napoleon", "intr", "развенчанный кумир"] ] },
+
+  { id: "n12", part: "Том 2 · Часть 1", title: "Дуэль и две потери",
+    teaser: "Москва, 1806. Анонимка, выстрел — и ночь в Лысых Горах.",
+    bullets: [
+      "Николай с Денисовым — домой в отпуск. Москва чествует героев; в Английском клубе — банкет в честь Багратиона.",
+      "Пьер получает анонимку про Элен и Долохова. На банкете взрывается: «дуэль!»",
+      "Никогда не державший пистолета Пьер ранит бретёра Долохова. Разрыв с Элен, ей — большая часть состояния. «Что дурно? Что хорошо?»",
+      "В ту же зиму: Андрей жив! Он возвращается в Лысые Горы — в ночь, когда Лиза умирает родами. Сын Николушка. На мёртвом лице — «за что вы меня оставили?»",
+      "Долохов, отвергнутый Соней, мстит Николаю за карточным столом: ровно 43 000 — возраст его и Сони вместе.",
+      "Денисов делает предложение пятнадцатилетней Наташе. Мягкий отказ." ],
+    cast: ["pierre", "dolokhov", "helen", "andrei", "liza", "nikolai", "sonya", "natasha", "denisov"],
+    rels: [
+      ["pierre", "dolokhov", "intr", "дуэль"], ["helen", "dolokhov", "intr", "роман"],
+      ["dolokhov", "sonya", "lov", "отказ"], ["dolokhov", "nikolai", "intr", "43 000"],
+      ["denisov", "natasha", "lov", "отказ"] ] },
+
+  { id: "n13", part: "Том 2 · Часть 2", title: "Масоны и паром",
+    teaser: "Пьер ищет смысл, Андрей — покой. Спор на пароме.",
+    bullets: [
+      "На станции в Торжке Пьер встречает масона Баздеева — и вступает в братство: наконец-то ответ, как жить.",
+      "Едет облегчать жизнь крестьян; управляющие водят его за нос, но Пьер счастлив намерением.",
+      "Андрей после Аустерлица и смерти жены живёт в Богучарове: «жить для себя, не мешая другим».",
+      "Спор на пароме: «надо жить, надо любить, надо верить», — говорит Пьер. Андрей усмехается… но небо над паромом что-то в нём будит.",
+      "Николай в полку; Тильзитский мир: вчерашний «антихрист» Наполеон обнимается с государем. Зачем тогда оторванные руки и ноги?",
+      "Пьер и Элен формально снова вместе: её салон блистает, Бориса Друбецкого там принимают особенно ласково." ],
+    cast: ["pierre", "andrei", "nikolai", "helen", "boris"],
+    rels: [ ["boris", "helen", "intr", "карьерный роман"] ] },
+
+  { id: "n14", part: "Том 2 · Часть 3", title: "Дуб и первый бал",
+    teaser: "31 декабря 1809. «Неужели это я — та девочка?»",
+    bullets: [
+      "По дороге в Отрадное Андрей видит старый корявый дуб: «весна — обман». На обратном пути дуб зелёный: жизнь в 31 год не кончена!",
+      "Между этим — лунная ночь в Отрадном и голос Наташи у окна, который он нечаянно подслушал.",
+      "Андрей в Петербурге у реформатора Сперанского — и быстро понимает: бумажное величие, всё не то.",
+      "Первый бал Наташи. Пьер просит Андрея пригласить её. Всё решено за один вальс.",
+      "Старый князь ставит условие: год отсрочки. Помолвка тайная; кольцо не надето, Наташа «свободна».",
+      "Андрей уезжает за границу. Год — это целая вечность, особенно когда тебе шестнадцать.",
+      "Тем временем Веру выдают за расчётливого Берга — идеальный брак без единого живого чувства." ],
+    cast: ["andrei", "natasha", "pierre", "old_bolk", "vera"],
+    rels: [ ["andrei", "natasha", "lov", "помолвка"] ] },
+
+  { id: "n15", part: "Том 2 · Часть 4", title: "Охота и святки",
+    teaser: "Самые русские страницы романа: волк, «Барыня», гадания.",
+    bullets: [
+      "Отрадное. Большая охота: волка берёт свирепый Данило, Николай счастлив как никогда.",
+      "Вечер у «дядюшки»: гитара, и Наташа — графиня в шёлке — пляшет русскую так, будто впитала её с воздухом.",
+      "Святки: ряженые, поездка к соседям, гадания при свечах и зеркалах.",
+      "Николай смотрит на Соню в костюме с нарисованными усами — и решает твёрдо: женюсь.",
+      "Графиня-мать резко против: Ростовы разорены, Николай обязан взять богатую невесту. Ссора; Николай уезжает в полк.",
+      "Денежные дела всё хуже: продажа Отрадного уже маячит." ],
+    cast: ["nikolai", "natasha", "sonya", "ilya", "natalia_r"],
+    rels: [] },
+
+  { id: "n16", part: "Том 2 · Часть 5", title: "Анатоль",
+    teaser: "Опера, письмо, тройки у чёрного крыльца. Катастрофа.",
+    bullets: [
+      "Ростовы в Москве у Ахросимовой. Визит к Болконским: старик демонстративно оскорбляет Наташу, Марья неловка — обида.",
+      "Опера. В соседней ложе — Элен, а с ней Анатоль, который смотрит на Наташу не отрываясь.",
+      "Анатоль (тайно женатый на польке — об этом знают только свои) осаждает: письма за него сочиняет Долохов.",
+      "Наташа, измотанная годом ожидания, верит: вот она, настоящая любовь. Отказ Андрею отправлен.",
+      "Ночь побега: тройки Балаги у крыльца. Соня выдаёт план — Ахросимова перехватывает Анатоля в дверях.",
+      "Пьер: «он женат!» Анатоля — вон из Москвы, письма — вернуть. Наташа глотает мышьяк — успевают спасти.",
+      "Андрей возвращает её письма: «просите руки у кого хотите». Пьер утешает Наташу — и вдруг: «если б я был не я… я бы на коленях просил вашей руки».",
+      "Над Москвой — комета 1812 года. Пьеру она почему-то не страшна, а радостна." ],
+    cast: ["natasha", "anatole", "helen", "dolokhov", "ahrosimova", "sonya", "pierre", "andrei", "old_bolk", "marya"],
+    rels: [
+      ["anatole", "natasha", "intr", "соблазн"], ["helen", "anatole", "intr", "сообщники"],
+      ["pierre", "natasha", "lov", "«если б я был не я»"] ] },
+
+  { id: "n17", part: "Том 3 · Часть 1", title: "1812. Вторжение",
+    teaser: "Наполеон переходит Неман. Всё приходит в движение.",
+    bullets: [
+      "12 июня Великая армия переходит Неман. Александр узнаёт об этом на балу в Вильне.",
+      "Николай в деле при Островне: атака, пленный француз «с комнатным лицом», Георгиевский крест — и тихий вопрос: «так это и есть геройство?»",
+      "Наташа после отравы медленно оживает: пост, причастие, молитва «миром господу помолимся».",
+      "Пятнадцатилетний Петя рвётся на войну; в толпе у Кремля его чуть не давят — но от своего он не отступит.",
+      "Пьер играет с каббалой чисел: «l’empereur Napoléon» = 666, и его собственное имя подгоняется туда же. Судьба!",
+      "Андрей ищет Анатоля, чтобы мстить, — тот предусмотрительно исчез в Молдавскую армию." ],
+    cast: ["napoleon", "nikolai", "natasha", "petya", "pierre", "andrei"],
+    rels: [] },
+
+  { id: "n18", part: "Том 3 · Часть 2", title: "Смоленск и Бородино",
+    teaser: "Самая длинная часть романа — и её самый страшный день.",
+    bullets: [
+      "Смоленск горит; купец Ферапонтов сам поджигает лавку: «тащи всё, ребята!»",
+      "Старый князь Болконский не верит в опасность до последнего — удар; умирает, успев сказать Марье: «душенька… прости».",
+      "Богучаровские мужики бунтуют и не выпускают Марью. Случайно заехавший Николай Ростов усмиряет толпу одним криком — и увозит княжну. Оба что-то поняли.",
+      "Кутузов — главнокомандующий. Андрею: «иди служить в полк; советчиков всегда много, людей нет».",
+      "Пьер (штатский, в белой шляпе!) едет смотреть сражение — и попадает на батарею Раевского, в самое пекло. Солдаты прозвали «наш барин».",
+      "Накануне — последний разговор с Андреем: «война — самое гадкое дело в жизни… не берите пленных».",
+      "Полк Андрея весь день стоит в резерве под огнём. Граната у ног: «неужели это смерть?» — и он не может позволить себе упасть при солдатах.",
+      "Перевязочный пункт: на соседнем столе рыдает Анатоль — ему отняли ногу. И вместо ненависти Андрей плачет «любовью ко всем» — и прощает.",
+      "У Наполеона насморк. Кутузов волей одной удерживает армию: назавтра французы впервые не чувствуют победы." ],
+    cast: ["old_bolk", "marya", "nikolai", "kutuzov", "pierre", "andrei", "anatole", "napoleon"],
+    rels: [
+      ["nikolai", "marya", "lov", "встреча в Богучарове"], ["andrei", "anatole", "lov", "прощение"] ] },
+
+  { id: "n19", part: "Том 3 · Часть 3", title: "Москва оставлена",
+    teaser: "Совет в Филях, подводы Ростовых и пожар.",
+    bullets: [
+      "Изба в Филях; девочка Малаша с печи смотрит, как «дедушка» Кутузов спорит с генералами. «Приказываю отступление»: Москву — сдать, армию — спасти.",
+      "Москва пустеет. Ростовы пакуют добро; Наташа требует: скинуть вещи, подводы — раненым! Граф счастлив подчиниться.",
+      "В их обозе — смертельно раненный Андрей. Наташа узнаёт об этом уже в дороге.",
+      "Мытищи, ночь: Наташа входит к Андрею. «Простите меня!» — «Я вас люблю больше, прежде и лучше, чем прежде».",
+      "Пьер остаётся в Москве с кинжалом: убить Наполеона. Вместо этого спасает из огня девочку, вступается за армянку — арестован как «поджигатель».",
+      "Растопчин перед бегством отдаёт толпе Верещагина — сцена, которую Москве не забыть.",
+      "Элен в Петербурге меняет веру и выбирает между двумя женихами — при живом муже.",
+      "Москва горит: «пустой улей» не мог не сгореть." ],
+    cast: ["kutuzov", "natasha", "ilya", "andrei", "pierre", "helen"],
+    rels: [ ["natasha", "andrei", "lov", "прощение в Мытищах"] ] },
+
+  { id: "n20", part: "Том 4 · Часть 1", title: "Плен и Каратаев",
+    teaser: "Самое дно — и самый важный учитель Пьера.",
+    bullets: [
+      "Пьер видит расстрел «поджигателей» — пятерых, он был шестым в списке. Вера в устройство мира рушится.",
+      "В бараке пленных — Платон Каратаев: картошка, ласковая скороговорка, собака Серый. «Круглый» человек, живущий как дышит. Пьер оттаивает.",
+      "Николай в Воронеже снова встречает Марью: её лучистые глаза сильнее всех его планов. Но он связан словом Соне.",
+      "Письмо от Сони: «ты свободен» (за ним — воля графини, у Сони выбора не было).",
+      "Элен внезапно умирает в Петербурге — свет деликатно не уточняет, от чего.",
+      "Марья едет в Ярославль к раненому брату. У его постели — она и Наташа, вместе.",
+      "Андрей «проснулся от жизни»: любовь — это Бог, смерть — возвращение к общему источнику. Тихий конец." ],
+    cast: ["pierre", "karataev", "nikolai", "marya", "sonya", "helen", "andrei", "natasha"],
+    rels: [ ["pierre", "karataev", "fri", "учитель жизни"] ] },
+
+  { id: "n21", part: "Том 4 · Части 2–3", title: "Партизаны. Петя",
+    teaser: "«Дубина народной войны» — и изюм, который раздали всем.",
+    bullets: [
+      "Наполеон бросает Москву; армия его тает на старой Смоленской дороге.",
+      "«Дубина народной войны поднялась… и гвоздила французов, пока не погибло всё нашествие».",
+      "Отряд Денисова; рядом действует Долохов, ходящий во французский лагерь в чужом мундире.",
+      "Приезжает Петя — с курагой и изюмом для всех: «я привык что-нибудь сладкое». Ночью во сне ему играет невидимый оркестр.",
+      "Утренняя атака на депо: Петя скачет первым — пуля в голову. Долохов: «готов». Денисов вспоминает изюм — и не может смотреть.",
+      "В этой же атаке освобождают пленных — среди них Пьер.",
+      "Каратаев, отставший на марше, пристрелен конвоем; Пьер не нашёл в себе сил оглянуться." ],
+    cast: ["denisov", "dolokhov", "petya", "pierre", "karataev", "napoleon"],
+    rels: [ ["petya", "denisov", "fri", "любимец отряда"] ] },
+
+  { id: "n22", part: "Том 4 · Часть 4", title: "Возвращение",
+    teaser: "«Компаньонка в чёрном платье» — и всё оживает.",
+    bullets: [
+      "Горе объединяет Наташу и Марью — после смерти Андрея они как сёстры.",
+      "Весть о гибели Пети: графиня-мать почти теряет рассудок. Наташа месяц не отходит от неё — и любовь к матери воскрешает её саму.",
+      "Пьер после плена — новый человек: всех слушает, всем рад, «стал как-то чист». Москва его обожает.",
+      "У Марьи он видит «компаньонку в чёрном» — и не узнаёт Наташу. А узнав — всё понимает про себя окончательно.",
+      "Разговоры втроём: о плене, об Андрее — впервые легко.",
+      "Сватовство через Марью. Наташа расцветает так, что её не узнать." ],
+    cast: ["pierre", "natasha", "marya", "natalia_r"],
+    rels: [ ["pierre", "natasha", "lov", "любовь"] ] },
+
+  { id: "n23", part: "Эпилог · 1813–1820", title: "Семь лет спустя",
+    teaser: "Две свадьбы, Лысые Горы — и мальчик, который видит сны о славе.",
+    bullets: [
+      "Старый граф Илья умирает, оставив одни долги; Николай тянет мать и Соню на жалованье.",
+      "1814: Николай женится на Марье — и её состояние спасает Ростовых. К 1820-му Лысые Горы — образцовое хозяйство, долги выплачены.",
+      "1813: Пьер женится на Наташе. Четверо детей; Наташа растворяется в семье — Толстой демонстративно лишает её «поэзии».",
+      "Соня живёт при доме — «пустоцвет»: нужная, добрая, незамечаемая.",
+      "Пьер ездит в Петербург по делам тайного общества: «в судах воровство, в армии палка» — что-то декабристское зреет. Николай мрачно обещает: велят — пойдёт против с эскадроном.",
+      "Пятнадцатилетний Николушка Болконский слушает споры взрослых, обожая Пьера: «отец… он бы согласился». Сон о славе — круг замыкается.",
+      "Финальная мысль Толстого: историю движут не герои, а сумма миллионов воль. Счастье — не слава, а сама жизнь." ],
+    cast: ["pierre", "natasha", "nikolai", "marya", "sonya"],
+    rels: [ ["pierre", "natasha", "fam", "муж и жена"], ["nikolai", "marya", "fam", "муж и жена"] ] }
+];
+
+/* ── Позиции на доске ── */
+const CHAR_POS = {
+  vasily: [200, 150], ippolit: [400, 150], helen: [160, 430], anatole: [400, 430],
+  sherer: [660, 150],
+  pierre: [1560, 140], old_bezukhov: [1400, 430], katish: [1720, 430],
+  old_bolk: [160, 800], andrei: [370, 800], liza: [580, 800],
+  marya: [260, 1080], bourienne: [480, 1080],
+  kutuzov: [880, 800], napoleon: [1090, 800], karataev: [1300, 800],
+  dolokhov: [880, 1080], denisov: [1090, 1080], tushin: [1300, 1080],
+  ilya: [2280, 140], natalia_r: [2480, 140], vera: [2680, 140], ahrosimova: [2900, 140],
+  nikolai: [2280, 430], sonya: [2480, 430], natasha: [2680, 430], petya: [2900, 430],
+  boris: [2380, 700], anna_m: [2600, 700]
+};
+const CLUSTERS = [
+  { label: "Курагины", x: 220, y: 80 }, { label: "Свет", x: 680, y: 80, small: true },
+  { label: "Безуховы", x: 1480, y: 80 }, { label: "Ростовы и близкие", x: 2450, y: 80 },
+  { label: "Болконские", x: 280, y: 730 }, { label: "Война", x: 1040, y: 730 }
+];
+const CHAR_W = 156, CHAR_H = 175;
+const STORY_W = 400, STORY_H = 210;
+
+function storyPos(i) {
+  const perRow = 6, r = Math.floor(i / perRow);
+  let c = i % perRow;
+  if (r % 2 === 1) c = perRow - 1 - c; // змейка
+  return [150 + c * 530, 1440 + r * 275];
+}
+
+/* ═════════════ ГЕНЕРАТОР ДУДЛОВ ═════════════ */
+function doodleSVG(d, seed) {
+  const S = 100, cx = 50;
+  let s = seed || 1;
+  const rnd = () => { s = (s * 16807) % 2147483647; return (s / 2147483647 - 0.5); };
+  const w = (v, amp) => (v + rnd() * (amp || 2.4)).toFixed(1);
+  const ink = "var(--ink)";
+  const p = [];
+  const faceW = d.face === "round" ? 34 : d.face === "thin" ? 24 : d.face === "long" ? 26 : 29;
+  const faceH = d.face === "long" ? 40 : d.face === "round" ? 34 : 36;
+  const cy = 52;
+  p.push(`<ellipse cx="${w(cx)}" cy="${w(cy)}" rx="${w(faceW)}" ry="${w(faceH)}" fill="var(--card-paper)" stroke="${ink}" stroke-width="2.6"/>`);
+  const hy = cy - faceH;
+  switch (d.hair) {
+    case "bald": p.push(`<path d="M ${cx-faceW+6} ${w(cy-8)} q ${w(-6)} ${w(0)} -8 6 M ${cx+faceW-6} ${w(cy-8)} q ${w(6)} ${w(0)} 8 6" stroke="${ink}" stroke-width="2.4" fill="none"/>`,
+      `<path d="M ${w(cx-18)} ${w(hy+10)} q ${w(18,4)} ${w(-9,3)} 36 0" stroke="${ink}" stroke-width="1.6" fill="none" opacity="0.45"/>`); break;
+    case "short": p.push(`<path d="M ${w(cx-faceW+3)} ${w(cy-12)} Q ${w(cx-faceW)} ${w(hy-4)} ${w(cx)} ${w(hy-6)} Q ${w(cx+faceW)} ${w(hy-4)} ${w(cx+faceW-3)} ${w(cy-12)}" fill="${ink}" opacity="0.85"/>`); break;
+    case "neat": p.push(`<path d="M ${w(cx-faceW+2)} ${w(cy-14)} Q ${w(cx-faceW-2)} ${w(hy-2)} ${w(cx-4)} ${w(hy-5)} L ${w(cx+faceW-4)} ${w(hy+6)} Q ${w(cx+faceW+1)} ${w(cy-16)} ${w(cx+faceW-2)} ${w(cy-12)} Z" fill="${ink}" opacity="0.85"/>`); break;
+    case "wavy": p.push(`<path d="M ${w(cx-faceW)} ${w(cy-10)} q -6 -18 6 -26 q 8 -8 20 -8 q 14 0 22 8 q 10 8 4 26 q -4 -12 -12 -14 q -18 -8 -30 0 q -8 4 -10 14 Z" fill="${ink}" opacity="0.85"/>`); break;
+    case "curly": for (let i = 0; i < 7; i++) p.push(`<circle cx="${w(cx - faceW + 4 + i * (faceW / 3.2))}" cy="${w(hy + 4 + Math.abs(3 - i) * 2)}" r="${w(7, 1.6)}" fill="${ink}" opacity="0.8"/>`); break;
+    case "updo": p.push(`<ellipse cx="${w(cx)}" cy="${w(hy - 4)}" rx="${w(16)}" ry="${w(11)}" fill="${ink}" opacity="0.85"/>`,
+      `<path d="M ${w(cx-faceW)} ${w(cy-12)} Q ${w(cx-faceW-1)} ${w(hy+2)} ${w(cx)} ${w(hy)} Q ${w(cx+faceW+1)} ${w(hy+2)} ${w(cx+faceW)} ${w(cy-12)}" fill="none" stroke="${ink}" stroke-width="3"/>`); break;
+    case "bun": p.push(`<circle cx="${w(cx)}" cy="${w(hy-5)}" r="${w(8)}" fill="${ink}" opacity="0.85"/>`,
+      `<path d="M ${w(cx-faceW)} ${w(cy-14)} Q ${w(cx)} ${w(hy-2)} ${w(cx+faceW)} ${w(cy-14)}" fill="none" stroke="${ink}" stroke-width="3.4"/>`); break;
+    case "braid": p.push(`<path d="M ${w(cx-faceW)} ${w(cy-14)} Q ${w(cx)} ${w(hy-3)} ${w(cx+faceW)} ${w(cy-14)}" fill="none" stroke="${ink}" stroke-width="3.4"/>`);
+      for (let i = 0; i < 4; i++) p.push(`<circle cx="${w(cx+faceW+2)}" cy="${w(cy - 6 + i * 9)}" r="${w(4.6,1)}" fill="${ink}" opacity="0.8"/>`); break;
+    case "girl": p.push(`<path d="M ${w(cx-faceW-2)} ${w(cy+2)} Q ${w(cx-faceW-4)} ${w(hy-2)} ${w(cx)} ${w(hy-4)} Q ${w(cx+faceW+4)} ${w(hy-2)} ${w(cx+faceW+2)} ${w(cy+2)} L ${w(cx+faceW-4)} ${w(cy-6)} Q ${w(cx)} ${w(hy+8)} ${w(cx-faceW+4)} ${w(cy-6)} Z" fill="${ink}" opacity="0.85"/>`); break;
+    case "kid": p.push(`<path d="M ${w(cx-10)} ${w(hy-2)} q 4 -8 10 -3 q 4 -7 10 0" stroke="${ink}" stroke-width="2.4" fill="none"/>`); break;
+    case "cap": p.push(`<path d="M ${w(cx-faceW-3)} ${w(cy-16)} Q ${w(cx)} ${w(hy-12)} ${w(cx+faceW+3)} ${w(cy-16)} Q ${w(cx)} ${w(hy+4)} ${w(cx-faceW-3)} ${w(cy-16)} Z" fill="var(--card-paper)" stroke="${ink}" stroke-width="2.4"/>`,
+      `<path d="M ${w(cx-faceW-5)} ${w(cy-14)} q 4 6 8 4 M ${w(cx+faceW+5)} ${w(cy-14)} q -4 6 -8 4" stroke="${ink}" stroke-width="2" fill="none"/>`); break;
+    case "wig": p.push(`<path d="M ${w(cx-faceW-2)} ${w(cy-6)} Q ${w(cx-faceW-4)} ${w(hy-4)} ${w(cx)} ${w(hy-5)} Q ${w(cx+faceW+4)} ${w(hy-4)} ${w(cx+faceW+2)} ${w(cy-6)}" fill="none" stroke="${ink}" stroke-width="4" opacity="0.7"/>`,
+      `<circle cx="${w(cx-faceW-4)}" cy="${w(cy-2)}" r="5" fill="none" stroke="${ink}" stroke-width="2"/>`,
+      `<circle cx="${w(cx+faceW+4)}" cy="${w(cy-2)}" r="5" fill="none" stroke="${ink}" stroke-width="2"/>`); break;
+    case "grey": p.push(`<path d="M ${w(cx-faceW)} ${w(cy-10)} Q ${w(cx-faceW-2)} ${w(hy)} ${w(cx)} ${w(hy-2)} Q ${w(cx+faceW+2)} ${w(hy)} ${w(cx+faceW)} ${w(cy-10)}" fill="none" stroke="${ink}" stroke-width="3.4" opacity="0.55"/>`); break;
+    case "mane": p.push(`<path d="M ${w(cx-faceW-6)} ${w(cy+10)} Q ${w(cx-faceW-10)} ${w(hy-6)} ${w(cx)} ${w(hy-8)} Q ${w(cx+faceW+10)} ${w(hy-6)} ${w(cx+faceW+6)} ${w(cy+10)}" fill="none" stroke="${ink}" stroke-width="4" opacity="0.6"/>`); break;
+    case "messy": for (let i = 0; i < 6; i++) p.push(`<path d="M ${w(cx-20+i*8)} ${w(hy+2)} l ${w(-2,4)} ${w(-9,3)}" stroke="${ink}" stroke-width="2.4" fill="none"/>`); break;
+    case "sides": p.push(`<path d="M ${w(cx-faceW-2)} ${w(cy-10)} q -4 -10 4 -14 M ${w(cx+faceW+2)} ${w(cy-10)} q 4 -10 -4 -14" stroke="${ink}" stroke-width="3.2" fill="none"/>`); break;
+    case "peasant": p.push(`<path d="M ${w(cx-faceW)} ${w(cy-8)} Q ${w(cx)} ${w(hy-4)} ${w(cx+faceW)} ${w(cy-8)}" fill="none" stroke="${ink}" stroke-width="3.4" opacity="0.8"/>`); break;
+    case "plain": p.push(`<path d="M ${w(cx-faceW+1)} ${w(cy-8)} Q ${w(cx)} ${w(hy-1)} ${w(cx+faceW-1)} ${w(cy-8)}" fill="none" stroke="${ink}" stroke-width="3.2"/>`); break;
+  }
+  const ey = cy - 6, ex = 12;
+  const eyes = d.eyes || "normal";
+  if (eyes === "closed") p.push(`<path d="M ${cx-ex-5} ${ey} q 5 4 10 0 M ${cx+ex-5} ${ey} q 5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none"/>`);
+  else if (eyes === "tired") p.push(`<path d="M ${cx-ex-5} ${ey-3} q 5 3 10 2 M ${cx+ex-5} ${ey-1} q 5 -3 10 -2" stroke="${ink}" stroke-width="2" fill="none"/>`,
+    `<circle cx="${cx-ex}" cy="${ey+2}" r="2" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey+2}" r="2" fill="${ink}"/>`);
+  else if (eyes === "big" || eyes === "radiant") { p.push(`<circle cx="${cx-ex}" cy="${ey}" r="5" fill="none" stroke="${ink}" stroke-width="1.8"/><circle cx="${cx+ex}" cy="${ey}" r="5" fill="none" stroke="${ink}" stroke-width="1.8"/>`,
+      `<circle cx="${cx-ex}" cy="${ey}" r="2.2" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey}" r="2.2" fill="${ink}"/>`);
+    if (eyes === "radiant") for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) p.push(`<path d="M ${cx + sx*ex + (i-1)*4} ${ey-8} l ${(i-1)} -3" stroke="${ink}" stroke-width="1.4"/>`); }
+  else if (eyes === "cold") p.push(`<path d="M ${cx-ex-5} ${ey-4} l 10 1 M ${cx+ex-5} ${ey-3} l 10 -1" stroke="${ink}" stroke-width="2"/>`,
+    `<circle cx="${cx-ex}" cy="${ey+1}" r="2" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey+1}" r="2" fill="${ink}"/>`);
+  else if (eyes === "stern") p.push(`<path d="M ${cx-ex-6} ${ey-6} l 12 3 M ${cx+ex+6} ${ey-6} l -12 3" stroke="${ink}" stroke-width="2.6"/>`,
+    `<circle cx="${cx-ex}" cy="${ey+1}" r="2.4" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey+1}" r="2.4" fill="${ink}"/>`);
+  else if (eyes === "sad") p.push(`<path d="M ${cx-ex-6} ${ey-4} l 12 -2 M ${cx+ex+6} ${ey-4} l -12 -2" stroke="${ink}" stroke-width="2"/>`,
+    `<circle cx="${cx-ex}" cy="${ey+1}" r="2.2" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey+1}" r="2.2" fill="${ink}"/>`);
+  else if (eyes === "cat") p.push(`<path d="M ${cx-ex-5} ${ey} q 5 -5 10 0 q -5 3 -10 0 M ${cx+ex-5} ${ey} q 5 -5 10 0 q -5 3 -10 0" fill="${ink}"/>`);
+  else if (eyes === "one") p.push(`<circle cx="${cx-ex}" cy="${ey}" r="2.4" fill="${ink}"/>`,
+    `<path d="M ${cx+ex-5} ${ey} q 5 3 10 0 M ${cx+ex-6} ${ey-7} l 12 -2" stroke="${ink}" stroke-width="2" fill="none"/>`);
+  else p.push(`<circle cx="${cx-ex}" cy="${ey}" r="2.4" fill="${ink}"/><circle cx="${cx+ex}" cy="${ey}" r="2.4" fill="${ink}"/>`);
+  const my = cy + faceH * 0.45;
+  switch (d.mouth) {
+    case "smile": p.push(`<path d="M ${cx-8} ${my} q 8 6 16 0" stroke="${ink}" stroke-width="2.2" fill="none"/>`); break;
+    case "bigsmile": p.push(`<path d="M ${cx-11} ${my-2} q 11 12 22 0" stroke="${ink}" stroke-width="2.4" fill="none"/>`); break;
+    case "flat": p.push(`<path d="M ${cx-8} ${my} l 16 0" stroke="${ink}" stroke-width="2.2"/>`); break;
+    case "smirk": p.push(`<path d="M ${cx-8} ${my+2} q 10 2 16 -5" stroke="${ink}" stroke-width="2.2" fill="none"/>`); break;
+    case "frown": p.push(`<path d="M ${cx-8} ${my+3} q 8 -6 16 0" stroke="${ink}" stroke-width="2.2" fill="none"/>`); break;
+    case "o": p.push(`<ellipse cx="${cx}" cy="${my}" rx="4" ry="5" fill="none" stroke="${ink}" stroke-width="2"/>`); break;
+  }
+  for (const ex2 of (d.extras || [])) {
+    switch (ex2) {
+      case "glasses": p.push(`<circle cx="${cx-ex}" cy="${ey}" r="9" fill="none" stroke="${ink}" stroke-width="2.2"/><circle cx="${cx+ex}" cy="${ey}" r="9" fill="none" stroke="${ink}" stroke-width="2.2"/><path d="M ${cx-3} ${ey} l 6 0" stroke="${ink}" stroke-width="2.2"/>`); break;
+      case "monocle": p.push(`<circle cx="${cx+ex}" cy="${ey}" r="9" fill="none" stroke="${ink}" stroke-width="2.2"/><path d="M ${cx+ex+7} ${ey+6} q 4 8 2 14" stroke="${ink}" stroke-width="1.6" fill="none"/>`); break;
+      case "mustache": p.push(`<path d="M ${cx-9} ${my-5} q 9 -4 18 0" stroke="${ink}" stroke-width="3" fill="none"/>`); break;
+      case "bigmustache": p.push(`<path d="M ${cx} ${my-6} q -10 -3 -16 3 M ${cx} ${my-6} q 10 -3 16 3" stroke="${ink}" stroke-width="3.6" fill="none"/>`); break;
+      case "beard": p.push(`<path d="M ${cx-14} ${my-3} q 14 18 28 0 q -6 12 -14 12 q -8 0 -14 -12" fill="${ink}" opacity="0.6"/>`); break;
+      case "whiskers": p.push(`<path d="M ${cx-faceW+3} ${cy+4} q 6 10 12 8 M ${cx+faceW-3} ${cy+4} q -6 10 -12 8" stroke="${ink}" stroke-width="3" fill="none" opacity="0.7"/>`); break;
+      case "bow": p.push(`<path d="M ${cx+16} ${hy+4} l 9 -7 l 0 12 Z M ${cx+16} ${hy+4} l -9 -7 l 0 12 Z" fill="var(--marker-red)"/>`); break;
+      case "pearls": p.push(...[-10,-5,0,5,10].map(o => `<circle cx="${cx+o}" cy="${cy+faceH+7}" r="2.6" fill="none" stroke="${ink}" stroke-width="1.6"/>`)); break;
+      case "fan": p.push(`<path d="M 84 78 l -12 -14 M 84 78 l -16 -8 M 84 78 l -17 -1 M 68 62 a 22 22 0 0 1 -1 15" stroke="${ink}" stroke-width="2" fill="none"/>`); break;
+      case "star": p.push(`<path d="M ${cx-2} 93 l 2 -6 l 2 6 l -6 -4 l 8 0 Z" fill="none" stroke="${ink}" stroke-width="1.6"/>`); break;
+      case "epaulettes": p.push(`<path d="M 12 96 l 14 -6 m -14 9 l 14 -4 M 88 96 l -14 -6 m 14 9 l -14 -4" stroke="var(--marker-orange)" stroke-width="2.6"/>`); break;
+      case "bicorne": p.push(`<path d="M ${cx-faceW-8} ${hy+6} Q ${cx} ${hy-22} ${cx+faceW+8} ${hy+6} Q ${cx} ${hy+2} ${cx-faceW-8} ${hy+6} Z" fill="${ink}" opacity="0.9"/>`); break;
+      case "handvest": p.push(`<path d="M ${cx-4} 92 q 8 -6 12 2" stroke="${ink}" stroke-width="2.4" fill="none"/>`); break;
+      case "pipe": p.push(`<path d="M ${cx+8} ${my+1} l 12 5 m 0 0 l 0 4 l 6 0 l 0 -6 l -6 0" stroke="${ink}" stroke-width="2" fill="none"/>`); break;
+      case "freckles": p.push(...[-6,0,6].map(o => `<circle cx="${cx+o}" cy="${cy+5}" r="1.1" fill="${ink}"/>`)); break;
+      case "lipfuzz": p.push(`<path d="M ${cx-5} ${my-5} l 10 0" stroke="${ink}" stroke-width="1.4" opacity="0.6"/>`); break;
+      case "cross": p.push(`<path d="M ${cx} 90 l 0 8 m -4 -5 l 8 0" stroke="${ink}" stroke-width="1.8"/>`); break;
+    }
+  }
+  return `<svg viewBox="0 0 ${S} ${S+8}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${p.join("")}</svg>`;
+}
+
+/* ═════════════ СОСТОЯНИЕ ═════════════ */
+const LS_KEY = "wnp-board-progress";
+const LS_THEME = "wnp-board-theme";
+const INITIAL_UNLOCKED = 5; // прослушано до «Мозаикового портфеля»
+let unlocked = (() => {
+  const v = parseInt(localStorage.getItem(LS_KEY), 10);
+  return Number.isFinite(v) ? Math.min(Math.max(v, 1), NODES.length) : INITIAL_UNLOCKED;
+})();
+let zoom = window.innerWidth < 700 ? 0.42 : 0.8;
+
+const board = document.getElementById("board");
+const zoomwrap = document.getElementById("zoomwrap");
+const viewport = document.getElementById("viewport");
+const relLayer = document.getElementById("relLayer");
+const routeLayer = document.getElementById("routeLayer");
+const castLayer = document.getElementById("castLayer");
+const veil = document.getElementById("veil");
+const modalBox = document.getElementById("modalBox");
+
+const nodeIndex = Object.fromEntries(NODES.map((n, i) => [n.id, i]));
+const isNodeOpen = id => nodeIndex[id] < unlocked;
+const isCharVisible = id => isNodeOpen(CHARACTERS[id].intro);
+
+const COLORS = { fam: "var(--marker-green)", lov: "var(--marker-red)", fri: "var(--marker-blue)", intr: "var(--marker-orange)" };
+
+/* ═════════════ РЕНДЕР ═════════════ */
+function charCenter(id) { const [x, y] = CHAR_POS[id]; return [x + CHAR_W / 2, y + CHAR_H / 2]; }
+function storyCenter(i) { const [x, y] = storyPos(i); return [x + STORY_W / 2, y + STORY_H / 2]; }
+
+function sagPath(x1, y1, x2, y2, sag) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 + (sag || 40);
+  return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
+}
+
+function render() {
+  // снять старые карточки
+  board.querySelectorAll(".char, .story, .cluster-label").forEach(el => el.remove());
+
+  for (const c of CLUSTERS) {
+    const el = document.createElement("div");
+    el.className = "cluster-label" + (c.small ? " small" : "");
+    el.style.left = c.x + "px"; el.style.top = c.y + "px";
+    el.textContent = c.label;
+    board.appendChild(el);
+  }
+
+  for (const [id, ch] of Object.entries(CHARACTERS)) {
+    if (!isCharVisible(id)) continue;
+    const [x, y] = CHAR_POS[id];
+    const el = document.createElement("button");
+    el.className = "char";
+    el.dataset.char = id;
+    el.style.left = x + "px"; el.style.top = y + "px";
+    const latest = [...ch.motives].reverse().find(m => isNodeOpen(m.node));
+    el.innerHTML = `<div class="avatar">${doodleSVG(ch.doodle, id.length * 7 + id.charCodeAt(0))}</div>
+      <div class="name">${ch.name}</div>
+      <div class="hint">${latest ? "→ " + latest.text.slice(0, 46) + (latest.text.length > 46 ? "…" : "") : ""}</div>`;
+    el.addEventListener("click", () => openChar(id));
+    board.appendChild(el);
+  }
+
+  NODES.forEach((n, i) => {
+    const [x, y] = storyPos(i);
+    const el = document.createElement("div");
+    el.className = "story";
+    el.dataset.node = n.id;
+    el.style.left = x + "px"; el.style.top = y + "px";
+    el.tabIndex = 0; el.setAttribute("role", "button");
+    if (i < unlocked) {
+      el.innerHTML = `<div class="step">${i + 1}</div>
+        <div class="where">${n.part}</div><h3>${n.title}</h3>
+        <div class="teaser">${n.teaser}</div>
+        <div class="more">открыть конспект →</div>`;
+      if (i === unlocked - 1) {
+        el.classList.add("frontier");
+        el.innerHTML += `<div class="listen-here">🎧 ты здесь</div>`;
+      }
+      el.addEventListener("click", () => openStory(n.id));
+      el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openStory(n.id); } });
+    } else {
+      el.classList.add("locked");
+      el.innerHTML = `<div class="step">${i + 1}</div>
+        <div class="where">${n.part}</div><h3>Ещё не прослушано</h3>
+        <div class="lockface">🔒 <span>Конспект и персонажи откроются,<br>когда дослушаешь досюда.</span></div>`;
+      if (i === unlocked) {
+        const btn = document.createElement("button");
+        btn.className = "unlock-btn";
+        btn.textContent = "Прослушал — открыть ✓";
+        btn.addEventListener("click", e => { e.stopPropagation(); unlockNext(); });
+        el.appendChild(btn);
+      }
+    }
+    board.appendChild(el);
+  });
+
+  drawStrings();
+  updateProgress();
+}
+
+function drawStrings() {
+  relLayer.innerHTML = ""; routeLayer.innerHTML = "";
+  // маршрут между стикерами
+  for (let i = 0; i < NODES.length - 1; i++) {
+    const [x1, y1] = storyCenter(i), [x2, y2] = storyCenter(i + 1);
+    const open = i + 1 < unlocked;
+    routeLayer.innerHTML += `<path d="${sagPath(x1, y1 + 60, x2, y2 - 60, 20)}" fill="none"
+      stroke="${open ? "var(--ink)" : "var(--ink-soft)"}" stroke-width="${open ? 3 : 2}"
+      stroke-dasharray="${open ? "none" : "6 9"}" opacity="${open ? 0.55 : 0.25}"
+      marker-end="url(#arrow)" filter="url(#wobble)"/>`;
+  }
+  // ниточки-отношения
+  const seen = new Set();
+  for (const n of NODES) {
+    if (!isNodeOpen(n.id)) continue;
+    for (const [a, b, type, label] of (n.rels || [])) {
+      const key = a + "|" + b + "|" + type;
+      if (seen.has(key) || !isCharVisible(a) || !isCharVisible(b)) continue;
+      seen.add(key);
+      const [x1, y1] = charCenter(a), [x2, y2] = charCenter(b);
+      const dist = Math.hypot(x2 - x1, y2 - y1);
+      const sag = Math.min(80, 14 + dist * 0.07);
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 + sag;
+      relLayer.innerHTML += `<path d="${sagPath(x1, y1, x2, y2, sag)}" fill="none"
+        stroke="${COLORS[type]}" stroke-width="2.6" ${type === "intr" ? 'stroke-dasharray="8 7"' : ""}
+        opacity="0.8" filter="url(#wobble)"/>
+        <text x="${mx}" y="${my - 4}" text-anchor="middle" font-family="Caveat, cursive" font-size="19"
+          fill="${COLORS[type]}" paint-order="stroke" stroke="var(--board-bg)" stroke-width="5">${label}</text>`;
+    }
+  }
+}
+
+function spotlight(nodeId) {
+  castLayer.innerHTML = "";
+  document.querySelectorAll(".char").forEach(el => el.classList.remove("spotlit", "dimmed"));
+  if (!nodeId) return;
+  const n = NODES[nodeIndex[nodeId]];
+  const cast = new Set(n.cast.filter(isCharVisible));
+  const [sx, sy] = storyCenter(nodeIndex[nodeId]);
+  document.querySelectorAll(".char").forEach(el => {
+    el.classList.add(cast.has(el.dataset.char) ? "spotlit" : "dimmed");
+  });
+  for (const id of cast) {
+    const [cx2, cy2] = charCenter(id);
+    castLayer.innerHTML += `<path d="${sagPath(sx, sy - 80, cx2, cy2 + 70, 30)}" fill="none"
+      stroke="var(--marker-orange)" stroke-width="2" stroke-dasharray="3 6" opacity="0.65" filter="url(#wobble)"/>`;
+  }
+}
+
+/* ═════════════ МОДАЛКИ ═════════════ */
+function openStory(id) {
+  const n = NODES[nodeIndex[id]];
+  spotlight(id);
+  const newChars = new Set(Object.keys(CHARACTERS).filter(c => CHARACTERS[c].intro === id));
+  modalBox.innerHTML = `
+    <button class="close" aria-label="Закрыть">✕ </button>
+    <div class="where">${n.part}</div>
+    <h2>${nodeIndex[id] + 1}. ${n.title}</h2>
+    <ul>${n.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
+    <div class="section-label">Действующие лица</div>
+    <div class="cast-chips">${n.cast.filter(isCharVisible).map(c =>
+      `<button class="chip${newChars.has(c) ? " new" : ""}" data-char="${c}">${CHARACTERS[c].name}</button>`).join("")}</div>
+    <p class="foot-note" style="margin-top:0.8rem">★ — персонаж впервые появляется здесь. Нажми на имя — откроется досье.</p>`;
+  openVeil();
+}
+
+function openChar(id) {
+  const ch = CHARACTERS[id];
+  const motives = ch.motives.filter(m => isNodeOpen(m.node));
+  modalBox.innerHTML = `
+    <button class="close" aria-label="Закрыть">✕</button>
+    <div class="char-head">
+      <div class="avatar">${doodleSVG(ch.doodle, id.length * 7 + id.charCodeAt(0))}</div>
+      <div><div class="where">${ch.group}</div><h2 style="margin:0">${ch.name}</h2></div>
+    </div>
+    <p class="bio">${ch.bio}</p>
+    <div class="section-label">Мотивация по ходу книги</div>
+    ${motives.map((m, i) => `<div class="motive${i === motives.length - 1 ? " latest" : ""}">
+      <div class="at">${NODES[nodeIndex[m.node]].title}</div>${m.text}</div>`).join("") || "<p class='foot-note'>Пока загадка…</p>"}
+    ${motives.length < ch.motives.length ? `<p class="foot-note">…дальше будет ещё ${ch.motives.length - motives.length} — дослушай и открой.</p>` : ""}`;
+  openVeil();
+}
+
+function openHelp() {
+  modalBox.innerHTML = `
+    <button class="close" aria-label="Закрыть">✕</button>
+    <h2>Как пользоваться доской</h2>
+    <ul>
+      <li>Доска двигается: тяни мышкой или пальцем, кнопки + / − — масштаб.</li>
+      <li>Жёлтые стикеры внизу — сюжет по порядку. Открытые можно читать, на 🔒 спойлеров нет.</li>
+      <li>Дослушал до закрытого стикера — жми «Прослушал — открыть ✓»: появятся конспект, новые персонажи и ниточки.</li>
+      <li>Карточки с портретами — досье персонажей: кто такой, приметы и как меняется его мотивация.</li>
+      <li>Клик по стикеру подсвечивает его участников на доске.</li>
+      <li>Прогресс хранится в этом браузере (localStorage). ↺ — сбросить к началу.</li>
+    </ul>
+    <p class="foot-note">Сейчас открыто ${unlocked} из ${NODES.length} эпизодов — до «${NODES[unlocked - 1].title}».</p>`;
+  openVeil();
+}
+
+function openVeil() { veil.classList.add("open"); }
+function closeVeil() { veil.classList.remove("open"); spotlight(null); }
+
+veil.addEventListener("click", e => {
+  if (e.target === veil || e.target.closest(".close")) closeVeil();
+  const chip = e.target.closest(".chip");
+  if (chip) openChar(chip.dataset.char);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeVeil(); });
+
+/* ═════════════ ПРОГРЕСС ═════════════ */
+function updateProgress() {
+  document.getElementById("progressLabel").textContent =
+    `открыто ${unlocked} / ${NODES.length} · ${NODES[unlocked - 1].part.replace(/ · гл.*$/, "")}`;
+}
+
+function unlockNext() {
+  if (unlocked >= NODES.length) return;
+  unlocked++;
+  localStorage.setItem(LS_KEY, unlocked);
+  render();
+  const n = NODES[unlocked - 1];
+  const fresh = Object.keys(CHARACTERS).filter(c => CHARACTERS[c].intro === n.id);
+  document.querySelectorAll(".char").forEach(el => {
+    if (fresh.includes(el.dataset.char)) el.classList.add("pop-in");
+  });
+  openStory(n.id);
+}
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("Сбросить прогресс до самого начала (эпизод 1)?")) {
+    unlocked = 1; localStorage.setItem(LS_KEY, 1); render(); scrollToFrontier();
+  }
+});
+document.getElementById("helpBtn").addEventListener("click", openHelp);
+
+/* ═════════════ ТЕМА ═════════════ */
+const themeBtn = document.getElementById("themeBtn");
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  drawStrings();
+}
+applyTheme(localStorage.getItem(LS_THEME) ||
+  (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+themeBtn.addEventListener("click", () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  localStorage.setItem(LS_THEME, t); applyTheme(t);
+});
+
+/* ═════════════ ЗУМ И ПАН ═════════════ */
+function applyZoom() {
+  zoomwrap.style.transform = `scale(${zoom})`;
+  zoomwrap.style.width = 3400 * zoom + "px";
+  zoomwrap.style.height = 2560 * zoom + "px";
+}
+document.getElementById("zoomIn").addEventListener("click", () => { zoom = Math.min(1.4, zoom * 1.2); applyZoom(); });
+document.getElementById("zoomOut").addEventListener("click", () => { zoom = Math.max(0.25, zoom / 1.2); applyZoom(); });
+
+let drag = null;
+viewport.addEventListener("mousedown", e => {
+  if (e.target.closest(".char, .story, button")) return;
+  drag = { x: e.clientX, y: e.clientY, sl: viewport.scrollLeft, st: viewport.scrollTop };
+  viewport.classList.add("dragging");
+});
+window.addEventListener("mousemove", e => {
+  if (!drag) return;
+  viewport.scrollLeft = drag.sl - (e.clientX - drag.x);
+  viewport.scrollTop = drag.st - (e.clientY - drag.y);
+});
+window.addEventListener("mouseup", () => { drag = null; viewport.classList.remove("dragging"); });
+
+document.getElementById("legendTitle").addEventListener("click", () =>
+  document.getElementById("legend").classList.toggle("collapsed"));
+if (window.innerWidth < 700) document.getElementById("legend").classList.add("collapsed");
+
+function scrollToFrontier() {
+  const [x, y] = storyCenter(unlocked - 1);
+  viewport.scrollLeft = x * zoom - viewport.clientWidth / 2;
+  viewport.scrollTop = y * zoom - viewport.clientHeight / 2;
+}
+
+/* ═════════════ СТАРТ ═════════════ */
+applyZoom();
+render();
+scrollToFrontier();
+</script>
+</body>
+</html>
