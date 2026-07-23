@@ -95,9 +95,11 @@
   /* ── Board viewport ──────────────────────── */
   .viewport {
     position: fixed; inset: 0;
+    top: var(--topbar-h, 52px); /* уточняется из JS по факту */
     overflow: auto;
     cursor: grab;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y; /* pinch обрабатываем сами */
   }
   .viewport.dragging { cursor: grabbing; }
   .zoomwrap { transform-origin: 0 0; }
@@ -109,7 +111,6 @@
       linear-gradient(90deg, var(--board-grid) 1px, transparent 1px),
       var(--board-bg);
     background-size: 40px 40px, 40px 40px, auto;
-    padding-top: 70px;
   }
 
   svg.strings {
@@ -165,6 +166,15 @@
   .char.dimmed { opacity: 0.25; }
   .char.pop-in { animation: pop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1); }
   @keyframes pop { from { transform: scale(0.2) rotate(-8deg); opacity: 0; } }
+  .char.hidden-char {
+    border-style: dashed;
+    opacity: 0.62;
+    cursor: default;
+    background: var(--locked-paper);
+  }
+  .char.hidden-char::before { background: radial-gradient(circle at 35% 30%, #cfcfcf, #8f8f8f 65%); }
+  .char.hidden-char:hover { transform: none; }
+  .char.hidden-char .name { color: var(--ink-soft); }
 
   /* ── Story cards (стикеры) ───────────────── */
   .story {
@@ -1103,17 +1113,30 @@ function render() {
   }
 
   for (const [id, ch] of Object.entries(CHARACTERS)) {
-    if (!isCharVisible(id)) continue;
     const [x, y] = CHAR_POS[id];
     const el = document.createElement("button");
-    el.className = "char";
     el.dataset.char = id;
     el.style.left = x + "px"; el.style.top = y + "px";
-    const latest = [...ch.motives].reverse().find(m => isNodeOpen(m.node));
-    el.innerHTML = `<div class="avatar">${doodleSVG(ch.doodle, id.length * 7 + id.charCodeAt(0))}</div>
-      <div class="name">${ch.name}</div>
-      <div class="hint">${latest ? "→ " + latest.text.slice(0, 46) + (latest.text.length > 46 ? "…" : "") : ""}</div>`;
-    el.addEventListener("click", () => openChar(id));
+    if (isCharVisible(id)) {
+      el.className = "char";
+      const latest = [...ch.motives].reverse().find(m => isNodeOpen(m.node));
+      el.innerHTML = `<div class="avatar">${doodleSVG(ch.doodle, id.length * 7 + id.charCodeAt(0))}</div>
+        <div class="name">${ch.name}</div>
+        <div class="hint">${latest ? "→ " + latest.text.slice(0, 46) + (latest.text.length > 46 ? "…" : "") : ""}</div>`;
+      el.addEventListener("click", () => openChar(id));
+    } else {
+      // силуэт: имя не раскрываем, но говорим, где персонаж появится
+      const iIdx = nodeIndex[ch.intro];
+      el.className = "char hidden-char";
+      el.setAttribute("aria-label", "Скрытый персонаж, откроется в эпизоде " + (iIdx + 1));
+      el.innerHTML = `<div class="avatar"><svg viewBox="0 0 100 108" aria-hidden="true">
+          <ellipse cx="50" cy="52" rx="30" ry="37" fill="var(--ink)" opacity="0.14"
+            stroke="var(--ink-soft)" stroke-width="2.4" stroke-dasharray="7 6"/>
+          <text x="50" y="66" text-anchor="middle" font-family="Caveat, cursive" font-size="46"
+            font-weight="700" fill="var(--ink-soft)">?</text></svg></div>
+        <div class="name">???</div>
+        <div class="hint">откроется в эп. ${iIdx + 1}<br>${NODES[iIdx].part.replace(/ · гл.*$/, "")}</div>`;
+    }
     board.appendChild(el);
   }
 
@@ -1305,13 +1328,41 @@ themeBtn.addEventListener("click", () => {
 });
 
 /* ═════════════ ЗУМ И ПАН ═════════════ */
+const ZOOM_MIN = 0.18, ZOOM_MAX = 1.6;
 function applyZoom() {
   zoomwrap.style.transform = `scale(${zoom})`;
   zoomwrap.style.width = 3400 * zoom + "px";
   zoomwrap.style.height = 2560 * zoom + "px";
 }
-document.getElementById("zoomIn").addEventListener("click", () => { zoom = Math.min(1.4, zoom * 1.2); applyZoom(); });
-document.getElementById("zoomOut").addEventListener("click", () => { zoom = Math.max(0.25, zoom / 1.2); applyZoom(); });
+/* зум к точке (cx, cy — клиентские координаты); без точки — к центру вьюпорта */
+function setZoom(newZoom, cx, cy) {
+  const rect = viewport.getBoundingClientRect();
+  if (cx === undefined) { cx = rect.left + rect.width / 2; cy = rect.top + rect.height / 2; }
+  const px = (viewport.scrollLeft + cx - rect.left) / zoom;
+  const py = (viewport.scrollTop + cy - rect.top) / zoom;
+  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newZoom));
+  applyZoom();
+  viewport.scrollLeft = px * zoom - (cx - rect.left);
+  viewport.scrollTop = py * zoom - (cy - rect.top);
+}
+document.getElementById("zoomIn").addEventListener("click", () => setZoom(zoom * 1.2));
+document.getElementById("zoomOut").addEventListener("click", () => setZoom(zoom / 1.2));
+
+/* пинч на тачпаде мака: браузер шлёт wheel с ctrlKey=true */
+viewport.addEventListener("wheel", e => {
+  if (!e.ctrlKey) return; // обычная прокрутка — нативная
+  e.preventDefault();
+  setZoom(zoom * Math.exp(-e.deltaY * 0.012), e.clientX, e.clientY);
+}, { passive: false });
+
+/* Safari шлёт gesture-события вместо ctrl+wheel */
+let gestureStartZoom = null;
+viewport.addEventListener("gesturestart", e => { e.preventDefault(); gestureStartZoom = zoom; });
+viewport.addEventListener("gesturechange", e => {
+  e.preventDefault();
+  if (gestureStartZoom) setZoom(gestureStartZoom * e.scale, e.clientX, e.clientY);
+});
+viewport.addEventListener("gestureend", e => { e.preventDefault(); gestureStartZoom = null; });
 
 let drag = null;
 viewport.addEventListener("mousedown", e => {
@@ -1337,6 +1388,12 @@ function scrollToFrontier() {
 }
 
 /* ═════════════ СТАРТ ═════════════ */
+function syncTopbar() {
+  document.documentElement.style.setProperty("--topbar-h",
+    document.querySelector(".topbar").offsetHeight + "px");
+}
+syncTopbar();
+window.addEventListener("resize", syncTopbar);
 applyZoom();
 render();
 scrollToFrontier();
