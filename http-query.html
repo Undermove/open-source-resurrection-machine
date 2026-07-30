@@ -87,6 +87,49 @@
   }
   .foot .bar { position: absolute; top: 0; left: 0; height: 2px; background: var(--lime); transition: width .3s ease; }
   kbd { border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: var(--panel); }
+  .swipe { display: none; }
+
+  /* Тач: клавиш нет, зато есть свайп */
+  @media (hover: none) and (pointer: coarse) {
+    .keys { display: none; }
+    .swipe { display: inline; }
+  }
+
+  /* Мобилка: одна колонка, слайд скроллится, шрифты мельче */
+  @media (max-width: 760px) {
+    html, body { height: 100dvh; }
+    body { touch-action: pan-y; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+
+    .slide {
+      justify-content: flex-start;
+      padding: 4vh 5vw 56px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .kicker { font-size: 11px; letter-spacing: .16em; margin-bottom: 14px; }
+    h1 { font-size: clamp(26px, 8.2vw, 44px); }
+    h2 { font-size: clamp(21px, 6.4vw, 34px); margin-bottom: 3vh; }
+    .sub { font-size: 15px; margin-top: 18px; }
+
+    .cols { grid-template-columns: 1fr; gap: 14px; }
+    .box { padding: 18px 18px; border-radius: 14px; }
+    .box .tag { font-size: 12.5px; margin-bottom: 12px; }
+    .box li { font-size: 14.5px; padding: 6px 0 6px 22px; }
+
+    /* На телефоне код переносим, а не отправляем в горизонтальный скролл */
+    pre {
+      padding: 14px 14px; font-size: 11.5px; line-height: 1.65; border-radius: 12px;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .caption { font-size: 11px; margin-bottom: 8px; }
+    .stack > * + * { margin-top: 14px; }
+
+    .check li { font-size: 15px; gap: 12px; padding: 10px 0; }
+    .big-list li { font-size: 16.5px; padding: 10px 0; }
+
+    .foot { padding: 10px 14px; font-size: 10.5px; }
+    .foot span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -253,7 +296,7 @@ app.<span class="m">MapPost</span> (<span class="s">"/products/search"</span>, S
 <div class="foot">
   <div class="bar" id="bar"></div>
   <span>HTTP QUERY · C# Short Posts</span>
-  <span><kbd>←</kbd> <kbd>→</kbd> · <span id="counter">1 / 9</span></span>
+  <span><span class="keys"><kbd>←</kbd> <kbd>→</kbd> · </span><span class="swipe">свайп · </span><span id="counter">1 / 9</span></span>
 </div>
 
 <script>
@@ -271,7 +314,34 @@ app.<span class="m">MapPost</span> (<span class="s">"/products/search"</span>, S
     if (e.key === 'Home') go(0);
     if (e.key === 'End') go(slides.length - 1);
   });
-  addEventListener('click', e => { if (!e.target.closest('.foot')) go(i + 1); });
+
+  // Свайпы: горизонтальный жест листает, вертикальный оставляем скроллу слайда
+  let tx = 0, ty = 0, lastSwipe = 0, fromScrollableCode = false;
+  addEventListener('touchstart', e => {
+    const t = e.changedTouches[0];
+    tx = t.clientX; ty = t.clientY;
+    // жест начался внутри длинного кода — это скролл кода, а не листание
+    const pre = e.target.closest('pre');
+    fromScrollableCode = !!pre && pre.scrollWidth > pre.clientWidth + 4;
+  }, { passive: true });
+  addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tx, dy = t.clientY - ty;
+    if (fromScrollableCode) return;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      lastSwipe = Date.now();
+      go(dx < 0 ? i + 1 : i - 1);
+    }
+  }, { passive: true });
+
+  // Тап: левая четверть экрана — назад, остальное — вперёд.
+  // После свайпа click прилетает следом, поэтому глушим его на 400 мс.
+  addEventListener('click', e => {
+    if (e.target.closest('.foot') || e.target.closest('a')) return;
+    if (Date.now() - lastSwipe < 400) return;
+    go(e.clientX < innerWidth * 0.25 ? i - 1 : i + 1);
+  });
+
   go(0);
 </script>
 </body>
