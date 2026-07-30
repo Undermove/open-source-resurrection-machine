@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP QUERY — GET с телом, который мы заслужили</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #141a22; --panel-2: #10151c; --line: #232c38;
+    --text: #e8eef5; --dim: #8494a7; --lime: #b6f527; --amber: #ffb224;
+    --red: #ff5d5d; --violet: #b18cff; --cyan: #6ad7ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--text); font-family: "Golos Text", sans-serif;
+    background-image:
+      radial-gradient(ellipse 55% 45% at 75% -10%, rgba(182,245,39,.08), transparent),
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 100% 100%, 52px 52px, 52px 52px;
+  }
+  .slide {
+    position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center;
+    padding: 6vh 8vw; max-width: 1280px; margin: 0 auto;
+  }
+  .slide.active { display: flex; animation: in .4s ease both; }
+  @keyframes in { from { opacity: 0; transform: translateY(14px); } }
+
+  .kicker {
+    font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--lime); margin-bottom: 22px;
+  }
+  h1 { font-family: "Unbounded", sans-serif; font-weight: 800; font-size: clamp(34px, 5.6vw, 72px); line-height: 1.04; letter-spacing: -.015em; }
+  h2 { font-family: "Unbounded", sans-serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 42px); line-height: 1.1; margin-bottom: 4vh; }
+  h1 .lime, h2 .lime { color: var(--lime); }
+  h1 .dim, h2 .dim { color: var(--dim); font-weight: 400; }
+  .sub { color: var(--dim); font-size: clamp(15px, 1.6vw, 20px); line-height: 1.6; margin-top: 3vh; max-width: 720px; }
+  .sub b { color: var(--text); font-weight: 600; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; }
+  .box .tag {
+    display: inline-block; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 14px;
+    border-radius: 8px; padding: 5px 12px; margin-bottom: 16px; color: #0d1117;
+  }
+  .tag.get { background: var(--cyan); } .tag.post { background: var(--amber); }
+  .tag.query { background: var(--lime); } .tag.red { background: var(--red); color: #fff; }
+  .box ul { list-style: none; }
+  .box li { padding: 7px 0 7px 26px; position: relative; color: var(--dim); font-size: clamp(14px, 1.5vw, 18px); line-height: 1.5; }
+  .box li b { color: var(--text); font-weight: 600; }
+  .box li::before { position: absolute; left: 0; font-family: "JetBrains Mono", monospace; font-weight: 700; }
+  .box li.no::before  { content: "✕"; color: var(--red); }
+  .box li.yes::before { content: "✓"; color: var(--lime); }
+  .box li.hm::before  { content: "~"; color: var(--amber); }
+
+  pre {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 24px 28px; overflow-x: auto;
+    font: 400 clamp(13px, 1.5vw, 17px)/1.65 "JetBrains Mono", monospace;
+  }
+  pre .c { color: #5b6c81; } pre .k { color: var(--violet); } pre .s { color: var(--amber); }
+  pre .t { color: var(--cyan); } pre .m { color: var(--lime); font-weight: 600; } pre .n { color: #e8eef5; }
+  .caption { font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 0 0 10px 4px; }
+  .stack > * + * { margin-top: 20px; }
+
+  .check { list-style: none; max-width: 860px; }
+  .check li {
+    display: flex; gap: 16px; align-items: baseline; padding: 12px 0;
+    border-bottom: 1px dashed var(--line); font-size: clamp(15px, 1.7vw, 20px); line-height: 1.5; color: var(--dim);
+  }
+  .check li b { color: var(--text); font-weight: 600; }
+  .check .num { font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--lime); flex: none; }
+
+  .big-list { list-style: none; max-width: 900px; }
+  .big-list li { padding: 14px 0; font-size: clamp(17px, 2vw, 24px); line-height: 1.5; color: var(--dim); }
+  .big-list b { color: var(--text); font-weight: 600; }
+  .big-list .mono { font-family: "JetBrains Mono", monospace; color: var(--lime); font-size: .92em; }
+
+  .foot {
+    position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center;
+    justify-content: space-between; padding: 14px 24px; z-index: 10;
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: #55647a;
+  }
+  .foot .bar { position: absolute; top: 0; left: 0; height: 2px; background: var(--lime); transition: width .3s ease; }
+  kbd { border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: var(--panel); }
+</style>
+</head>
+<body>
+
+<!-- 1 · титул -->
+<section class="slide active">
+  <div class="kicker">C# Short Posts · RFC 10008 · июнь 2026</div>
+  <h1>HTTP <span class="lime">QUERY</span><br>GET с телом,<br><span class="dim">который мы заслужили</span></h1>
+  <p class="sub">Новый HTTP-метод: семантика GET, тело как у POST.<br>Что это, зачем это и как это уже работает в <b>.NET 10</b>.</p>
+</section>
+
+<!-- 2 · проблема -->
+<section class="slide">
+  <h2>Куда девать <span class="lime">сложный поиск</span>?</h2>
+  <div class="cols">
+    <div class="box">
+      <span class="tag get">GET /search?…</span>
+      <ul>
+        <li class="no">Тело класть нельзя — семантика не определена</li>
+        <li class="no">Фильтры утрамбовываются в query string, пока URL не лопнет</li>
+        <li class="no">Массивы и вложенные структуры — боль и «?ids=1,2,3»</li>
+        <li class="yes">Зато safe, идемпотентный, кэшируемый</li>
+      </ul>
+    </div>
+    <div class="box">
+      <span class="tag post">POST /search</span>
+      <ul>
+        <li class="yes">Тело есть — любой JSON-фильтр</li>
+        <li class="no">Не safe и не идемпотентный</li>
+        <li class="no">Ретраить нельзя: клиент не знает, что повтор безопасен</li>
+        <li class="no">Кэшировать нельзя</li>
+      </ul>
+    </div>
+  </div>
+  <p class="sub">Двадцать лет выбираем меньшее из двух зол — и делаем вид, что POST /search так и задумано.</p>
+</section>
+
+<!-- 3 · решение -->
+<section class="slide">
+  <h2><span class="lime">QUERY</span> = семантика GET + тело POST</h2>
+  <div class="box" style="max-width: 860px;">
+    <span class="tag query">QUERY /search</span>
+    <ul>
+      <li class="yes"><b>Safe</b> — не меняет состояние сервера</li>
+      <li class="yes"><b>Идемпотентный</b> — клиент вправе повторить при таймауте, не боясь что-то сломать</li>
+      <li class="yes"><b>Тело запроса</b> — JSON-фильтр любой сложности</li>
+      <li class="hm"><b>Кэшируемый</b> — по спеке да, инфраструктура догоняет</li>
+    </ul>
+  </div>
+  <p class="sub"><b>RFC 10008</b>, Proposed Standard, июнь 2026. Больше не драфт — официальный стандарт IETF.</p>
+</section>
+
+<!-- 4 · что в .NET 10 -->
+<section class="slide">
+  <h2>Что завезли в <span class="lime">.NET 10</span></h2>
+  <div class="cols">
+    <div class="box">
+      <span class="tag query">Есть</span>
+      <ul>
+        <li class="yes"><b>HttpMethod.Query</b> в HttpClient — и ретраи из коробки, метод-то идемпотентный</li>
+        <li class="yes"><b>HttpMethods.Query</b> и <b>IsQuery()</b> в ASP.NET Core</li>
+        <li class="yes"><b>Kestrel</b> парсит QUERY без плясок</li>
+      </ul>
+    </div>
+    <div class="box">
+      <span class="tag red">Вырезали на API-ревью</span>
+      <ul>
+        <li class="no"><b>MapQuery()</b> для minimal API</li>
+        <li class="no"><b>[HttpQuery]</b> для контроллеров</li>
+        <li class="hm">Обещают посмотреть в .NET 11. Пока — extension в три строки</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · сервер -->
+<section class="slide">
+  <h2>Сервер: <span class="dim">minimal API</span></h2>
+  <div class="stack">
+    <div>
+      <p class="caption">те самые три строки вместо MapQuery()</p>
+      <pre><span class="k">public static</span> <span class="t">IEndpointConventionBuilder</span> <span class="m">MapQuery</span>(
+    <span class="k">this</span> <span class="t">IEndpointRouteBuilder</span> endpoints, <span class="t">string</span> pattern, <span class="t">Delegate</span> handler) =&gt;
+    endpoints.<span class="m">MapMethods</span>(pattern, [<span class="t">HttpMethods</span>.Query], handler);</pre>
+    </div>
+    <div>
+      <p class="caption">один хендлер — оба метода</p>
+      <pre>app.<span class="m">MapQuery</span>(<span class="s">"/products/search"</span>, SearchAsync);
+app.<span class="m">MapPost</span> (<span class="s">"/products/search"</span>, SearchAsync);  <span class="c">// fallback для тех, кто за прокси</span>
+
+<span class="k">static async</span> <span class="t">Task&lt;IResult&gt;</span> <span class="m">SearchAsync</span>(<span class="t">HttpRequest</span> request)
+{
+    <span class="k">var</span> filter = <span class="k">await</span> request.<span class="m">ReadFromJsonAsync</span>&lt;<span class="t">ProductFilter</span>&gt;();
+    <span class="k">return</span> <span class="t">Results</span>.<span class="m">Ok</span>(<span class="k">await</span> catalog.<span class="m">SearchAsync</span>(filter));
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · клиент -->
+<section class="slide">
+  <h2>Клиент: <span class="dim">HttpClient и fetch</span></h2>
+  <div class="stack">
+    <div>
+      <p class="caption">C# — HttpMethod.Query уже в коробке</p>
+      <pre><span class="k">using var</span> request = <span class="k">new</span> <span class="t">HttpRequestMessage</span>(<span class="t">HttpMethod</span>.<span class="m">Query</span>, <span class="s">"/products/search"</span>)
+{
+    Content = <span class="t">JsonContent</span>.<span class="m">Create</span>(filter)
+};
+<span class="k">var</span> response = <span class="k">await</span> httpClient.<span class="m">SendAsync</span>(request);</pre>
+    </div>
+    <div>
+      <p class="caption">js — fetch пропускает QUERY как обычный метод</p>
+      <pre><span class="k">const</span> res = <span class="k">await</span> <span class="m">fetch</span>(<span class="s">'/products/search'</span>, {
+  method: <span class="s">'QUERY'</span>,          <span class="c">// запрещены только CONNECT / TRACE / TRACK</span>
+  body: <span class="t">JSON</span>.<span class="m">stringify</span>(filter),
+});</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · подводные камни -->
+<section class="slide">
+  <h2>Где <span class="lime">споткнёшься</span></h2>
+  <ul class="check">
+    <li><span class="num">01</span><span><b>CORS-preflight — всегда.</b> QUERY не в safelist: кросс-доменный запрос едет с OPTIONS, а сервер обязан вернуть Access-Control-Allow-Methods: QUERY</span></li>
+    <li><span class="num">02</span><span><b>Чужие middleboxes.</b> Корпоративные прокси и WAF'ы режут незнакомые методы по allowlist — браузер отправит, а по дороге срежут</span></li>
+    <li><span class="num">03</span><span><b>Кэша пока нет.</b> Главный бонус спеки браузеры и CDN ещё не реализовали — сейчас выигрыш в семантике и ретраях</span></li>
+    <li><span class="num">04</span><span><b>Тулинг догоняет.</b> Swagger, Postman, тестовые клиенты — не все знают метод, проверь свой стек на деве</span></li>
+  </ul>
+</section>
+
+<!-- 8 · fallback -->
+<section class="slide">
+  <h2>Fallback на POST: <span class="dim">сам не сделается</span></h2>
+  <pre style="max-width: 900px;"><span class="k">let</span> queryBroken = <span class="k">false</span>;                    <span class="c">// не прошло раз — не пробуем до конца сессии</span>
+
+<span class="k">if</span> (!queryBroken) {
+  <span class="k">try</span> {
+    <span class="k">const</span> res = <span class="k">await</span> <span class="m">fetch</span>(url, { method: <span class="s">'QUERY'</span>, body });
+    <span class="k">if</span> (res.status !== <span class="n">405</span>) <span class="k">return</span> res;   <span class="c">// 400/422 — плохой фильтр, POST не спасёт</span>
+  } <span class="k">catch</span> { <span class="c">/* сеть или прокси срезали метод */</span> }
+  queryBroken = <span class="k">true</span>;
+}
+<span class="k">return</span> <span class="m">fetch</span>(url, { method: <span class="s">'POST'</span>, body }); <span class="c">// тот же эндпоинт, та же логика</span></pre>
+  <p class="sub">Фолбэчим только на <b>405 и сетевые ошибки</b> — и запоминаем на сессию, чтобы не платить лишним запросом каждый раз.</p>
+</section>
+
+<!-- 9 · итог -->
+<section class="slide">
+  <h2>Итог</h2>
+  <ul class="big-list">
+    <li><b>Бэкенд-ту-бэкенд</b> — переводи хоть сегодня: ни CORS, ни чужих прокси, а HttpClient сам ретраит идемпотентный метод</li>
+    <li><b>Публичный фронт</b> — можно, но только с fallback'ом на POST</li>
+    <li><b>Кэширование</b> — подождём инфраструктуру, спека уже готова</li>
+    <li>POST /search всегда был <b>костылём</b> — просто мы к нему привыкли</li>
+  </ul>
+  <p class="sub" style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+    RFC 10008 · datatracker.ietf.org<br>
+    демо: csharpshortpostsexamples/HttpQueryExample · dotnet run → localhost:5177
+  </p>
+</section>
+
+<div class="foot">
+  <div class="bar" id="bar"></div>
+  <span>HTTP QUERY · C# Short Posts</span>
+  <span><kbd>←</kbd> <kbd>→</kbd> · <span id="counter">1 / 9</span></span>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0;
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    document.getElementById('counter').textContent = `${i + 1} / ${slides.length}`;
+    document.getElementById('bar').style.width = ((i + 1) / slides.length * 100) + '%';
+  }
+  addEventListener('keydown', e => {
+    if (['ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); go(i + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+  addEventListener('click', e => { if (!e.target.closest('.foot')) go(i + 1); });
+  go(0);
+</script>
+</body>
+</html>
