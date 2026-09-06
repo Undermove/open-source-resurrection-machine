@@ -1069,10 +1069,11 @@ function doodleSVG(d, seed) {
 /* ═════════════ СОСТОЯНИЕ ═════════════ */
 const LS_KEY = "wnp-board-progress";
 const LS_THEME = "wnp-board-theme";
-const INITIAL_UNLOCKED = 5; // прослушано до «Мозаикового портфеля»
+const INITIAL_UNLOCKED = 11; // первый том дочитан (до «Аустерлица» включительно)
 let unlocked = (() => {
   const v = parseInt(localStorage.getItem(LS_KEY), 10);
-  return Number.isFinite(v) ? Math.min(Math.max(v, 1), NODES.length) : INITIAL_UNLOCKED;
+  // сохранённый прогресс не может быть ниже дефолта — иначе старый localStorage прячет уже прочитанное
+  return Number.isFinite(v) ? Math.min(Math.max(v, INITIAL_UNLOCKED), NODES.length) : INITIAL_UNLOCKED;
 })();
 let zoom = window.innerWidth < 700 ? 0.42 : 0.8;
 
@@ -1307,8 +1308,8 @@ function unlockNext() {
 }
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  if (confirm("Сбросить прогресс до самого начала (эпизод 1)?")) {
-    unlocked = 1; localStorage.setItem(LS_KEY, 1); render(); scrollToFrontier();
+  if (confirm("Сбросить прогресс до прочитанного (конец первого тома)?")) {
+    unlocked = INITIAL_UNLOCKED; localStorage.setItem(LS_KEY, INITIAL_UNLOCKED); render(); scrollToFrontier();
   }
 });
 document.getElementById("helpBtn").addEventListener("click", openHelp);
