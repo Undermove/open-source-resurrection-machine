@@ -1,5 +1,5 @@
 {
-  "claude-fable-5": {
+  "claude-fable-5-high": {
     "text": 1505.68,
     "code": 1627.98,
     "vision": 1309.5
@@ -1597,7 +1597,7 @@
     "vision": 881.77
   },
   "_meta": {
-    "fetched": "2026-09-14T12:10:17.654716+00:00",
+    "fetched": "2026-09-21T12:18:56.337953+00:00",
     "source": "https://arena.ai/leaderboard",
     "categories": [
       "text",
