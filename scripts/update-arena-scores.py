@@ -1,69 +1,65 @@
 #!/usr/bin/env python3
 """
-Scrapes arena.ai/leaderboard/{text,code,vision} and produces arena-scores.json
-with ELO ratings by category.
+Pulls Arena ELO ratings from the official lmarena-ai/leaderboard-dataset on
+Hugging Face and produces arena-scores.json with ratings by category.
 
+arena.ai itself sits behind a Cloudflare JS challenge (403 for scripts),
+so we read the dataset's parquet files instead.
+
+Requires: pip install pyarrow
 Run: python3 scripts/update-arena-scores.py
 Output: arena-scores.json
 """
 
+import io
 import json
 import os
 import re
-import sys
 import urllib.request
 from datetime import datetime, timezone
 
-BASE_URL = "https://arena.ai/leaderboard"
-CATEGORIES = ["text", "code", "vision"]
+import pyarrow.parquet as pq
+
+DATASET = "lmarena-ai/leaderboard-dataset"
+PARQUET_URL = "https://huggingface.co/datasets/{ds}/resolve/main/{cfg}/latest-00000-of-00001.parquet"
+# our category -> dataset config ("code" arena on the site is the WebDev leaderboard)
+CATEGORIES = {"text": "text", "code": "webdev", "vision": "vision"}
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "arena-scores.json")
 
 
-def fetch_html(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8")
+def fetch_rows(config):
+    req = urllib.request.Request(PARQUET_URL.format(ds=DATASET, cfg=config), headers={"User-Agent": "arena-scores-updater"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        table = pq.read_table(io.BytesIO(resp.read()), columns=["model_name", "rating", "category"])
+    return [r for r in table.to_pylist() if r["category"] == "overall"]
 
 
-def parse_arena(html):
-    """Extract (modelDisplayName, rating) pairs from arena.ai HTML."""
-    matches = re.findall(
-        r'modelDisplayName\\":\\"([^\\]+)\\",\\"rating\\":([0-9.]+)', html
-    )
-    # Deduplicate: keep the rounded version (shorter) per model
-    best = {}
-    for name, rating in matches:
-        r = float(rating)
-        if name not in best or len(rating) < len(str(best[name])):
-            best[name] = round(r, 2)
-    return best
+def slugify(name):
+    """'Claude Opus 5.5 (High)' -> 'claude-opus-5.5-high' (the slug format llm-pricing.html matches against)."""
+    s = name.lower().replace("(", " ").replace(")", " ").replace(",", " ")
+    return re.sub(r"\s+", "-", s.strip())
 
 
 def main():
     result = {}
 
-    for cat in CATEGORIES:
-        url = f"{BASE_URL}/{cat}"
-        print(f"Fetching {url}...")
-        html = fetch_html(url)
-        print(f"  HTML size: {len(html):,} bytes")
+    for cat, config in CATEGORIES.items():
+        print(f"Fetching {DATASET} [{config}]...")
+        rows = fetch_rows(config)
+        print(f"  Models: {len(rows)}")
 
-        models = parse_arena(html)
-        print(f"  Models: {len(models)}")
-
-        for name, rating in models.items():
-            if name not in result:
-                result[name] = {}
-            result[name][cat] = rating
+        for r in rows:
+            result.setdefault(slugify(r["model_name"]), {})[cat] = round(r["rating"], 2)
 
     print(f"\nTotal unique models: {len(result)}")
+    if not result:
+        raise SystemExit("No models fetched, refusing to overwrite arena-scores.json")
 
-    # Add metadata
     result["_meta"] = {
         "fetched": datetime.now(timezone.utc).isoformat(),
-        "source": BASE_URL,
-        "categories": CATEGORIES,
-        "description": "ELO ratings from arena.ai leaderboard by category",
+        "source": f"https://huggingface.co/datasets/{DATASET}",
+        "categories": list(CATEGORIES),
+        "description": "ELO ratings from the Arena leaderboard dataset by category",
     }
 
     with open(OUT, "w") as f:

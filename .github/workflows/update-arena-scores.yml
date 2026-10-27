@@ -19,7 +19,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Scrape arena.ai leaderboard
+      - name: Install dependencies
+        run: pip install pyarrow
+
+      - name: Fetch Arena leaderboard dataset
         run: python3 scripts/update-arena-scores.py
 
       - name: Update embedded fallback in HTML
