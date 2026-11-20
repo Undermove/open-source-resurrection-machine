@@ -126,14 +126,14 @@
   <header class="hero">
     <div class="script">1 декабря у Димы днюха</div>
     <h1>Вишлист</h1>
-    <p>Тут то, чему я правда обрадуюсь. Есть недорогое, есть крупное, на которое можно скинуться вместе. У каждого подарка есть ссылка на магазин, цены на 20.11.2026.</p>
+    <p>Тут то, чему я правда обрадуюсь. У каждого подарка есть ссылка на магазин, цены на 20.11.2026.</p>
   </header>
 
   <nav class="filters" aria-label="Фильтр по бюджету">
     <button class="chip" data-f="all" aria-pressed="true">Всё</button>
     <button class="chip" data-f="cheap" aria-pressed="false">До 50 $</button>
     <button class="chip" data-f="mid" aria-pressed="false">50–150 $</button>
-    <button class="chip" data-f="big" aria-pressed="false">Крупное, вскладчину</button>
+    <button class="chip" data-f="big" aria-pressed="false">Дороже 150 $</button>
   </nav>
 
   <div id="groups"></div>
@@ -142,25 +142,21 @@
 
 
 <script>
-// budget: cheap | mid | big (big — крупное, вскладчину).
+// budget: cheap | mid | big.
 const GROUPS = [
   {
     title: "🖥️ Домашний NAS",
-    sub: "Хочу свой маленький сервер дома: бэкапы, фотки, фильмы, контейнеры. Это крупная штука, на неё лучше скидываться вместе.",
+    sub: "Хочу свой маленький сервер дома: бэкапы, фотки, фильмы, контейнеры.",
     items: [
       { id: "nas-ugreen", emoji: "🗄️", name: "UGREEN NASync DXP2800", top: true, kind: "pool", goal: 1299, budget: "big",
-        why: "Двухдисковый NAS на Intel N100, 8 ГБ памяти, 2.5-гигабитная сеть. Тянет Docker и Jellyfin. Диски покупаются отдельно (ниже).",
+        why: "Двухдисковый NAS на Intel N100, 8 ГБ памяти, 2.5-гигабитная сеть. Тянет Docker и Jellyfin. Диски к нему ставятся отдельно.",
         price: "1 299 ₾", usd: "≈ 480 $",
         links: [["Zoommer", "https://zoommer.ge/en/memory-data-carriers/ugreen-nasync-dxp2800-25369-grey-p48602"]] },
-      { id: "hdd-1", emoji: "💽", name: "Диск №1: Seagate IronWolf 4 ТБ", kind: "pool", goal: 699, budget: "big",
-        why: "Диски для NAS. Нужны два одинаковых, чтобы данные дублировались. Если в наличии будет WD Red Plus 4 ТБ, он почти вдвое дешевле.",
+      { id: "hdd", emoji: "💽", name: "Диск для NAS: Seagate IronWolf 4 ТБ", kind: "claim", budget: "big",
+        why: "В NAS ставится два одинаковых диска, чтобы данные дублировались. Если в наличии есть WD Red Plus 4 ТБ, он почти вдвое дешевле.",
         price: "699 ₾", usd: "≈ 260 $",
         links: [["Allmarket", "https://allmarket.ge/en/product/350421-mkari-diski-seagate-st4000vn006-ironwolf_-4tb_-3_5-internal-hard-drive"],
                 ["WD Red Plus 4 ТБ, 379 ₾", "https://allmarket.ge/en/product/102996-mkari-diski-western-digital-wd40efpx_-4tb_-3_5-internal-hard-drive"]] },
-      { id: "hdd-2", emoji: "💽", name: "Диск №2: Seagate IronWolf 4 ТБ", kind: "pool", goal: 699, budget: "big",
-        why: "Пара к первому диску, такая же модель.",
-        price: "699 ₾", usd: "≈ 260 $",
-        links: [["Allmarket", "https://allmarket.ge/en/product/350421-mkari-diski-seagate-st4000vn006-ironwolf_-4tb_-3_5-internal-hard-drive"]] },
     ]
   },
   {
