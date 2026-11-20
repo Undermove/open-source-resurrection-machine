@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вишлист Димы 🎂</title>
+<meta name="description" content="Что подарить Диме на день рождения: выбирай, бронируй, скидывайся.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Marck+Script&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0d0b;
+    --card: oklch(0.21 0.012 60 / 0.72);
+    --line: oklch(0.42 0.02 60 / 0.45);
+    --text: oklch(0.95 0.01 80);
+    --muted: oklch(0.72 0.02 70);
+    --accent: oklch(0.80 0.15 75);
+    --accent-2: oklch(0.70 0.17 35);
+    --ok: oklch(0.78 0.14 150);
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 1.25rem;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body {
+    margin: 0;
+    font-family: "Onest", system-ui, sans-serif;
+    line-height: 1.55;
+    color: var(--text);
+    background:
+      radial-gradient(60rem 40rem at 10% -10%, oklch(0.45 0.12 50 / 0.45), transparent 60%),
+      radial-gradient(50rem 35rem at 100% 10%, oklch(0.40 0.10 20 / 0.35), transparent 60%),
+      radial-gradient(40rem 30rem at 50% 110%, oklch(0.38 0.08 90 / 0.35), transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.16;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  main { position: relative; z-index: 1; max-width: 68rem; margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem) 5rem; }
+
+  header.hero {
+    margin-bottom: 2.5rem;
+    & .script { font-family: "Marck Script", cursive; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--accent); }
+    & h1 { font-family: "Inter Tight", sans-serif; font-weight: 800; letter-spacing: -0.03em; font-size: clamp(2.6rem, 8vw, 5.2rem); line-height: 0.95; margin: 0.2rem 0 1rem; }
+    & p { color: var(--muted); max-width: 42rem; margin: 0.4rem 0; }
+  }
+  .how {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.75rem; margin: 1.5rem 0 0;
+    & div { border: 1px solid var(--line); border-radius: 1rem; padding: 0.9rem 1rem; background: oklch(0.2 0.01 60 / 0.5); backdrop-filter: blur(16px); }
+    & b { display: block; font-family: "Inter Tight", sans-serif; font-weight: 700; }
+    & span { color: var(--muted); font-size: 0.92rem; }
+  }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 2rem 0 1.25rem; }
+  .chip {
+    font: 500 0.78rem/1 "Onest", sans-serif; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0.6rem 0.9rem; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer;
+    transition: all 0.2s var(--ease);
+    &:hover { color: var(--text); border-color: var(--accent); }
+    &[aria-pressed="true"] { background: var(--accent); color: #1a1208; border-color: var(--accent); }
+  }
+
+  section.group { margin-top: 2.5rem; }
+  section.group > h2 {
+    font-family: "Inter Tight", sans-serif; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(1.4rem, 3vw, 1.9rem); margin: 0 0 0.3rem;
+  }
+  section.group > p.sub { color: var(--muted); margin: 0 0 1rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 1rem; }
+  .card {
+    container-type: inline-size;
+    position: relative; display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 1.15rem 1.15rem 1rem; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--line); backdrop-filter: blur(16px);
+    transition: transform 0.25s var(--ease), border-color 0.25s var(--ease), opacity 0.25s var(--ease);
+    &:hover { transform: translateY(-2px); border-color: oklch(0.6 0.08 70 / 0.7); }
+    &.taken { opacity: 0.55; }
+    &.top { border-color: oklch(0.75 0.14 75 / 0.75); }
+  }
+  .card .emoji { font-size: 1.8rem; line-height: 1; }
+  .card h3 { font-family: "Inter Tight", sans-serif; font-weight: 700; letter-spacing: -0.02em; font-size: 1.15rem; margin: 0; }
+  .card .why { color: var(--muted); font-size: 0.93rem; margin: 0; }
+  .price { font-family: "Inter Tight", sans-serif; font-weight: 700; font-size: 1.3rem; }
+  .price small { font: 400 0.85rem "Onest", sans-serif; color: var(--muted); margin-left: 0.35rem; }
+  .tag { align-self: flex-start; font: 500 0.7rem/1 "Onest", sans-serif; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.35rem 0.55rem; border-radius: 999px; background: oklch(0.80 0.15 75 / 0.16); color: var(--accent); }
+  .links { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; font-size: 0.92rem; }
+  .links a { color: var(--text); text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .links a:hover { color: var(--accent); }
+  .status { font-size: 0.9rem; color: var(--ok); min-height: 1.2em; }
+  .bar { height: 0.5rem; border-radius: 999px; background: oklch(0.3 0.01 60); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width 0.6s var(--ease); }
+  .pledges { font-size: 0.85rem; color: var(--muted); margin: 0; }
+  .actions { margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.3rem; }
+  .btn {
+    font: 600 0.9rem/1 "Onest", sans-serif; padding: 0.75rem 1rem; border-radius: 0.8rem; border: 0; cursor: pointer;
+    background: var(--accent); color: #1a1208; transition: transform 0.15s var(--ease), box-shadow 0.25s var(--ease);
+    &:hover { box-shadow: 0 0 1.4rem oklch(0.80 0.15 75 / 0.45); }
+    &:active { transform: scale(0.96); }
+    &.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    &.ghost:hover { box-shadow: none; border-color: var(--accent); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  dialog {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 1.4rem; width: min(26rem, 92vw);
+    background: oklch(0.18 0.01 60 / 0.96); color: var(--text); backdrop-filter: blur(16px);
+    &::backdrop { background: oklch(0 0 0 / 0.55); backdrop-filter: blur(4px); }
+    & h3 { font-family: "Inter Tight", sans-serif; letter-spacing: -0.02em; margin: 0 0 0.3rem; }
+    & p { color: var(--muted); margin: 0 0 1rem; font-size: 0.93rem; }
+    & label { display: block; font: 500 0.75rem "Onest", sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0.8rem 0 0.35rem; }
+    & input { width: 100%; font: 400 1rem "Onest", sans-serif; padding: 0.75rem 0.85rem; border-radius: 0.7rem; border: 1px solid var(--line); background: oklch(0.13 0.01 60); color: var(--text); }
+    & input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    & .row { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.2rem; }
+  }
+  .notice { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  .toast { position: fixed; left: 50%; bottom: 1.5rem; translate: -50% 0; background: var(--accent); color: #1a1208; padding: 0.7rem 1.1rem; border-radius: 0.8rem; font-weight: 600; opacity: 0; transition: opacity 0.3s var(--ease); pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+  @container (max-width: 17rem) { .actions .btn { flex: 1; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="script">1 декабря у Димы днюха</div>
+    <h1>Вишлист</h1>
+    <p>Тут то, чему я правда обрадуюсь. Есть недорогое, есть крупное, на которое можно скинуться вместе. У каждого подарка есть ссылка на магазин, цены на 20.11.2026.</p>
+  </header>
+
+  <nav class="filters" aria-label="Фильтр по бюджету">
+    <button class="chip" data-f="all" aria-pressed="true">Всё</button>
+    <button class="chip" data-f="cheap" aria-pressed="false">До 50 $</button>
+    <button class="chip" data-f="mid" aria-pressed="false">50–150 $</button>
+    <button class="chip" data-f="big" aria-pressed="false">Крупное, вскладчину</button>
+  </nav>
+
+  <div id="groups"></div>
+
+</main>
+
+
+<script>
+// budget: cheap | mid | big (big — крупное, вскладчину).
+const GROUPS = [
+  {
+    title: "🖥️ Домашний NAS",
+    sub: "Хочу свой маленький сервер дома: бэкапы, фотки, фильмы, контейнеры. Это крупная штука, на неё лучше скидываться вместе.",
+    items: [
+      { id: "nas-ugreen", emoji: "🗄️", name: "UGREEN NASync DXP2800", top: true, kind: "pool", goal: 1299, budget: "big",
+        why: "Двухдисковый NAS на Intel N100, 8 ГБ памяти, 2.5-гигабитная сеть. Тянет Docker и Jellyfin. Диски покупаются отдельно (ниже).",
+        price: "1 299 ₾", usd: "≈ 480 $",
+        links: [["Zoommer", "https://zoommer.ge/en/memory-data-carriers/ugreen-nasync-dxp2800-25369-grey-p48602"]] },
+      { id: "hdd-1", emoji: "💽", name: "Диск №1: Seagate IronWolf 4 ТБ", kind: "pool", goal: 699, budget: "big",
+        why: "Диски для NAS. Нужны два одинаковых, чтобы данные дублировались. Если в наличии будет WD Red Plus 4 ТБ, он почти вдвое дешевле.",
+        price: "699 ₾", usd: "≈ 260 $",
+        links: [["Allmarket", "https://allmarket.ge/en/product/350421-mkari-diski-seagate-st4000vn006-ironwolf_-4tb_-3_5-internal-hard-drive"],
+                ["WD Red Plus 4 ТБ, 379 ₾", "https://allmarket.ge/en/product/102996-mkari-diski-western-digital-wd40efpx_-4tb_-3_5-internal-hard-drive"]] },
+      { id: "hdd-2", emoji: "💽", name: "Диск №2: Seagate IronWolf 4 ТБ", kind: "pool", goal: 699, budget: "big",
+        why: "Пара к первому диску, такая же модель.",
+        price: "699 ₾", usd: "≈ 260 $",
+        links: [["Allmarket", "https://allmarket.ge/en/product/350421-mkari-diski-seagate-st4000vn006-ironwolf_-4tb_-3_5-internal-hard-drive"]] },
+    ]
+  },
+  {
+    title: "🎧 Гаджеты",
+    sub: "",
+    items: [
+      { id: "aerofit2", emoji: "🎧", name: "Наушники Soundcore AeroFit 2", top: true, kind: "claim", budget: "mid",
+        why: "Обычные вкладыши мне в уши не лезут. Эти цепляются дужкой за ухо и не входят в слуховой проход. Чехол компактный, как у AirPods.",
+        price: "229 ₾", usd: "≈ 85 $",
+        links: [["Zoommer", "https://zoommer.ge/en/headphones-headsets/anker-soundcore-aerofit-2-white-p52767"],
+                ["Amazon", "https://www.amazon.com/Soundcore-Assistant-Headphones-Pressure-Free-Translation/dp/B0F9XYP69W"]] },
+      { id: "miband10", emoji: "⌚", name: "Xiaomi Smart Band 10", kind: "claim", budget: "mid",
+        why: "Простой браслет: шаги, сон, уведомления. Цвет любой.",
+        price: "119 ₾", usd: "≈ 44 $",
+        links: [["Zoommer", "https://zoommer.ge/en/smart-watches/xiaomi-smart-band-10-silver-p48534"]] },
+    ]
+  },
+  {
+    title: "🎮 Игры в Steam",
+    sub: "",
+    items: [
+      { id: "abiotic", emoji: "🧪", name: "Abiotic Factor", top: true, kind: "claim", budget: "cheap",
+        why: "Кооперативное выживание в научном комплексе. 100% попадание, давно хочу.",
+        price: "≈ 16 $", usd: "",
+        links: [["Steam", "https://store.steampowered.com/app/427410/"]] },
+      { id: "drg", emoji: "⛏️", name: "Deep Rock Galactic", kind: "claim", budget: "cheap",
+        why: "Гномы, шахты, кооп. Вечная классика для вечера с друзьями.",
+        price: "≈ 14 $", usd: "",
+        links: [["Steam", "https://store.steampowered.com/app/548430/"]] },
+      { id: "peak", emoji: "🏔️", name: "PEAK", kind: "claim", budget: "cheap",
+        why: "Кооперативное восхождение на гору. Дёшево и очень смешно.",
+        price: "≈ 5 $", usd: "",
+        links: [["Steam", "https://store.steampowered.com/app/3527290/"]] },
+      { id: "repo", emoji: "👻", name: "R.E.P.O.", kind: "claim", budget: "cheap",
+        why: "Кооперативный хоррор, где надо вытаскивать ценности из жутких особняков.",
+        price: "≈ 5 $", usd: "",
+        links: [["Steam", "https://store.steampowered.com/app/3241660/"]] },
+      { id: "steam-card", emoji: "💳", name: "Карта пополнения Steam", kind: "pool", goal: 0, budget: "cheap",
+        why: "Если не хочется гадать. Любая сумма.",
+        price: "любая сумма", usd: "",
+        links: [["Steam Gift Cards", "https://store.steampowered.com/digitalgiftcards/"]] },
+    ]
+  },
+  {
+    title: "🎁 Мелочи, которые порадуют",
+    sub: "Недорого и просто заказать.",
+    items: [
+      { id: "ddia2", emoji: "📘", name: "Designing Data-Intensive Applications, 2-е издание", kind: "claim", budget: "cheap",
+        why: "Главная книга про устройство систем с данными. Второе издание вышло в 2026.",
+        price: "≈ 46 $", usd: "",
+        links: [["Amazon", "https://www.amazon.com/dp/1098119061"]] },
+      { id: "petzl", emoji: "🔦", name: "Налобный фонарик Petzl Tikkina", kind: "claim", budget: "cheap",
+        why: "Для походов по горам вокруг Батуми, когда темнеет раньше, чем ты спустился.",
+        price: "≈ 20 $", usd: "",
+        links: [["Amazon", "https://www.amazon.com/PETZL-TIKKINA-Headlamp-Easy-Use/dp/B0FD64NN69"]] },
+      { id: "coffee", emoji: "☕", name: "Пачка спешелти-кофе в зёрнах", kind: "claim", budget: "cheap",
+        why: "Любая обжарка, которую ты сам любишь. Например, Shavi Coffee Roasters из Тбилиси.",
+        price: "40–60 ₾", usd: "",
+        links: [["Shavi на Wolt", "https://wolt.com/ka/geo/tbilisi/venue/shavi-coffee-mtskheta"]] },
+    ]
+  },
+];
+
+// ===== Рендер =====
+let filter = "all";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function card(it) {
+  const el = document.createElement("article");
+  el.className = "card" + (it.top ? " top" : "");
+  el.innerHTML = `
+    ${it.top ? '<span class="tag">очень хочу</span>' : ""}
+    <div class="emoji" aria-hidden="true">${it.emoji}</div>
+    <h3>${esc(it.name)}</h3>
+    <p class="why">${esc(it.why)}</p>
+    <div class="price">${esc(it.price)}${it.usd ? `<small>${esc(it.usd)}</small>` : ""}</div>
+    <div class="links">${it.links.map(([t, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)} ↗</a>`).join("")}</div>`;
+  return el;
+}
+
+function render() {
+  const root = $("#groups"); root.innerHTML = "";
+  for (const g of GROUPS) {
+    const items = g.items.filter(it => filter === "all" || it.budget === filter); if (!items.length) continue;
+    const sec = document.createElement("section"); sec.className = "group";
+    sec.innerHTML = `<h2>${esc(g.title)}</h2>${g.sub ? `<p class="sub">${esc(g.sub)}</p>` : ""}<div class="grid"></div>`;
+    items.forEach(it => $(".grid", sec).append(card(it)));
+    root.append(sec);
+  }
+}
+
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+  filter = c.dataset.f;
+  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+  render();
+});
+render();
+</script>
+</body>
+</html>
