@@ -129,12 +129,6 @@
     <p>Тут то, чему я правда обрадуюсь. У каждого подарка есть ссылка на магазин, цены на 20.11.2026.</p>
   </header>
 
-  <nav class="filters" aria-label="Фильтр по бюджету">
-    <button class="chip" data-f="all" aria-pressed="true">Всё</button>
-    <button class="chip" data-f="cheap" aria-pressed="false">До 50 $</button>
-    <button class="chip" data-f="mid" aria-pressed="false">50–150 $</button>
-    <button class="chip" data-f="big" aria-pressed="false">Дороже 150 $</button>
-  </nav>
 
   <div id="groups"></div>
 
@@ -142,7 +136,6 @@
 
 
 <script>
-// budget: cheap | mid | big.
 const GROUPS = [
   {
     title: "🖥️ Домашний NAS",
@@ -150,11 +143,11 @@ const GROUPS = [
     items: [
       { id: "nas-ugreen", emoji: "🗄️", name: "UGREEN NASync DXP2800", top: true, kind: "pool", goal: 1299, budget: "big",
         why: "Двухдисковый NAS на Intel N100, 8 ГБ памяти, 2.5-гигабитная сеть. Тянет Docker и Jellyfin. Диски к нему ставятся отдельно.",
-        price: "1 299 ₾", usd: "≈ 480 $",
+        price: "1 299 ₾", usd: "",
         links: [["Zoommer", "https://zoommer.ge/en/memory-data-carriers/ugreen-nasync-dxp2800-25369-grey-p48602"]] },
       { id: "hdd", emoji: "💽", name: "Диск для NAS: Seagate IronWolf 4 ТБ", kind: "claim", budget: "big",
         why: "В NAS ставится два одинаковых диска, чтобы данные дублировались. Если в наличии есть WD Red Plus 4 ТБ, он почти вдвое дешевле.",
-        price: "699 ₾", usd: "≈ 260 $",
+        price: "699 ₾", usd: "",
         links: [["Allmarket", "https://allmarket.ge/en/product/350421-mkari-diski-seagate-st4000vn006-ironwolf_-4tb_-3_5-internal-hard-drive"],
                 ["WD Red Plus 4 ТБ, 379 ₾", "https://allmarket.ge/en/product/102996-mkari-diski-western-digital-wd40efpx_-4tb_-3_5-internal-hard-drive"]] },
     ]
@@ -165,13 +158,13 @@ const GROUPS = [
     items: [
       { id: "openwear", emoji: "🎧", name: "Наушники Xiaomi OpenWear Stereo Pro", top: true, kind: "claim", budget: "mid",
         why: "Обычные вкладыши мне в уши не лезут. Эти цепляются дужкой за ухо и не входят в слуховой проход, чехол компактный. Такие у друга, проверено.",
-        price: "≈ 140–150 €", usd: "",
+        price: "≈ 430–470 ₾", usd: "",
         links: [["Xiaomi Store", "https://www.mi.com/de/product/xiaomi-openwear-stereo-pro/buy/"],
                 ["Amazon", "https://www.amazon.com/s?k=Xiaomi+OpenWear+Stereo+Pro"],
                 ["Похожие подешевле: Soundcore AeroFit 2, 229 ₾", "https://zoommer.ge/en/headphones-headsets/anker-soundcore-aerofit-2-white-p52767"]] },
       { id: "miband10", emoji: "⌚", name: "Xiaomi Smart Band 10", kind: "claim", budget: "mid",
         why: "Простой браслет: шаги, сон, уведомления. Цвет любой.",
-        price: "119 ₾", usd: "≈ 44 $",
+        price: "119 ₾", usd: "",
         links: [["Zoommer", "https://zoommer.ge/en/smart-watches/xiaomi-smart-band-10-silver-p48534"]] },
     ]
   },
@@ -181,7 +174,7 @@ const GROUPS = [
     items: [
       { id: "abiotic", emoji: "🧪", name: "Abiotic Factor", top: true, kind: "claim", budget: "cheap",
         why: "Кооперативное выживание в научном комплексе. 100% попадание, давно хочу.",
-        price: "≈ 16 $", usd: "",
+        price: "≈ 45 ₾", usd: "",
         links: [["Steam", "https://store.steampowered.com/app/427410/"]] },
     ]
   },
@@ -195,15 +188,15 @@ const GROUPS = [
         links: [["Shavi на Wolt", "https://wolt.com/ka/geo/tbilisi/venue/shavi-coffee-mtskheta"]] },
       { id: "kettle", emoji: "🫖", name: "Чайник Xiaomi Smart Kettle 2 Pro", top: true, kind: "claim", budget: "mid",
         why: "Простой электрочайник, в котором можно выставить температуру. Мой прошлый сгорел.",
-        price: "139 ₾", usd: "≈ 51 $",
+        price: "139 ₾", usd: "",
         links: [["Zoommer", "https://zoommer.ge/en/kitchen/xiaomi-smart-kettle-2-pro-white-p45417"]] },
       { id: "gooseneck", emoji: "🫗", name: "Чайник с тонким носиком Hario Buono", kind: "claim", budget: "mid",
         why: "Для пуровера: из тонкого носика вода льётся ровной струйкой.",
-        price: "≈ 154 ₾", usd: "≈ 57 $",
+        price: "≈ 154 ₾", usd: "",
         links: [["Amazon", "https://www.amazon.com/dp/B000IGOXLS"]] },
       { id: "v60", emoji: "☕", name: "Воронка Hario V60 02 + фильтры", kind: "claim", budget: "cheap",
-        why: "Классическая воронка для заваривания кофе, к ней бумажные фильтры.",
-        price: "≈ 32 ₾", usd: "+ фильтры ≈ 21 ₾",
+        why: "Классическая воронка для заваривания кофе, к ней бумажные фильтры. Цена вместе с фильтрами.",
+        price: "≈ 55 ₾", usd: "",
         links: [["Воронка", "https://www.amazon.com/dp/B001RBTSMM"], ["Фильтры", "https://www.amazon.com/dp/B001O0R46I"]] },
     ]
   },
@@ -213,11 +206,11 @@ const GROUPS = [
     items: [
       { id: "cleaver", emoji: "🔪", name: "Хороший большой нож-тесак", kind: "claim", budget: "mid",
         why: "Не обычный шеф-нож, а побольше, с широким прямоугольным лезвием, как китайский поварской тесак. Им и режут, и шинкуют, и с доски переносят. Например, TUO Fiery Phoenix или Shi Ba Zi Zuo.",
-        price: "≈ 30–60 $", usd: "",
+        price: "≈ 80–160 ₾", usd: "",
         links: [["TUO на Amazon", "https://www.amazon.com/s?k=TUO+Fiery+Phoenix+cleaver"], ["Shi Ba Zi Zuo на Amazon", "https://www.amazon.com/s?k=Shi+Ba+Zi+Zuo+chinese+chef+cleaver"]] },
       { id: "skechers", emoji: "👟", name: "Кроссовки Skechers", kind: "claim", budget: "mid",
         why: "Базовые, удобные, на каждый день, например серии Go Walk или Summits. Размер 42. Обычно берём такие в Декатлоне или на Amazon через USA2Georgia.",
-        price: "≈ 79 $", usd: "",
+        price: "≈ 215 ₾", usd: "",
         links: [["Amazon", "https://www.amazon.com/s?k=skechers+men+go+walk"]] },
     ]
   },
@@ -227,11 +220,11 @@ const GROUPS = [
     items: [
       { id: "skate-shoes", emoji: "👟", name: "Скейтерские кеды Element", top: true, kind: "claim", budget: "cheap",
         why: "Нынешние уже рвутся. Размер 42. Например, Element Topaz C3.",
-        price: "≈ 50–70 $", usd: "",
+        price: "≈ 135–190 ₾", usd: "",
         links: [["Blue Tomato", "https://www.blue-tomato.com/en-DK/product/Element-Topaz+C3+Sneakers-634431/"], ["Amazon", "https://www.amazon.com/s?k=element+skate+shoes+men"]] },
       { id: "skateboard", emoji: "🛹", name: "Дека для скейта", kind: "claim", budget: "cheap",
         why: "Нужна только дека, колёса и подвески у меня есть. Хочется Union или что-то похожее.",
-        price: "≈ 4–5 тыс. ₽", usd: "≈ 50–60 $",
+        price: "≈ 135–170 ₾", usd: "",
         links: [["Ozon", "https://www.ozon.ru/search/?text=%D0%B4%D0%B5%D0%BA%D0%B0+union"],
                 ["Яндекс Маркет", "https://market.yandex.ru/search?text=%D0%B4%D0%B5%D0%BA%D0%B0%20union"]] },
     ]
@@ -242,23 +235,22 @@ const GROUPS = [
     items: [
       { id: "bttf-tee", emoji: "👕", name: "Футболка «Назад в будущее» с чертежом DeLorean", kind: "claim", budget: "cheap",
         why: "Чёрная, с принтом-чертежом машины времени. Размер S или M.",
-        price: "≈ 18–25 $", usd: "",
+        price: "≈ 50–70 ₾", usd: "",
         links: [["Hot Topic", "https://www.hottopic.com/product/back-to-the-future-delorean-schematic-print-t-shirt/11702180.html"],
                 ["Amazon", "https://www.amazon.com/s?k=back+to+the+future+delorean+blueprint+t-shirt+black"]] },
       { id: "guitar", emoji: "🎸", name: "Недорогая гитара", kind: "claim", budget: "big",
         why: "Электрогитара была бы вообще топ, например Squier Sonic Stratocaster. Или классическая с нейлоновыми струнами, например Yamaha C40. Нужна одна из них.",
-        price: "≈ 150–250 $", usd: "",
+        price: "≈ 400–680 ₾", usd: "",
         links: [["Squier Sonic Strat", "https://www.amazon.com/s?k=Squier+Sonic+Stratocaster"], ["Yamaha C40", "https://www.amazon.com/s?k=Yamaha+C40+classical+guitar"]] },
       { id: "nerf", emoji: "🔫", name: "Нёрф-бластер", kind: "claim", budget: "cheap",
         why: "Один у меня уже есть, второй будет для дуэлей. Подойдёт любой, например Nerf Elite 2.0 Flip-8.",
-        price: "85 ₾", usd: "≈ 31 $",
+        price: "85 ₾", usd: "",
         links: [["Superstore", "https://superstore.ge/en/product/toys/outdoor-toys/toy-blasters/blasters/%e1%83%97%e1%83%9d%e1%83%a4%e1%83%98-8-%e1%83%a2%e1%83%a7%e1%83%95%e1%83%98%e1%83%98%e1%83%97-nerf-elite-2-0-flipshots-flip-8-hasbro"]] },
     ]
   },
 ];
 
 // ===== Рендер =====
-let filter = "all";
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -278,7 +270,7 @@ function card(it) {
 function render() {
   const root = $("#groups"); root.innerHTML = "";
   for (const g of GROUPS) {
-    const items = g.items.filter(it => filter === "all" || it.budget === filter); if (!items.length) continue;
+    const items = g.items;
     const sec = document.createElement("section"); sec.className = "group";
     sec.innerHTML = `<h2>${esc(g.title)}</h2>${g.sub ? `<p class="sub">${esc(g.sub)}</p>` : ""}<div class="grid"></div>`;
     items.forEach(it => $(".grid", sec).append(card(it)));
@@ -286,11 +278,6 @@ function render() {
   }
 }
 
-document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
-  filter = c.dataset.f;
-  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c));
-  render();
-});
 render();
 </script>
 </body>
